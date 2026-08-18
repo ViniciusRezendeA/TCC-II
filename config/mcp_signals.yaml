@@ -1,0 +1,49 @@
+# Sinais usados para identificar repositórios candidatos a "servidor MCP" no GitHub
+# (Etapa 1 do TCC). Cada entrada abaixo vira uma query GraphQL separada; os
+# resultados são unidos (por id de repositório) e deduplicados em
+# `collection/dedupe_rank.py`.
+#
+# Mantido como dados (não hardcoded em Python) porque o ecossistema MCP está em
+# mudança ativa de nomes de pacote/SDK no momento em que este arquivo foi criado
+# (2026-08). Revisar antes de cada rodada completa da Etapa 1 — ver
+# `scripts/verify_sdk_syntax.py`.
+
+# Tópicos do GitHub (qualificador `topic:`), busca via GraphQL repository search.
+#
+# O tópico genérico "mcp" foi removido em 2026-08-18 após validação da primeira
+# rodada real: sozinho, respondia por 21% do pool (387/1873) e mais da metade
+# do top-206 por estrelas, dominado por plataformas grandes de IA/agentes que
+# apenas mencionam ou integram MCP como um recurso a mais (ex: JavaGuide,
+# JeecgBoot, siyuan-note, "ECC"), não servidores MCP focados. Ver validação
+# no histórico da conversa/plano — não reintroduzir sem um filtro adicional.
+topics:
+  - mcp-server
+  - model-context-protocol
+
+# Sinais textuais (qualificador `in:readme,description`), busca via GraphQL
+# repository search — NÃO usa a API de Code Search (REST), que fica desligada
+# por padrão em `github/rest_code_search.py`.
+text_signals:
+  - "@modelcontextprotocol/sdk" # pacote npm oficial, geração v1 (TS/JS)
+  - "@modelcontextprotocol/server" # pacote npm oficial, geração v2 (TS/JS, split)
+  - "FastMCP" # classe de alto nível do SDK Python, geração v1
+  - "mcp.server.fastmcp" # caminho de import do SDK Python, geração v1
+  - "io.modelcontextprotocol.sdk" # groupId Maven do SDK oficial Java
+  - "ModelContextProtocol" # pacote NuGet do SDK oficial C#
+
+# Linguagens-alvo (normalizado contra `primaryLanguage.name` no lado do cliente,
+# não embutido na query GraphQL — ver justificativa no plano de implementação).
+target_languages:
+  - Python
+  - JavaScript
+  - TypeScript
+  - Java
+  - "C#"
+
+min_stars: 100
+top_n: 206
+
+# Guarda-corpo: se o repositoryCount de alguma sub-query individual se aproximar
+# deste valor, é sinal de que o sinal textual está amplo demais (GitHub Search
+# não pagina além de 1000 resultados por query).
+result_count_warning_threshold: 900
