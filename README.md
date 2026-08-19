@@ -10,12 +10,18 @@ para o desenho detalhado, decisões e riscos conhecidos.
 
 ## Status
 
-- ✅ **Etapa 1** (mineração via GraphQL): implementada e testada (29 testes,
-  todos com HTTP mockado — ainda não rodada contra a API real do GitHub).
-- ✅ **Clonagem de repositórios**: implementada e testada.
-- ⬜ **Etapa 2** (detecção de tools + call graph por linguagem): ainda não
-  implementada — próximo passo, é um trabalho substancialmente maior
-  (5 linguagens × 2 gerações de SDK cada).
+- ✅ **Etapa 1** (mineração via GraphQL): implementada, testada e validada
+  contra a API real do GitHub (206 repositórios selecionados).
+- ✅ **Clonagem de repositórios**: implementada, testada e validada.
+- ✅ **Etapa 2** (detecção de tools + call graph): implementada para o padrão
+  de alto nível das 5 linguagens-alvo (Python, TypeScript, JavaScript, Java,
+  C#), com orquestração completa (`pipeline/run_step2.py`,
+  `schema/assemble_dataset.py`) e validada ponta a ponta contra 20
+  repositórios reais. 100 testes automatizados.
+- ⬜ **Pendente**: padrões de baixo nível/alternativos por linguagem
+  (`@server.list_tools()` em Python, `setRequestHandler` em TS/JS, builder
+  oficial em Java, pacote comunitário `fastmcp` em TS/JS) — ver o plano para
+  os achados reais de cobertura por padrão.
 
 ## Setup
 
@@ -40,6 +46,27 @@ uv run python -m mcp_pipeline.collection.run_step1
 Saídas em `data/`:
 - `candidate_pool.jsonl` — todos os repositórios que passaram nos filtros (auditoria)
 - `selected_repos.jsonl` — top N (206 por padrão) por estrelas
+
+## Rodando a Etapa 2
+
+Pré-requisito: repositórios já clonados via `clone_manager.clone_all` (ver
+`data/repos/<owner>__<name>/repo_meta.json`).
+
+```bash
+# Detecta tools + constrói call graphs para todo repositório já clonado.
+# Resumível — pula repositórios já processados (tools.jsonl existente) ou
+# previamente falhados (a menos que --retry-failed seja passado).
+uv run python -m mcp_pipeline.pipeline.run_step2 [--limit N] [--retry-failed]
+
+# Concatena a saída de todos os repositórios em um dataset único.
+uv run python -m mcp_pipeline.schema.assemble_dataset
+```
+
+Saída final: `data/dataset.jsonl`, um registro por tool (descrição + call
+graph estruturado de 3 níveis + metadados do repositório). Para gerar o
+payload compatível com Hasan et al. (`{name, server_name, description,
+SOURCE_CODE}`, usado pela avaliação via LLM-as-a-Judge da Etapa 3), ver
+`schema/export_for_evaluation.py`.
 
 ## Testes
 

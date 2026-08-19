@@ -66,6 +66,136 @@ def test_repo_with_no_tools_returns_empty_list(tmp_path):
     assert results == []
 
 
+def test_typescript_detects_tools_and_builds_call_graphs_end_to_end(tmp_path):
+    repo = tmp_path / "src"
+    _write(
+        repo / "server.ts",
+        '''
+import { getCached } from "./cache";
+
+server.tool("get_weather", "Fetch the weather", schema, async (args) => {
+  const raw = await fetchRaw(args.city);
+  return getCached(raw);
+});
+
+async function fetchRaw(city) {
+  return externalLib.request(city);
+}
+''',
+    )
+    _write(repo / "cache.ts", "export function getCached(key) {\n  return null;\n}\n")
+
+    results = detect_tools_with_call_graphs(repo, "TypeScript")
+
+    assert len(results) == 1
+    tool, graph = results[0]
+    assert tool.name == "get_weather"
+    assert tool.description == "Fetch the weather"
+    level2_names = {c.qualified_name for c in graph.calls}
+    assert level2_names == {"fetchRaw", "getCached"}
+    fetch_raw_node = next(c for c in graph.calls if c.qualified_name == "fetchRaw")
+    assert fetch_raw_node.calls[0].external is True
+
+
+def test_javascript_detects_tools_via_registertool_and_named_handler(tmp_path):
+    repo = tmp_path / "src"
+    _write(
+        repo / "server.js",
+        '''
+const { getCached } = require("./cache");
+
+server.registerTool("get_weather", {
+  description: "Fetch the weather",
+  inputSchema: schema,
+}, handleGetWeather);
+
+async function handleGetWeather(args) {
+  return getCached(args.city);
+}
+''',
+    )
+    _write(repo / "cache.js", "function getCached(key) {\n  return null;\n}\nmodule.exports = { getCached };\n")
+
+    results = detect_tools_with_call_graphs(repo, "JavaScript")
+
+    assert len(results) == 1
+    tool, graph = results[0]
+    assert tool.name == "get_weather"
+    assert tool.description == "Fetch the weather"
+    assert tool.sdk_pattern == "javascript.registerTool"
+    assert graph.qualified_name == "handleGetWeather"
+    assert graph.calls[0].qualified_name == "getCached"
+
+
+def test_java_detects_springai_tool_and_builds_call_graph(tmp_path):
+    repo = tmp_path / "src"
+    _write(
+        repo / "WeatherService.java",
+        """
+public class WeatherService {
+    @Tool(description = "Fetch the weather for a city")
+    public String getWeather(String city) {
+        return this.fetch(city);
+    }
+
+    private String fetch(String city) {
+        return CacheUtils.get(city);
+    }
+}
+""",
+    )
+    _write(
+        repo / "CacheUtils.java",
+        "public class CacheUtils {\n    public static String get(String key) {\n        return null;\n    }\n}\n",
+    )
+
+    results = detect_tools_with_call_graphs(repo, "Java")
+
+    assert len(results) == 1
+    tool, graph = results[0]
+    assert tool.name == "getWeather"
+    assert tool.description == "Fetch the weather for a city"
+    assert graph.qualified_name == "WeatherService.getWeather"
+    assert graph.calls[0].qualified_name == "WeatherService.fetch"
+    assert graph.calls[0].calls[0].qualified_name == "CacheUtils.get"
+
+
+def test_csharp_detects_tool_and_builds_call_graph(tmp_path):
+    repo = tmp_path / "src"
+    _write(
+        repo / "WeatherTool.cs",
+        """
+public sealed class WeatherTool
+{
+    [McpServerTool, Description("Fetch the weather for a city")]
+    public static string GetWeather(string city)
+    {
+        return Fetch(city);
+    }
+
+    private static string Fetch(string city)
+    {
+        return Cache.Get(city);
+    }
+}
+""",
+    )
+    _write(
+        repo / "Cache.cs",
+        "public static class Cache {\n    public static string Get(string key) { return null; }\n}\n",
+    )
+
+    results = detect_tools_with_call_graphs(repo, "C#")
+
+    assert len(results) == 1
+    tool, graph = results[0]
+    assert tool.name == "GetWeather"
+    assert tool.description == "Fetch the weather for a city"
+    assert graph.qualified_name == "WeatherTool.GetWeather"
+    assert graph.calls[0].qualified_name == "WeatherTool.Fetch"
+    assert graph.calls[0].calls[0].qualified_name == "Cache.Get"
+
+
 def test_unsupported_language_raises_clear_error(tmp_path):
-    with pytest.raises(ValueError, match="Java"):
-        detect_tools_with_call_graphs(tmp_path, "Java")
+    with pytest.raises(ValueError, match="Rust"):
+        detect_tools_with_call_graphs(tmp_path, "Rust")
