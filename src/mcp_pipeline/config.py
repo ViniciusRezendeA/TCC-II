@@ -15,6 +15,12 @@ LOGS_DIR = PROJECT_ROOT / "logs"
 
 GITHUB_GRAPHQL_URL = "https://api.github.com/graphql"
 
+# Loaded once at import time (not lazily inside get_github_token(), which only Etapa 1
+# called) so every entrypoint gets .env populated -- Etapa 3's judges read their own API
+# key env vars directly via each provider's SDK, with no getter in this module to trigger
+# a lazy load.
+load_dotenv(PROJECT_ROOT / ".env")
+
 
 @dataclass(frozen=True)
 class Signals:
@@ -41,7 +47,6 @@ class Signals:
 
 
 def get_github_token() -> str:
-    load_dotenv(PROJECT_ROOT / ".env")
     token = os.environ.get("GITHUB_TOKEN")
     if not token:
         raise RuntimeError(

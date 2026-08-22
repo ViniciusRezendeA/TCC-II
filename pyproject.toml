@@ -7,7 +7,11 @@ authors = [
 ]
 requires-python = ">=3.12"
 dependencies = [
+    "anthropic>=0.124.0",
+    "google-genai>=2.18.1",
+    "openai>=3.3.1",
     "pandas>=3.0.5",
+    "pydantic>=2.13.4",
     "python-dotenv>=1.2.3",
     "pyyaml>=6.0.3",
     "requests>=2.34.2",

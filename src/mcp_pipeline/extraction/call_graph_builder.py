@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import PurePosixPath
+from typing import Protocol
 
 from tree_sitter import Node
 
@@ -122,7 +123,7 @@ def resolve_call(
     if len(same_file_candidates) == 1:
         return same_file_candidates[0], False
     if len(same_file_candidates) > 1:
-        return _nearest_by_directory(same_file_candidates, current_file), True
+        return nearest_by_directory(same_file_candidates, current_file), True
 
     # 3. receiver matches a known import alias -> prefer definitions whose
     #    file stem matches the imported module's last path segment, OR the
@@ -142,25 +143,33 @@ def resolve_call(
             if len(module_candidates) == 1:
                 return module_candidates[0], False
             if len(module_candidates) > 1:
-                return _nearest_by_directory(module_candidates, current_file), True
+                return nearest_by_directory(module_candidates, current_file), True
 
     # 4. repo-wide bare-name lookup.
     all_candidates = definitions.by_bare_name.get(name, [])
     if len(all_candidates) == 1:
         return all_candidates[0], False
     if len(all_candidates) > 1:
-        return _nearest_by_directory(all_candidates, current_file), True
+        return nearest_by_directory(all_candidates, current_file), True
 
     # 5. not found anywhere in the repo -> external/dynamic, caller treats as a leaf.
     return None, False
 
 
-def _nearest_by_directory(candidates: list[FunctionDef], current_file: str) -> FunctionDef:
+class _HasFile(Protocol):
+    file: str
+
+
+def nearest_by_directory[T: _HasFile](candidates: list[T], current_file: str) -> T:
     """A real guess, not a resolution — the caller marks the result
-    `ambiguous: true` so it stays visible and discountable downstream."""
+    `ambiguous: true` so it stays visible and discountable downstream.
+    Generic over anything with a `.file` field (not just FunctionDef) so
+    value_index.py's resolve_value() can reuse this exact tiebreak for
+    value-reference ambiguity, not just call resolution.
+    """
     current_parts = PurePosixPath(current_file).parent.parts
 
-    def distance(d: FunctionDef) -> int:
+    def distance(d: T) -> int:
         candidate_parts = PurePosixPath(d.file).parent.parts
         common = 0
         for a, b in zip(current_parts, candidate_parts):

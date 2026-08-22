@@ -1,0 +1,29 @@
+# Júri multi-provedor da Etapa 3 (LLM-as-a-Judge). Cada entrada é instanciada por
+# evaluation/judges/registry.py::load_judges() via PROVIDER_CLASSES -- adicionar,
+# remover ou trocar de modelo é editar este arquivo, sem tocar em código.
+#
+# Tier econômico/mini nos 3 juízes (não flagship) por decisão explícita: espelha a
+# escolha real de Hasan et al. (2026), que usaram modelos pequenos nos 3 juízes
+# (gpt-4.1-mini, claude-haiku-3.5, qwen3-30b-a3b), não os mais capazes disponíveis.
+#
+# model_id do OpenAI e do Google foram confirmados na Fase 0 (2026-08-19) direto na
+# documentação oficial (platform.openai.com/docs/pricing via developers.openai.com,
+# ai.google.dev/gemini-api/docs/pricing) -- não são um palpite. gpt-4.1-mini tem
+# descontinuação anunciada para 2026-11-04; como a "Aplicação da Avaliação" do TCC
+# está prevista para outubro, está dentro do prazo, mas vale reconferir se a
+# implementação real atrasar para depois dessa data.
+judges:
+  - id: claude-haiku-4-5
+    provider: anthropic
+    model_id: claude-haiku-4-5
+    enabled: true
+
+  - id: gpt-4.1-mini
+    provider: openai
+    model_id: gpt-4.1-mini
+    enabled: true
+
+  - id: gemini-2.5-flash-lite
+    provider: google
+    model_id: gemini-2.5-flash-lite
+    enabled: true

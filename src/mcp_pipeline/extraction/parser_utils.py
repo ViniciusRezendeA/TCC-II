@@ -33,12 +33,50 @@ EXCLUDED_DIR_NAMES = frozenset(
     }
 )
 
+# Directory-name exclusion (above) doesn't catch test files *colocated* with
+# source under an ordinary directory — the standard Vitest/Jest convention
+# for TS/JS (`FastMCP.test.ts` next to `FastMCP.ts`) and the standard pytest
+# convention for Python (`test_migration.py` next to `migration.py`), neither
+# of which lives under a directory literally named test/tests. Found
+# empirically, not assumed: punkpeye/fastmcp (the fastmcp npm framework's own
+# repo) has 148 `.addTool(` call sites, all inside colocated `*.test.ts`
+# files outside any test/-named directory. The identical class of bug is
+# already live in the shipped dataset: awslabs/mcp has a real
+# `@mcp.tool(name='test-migration')` inside a colocated
+# tools/rg/test_migration.py, currently counted as a production tool.
+EXCLUDED_FILENAME_SUFFIXES = (
+    ".test.ts", ".spec.ts", ".test.tsx", ".spec.tsx",
+    ".test.js", ".spec.js", ".test.jsx", ".spec.jsx",
+    ".test.mjs", ".spec.mjs", ".test.cjs", ".spec.cjs",
+)
+
+
+def _is_excluded_by_filename(path: Path) -> bool:
+    name_lower = path.name.lower()
+    if name_lower.endswith(EXCLUDED_FILENAME_SUFFIXES):
+        return True
+    if path.suffix == ".py":
+        stem_lower = path.stem.lower()
+        if stem_lower.startswith("test_") or stem_lower.endswith("_test"):
+            return True
+    return False
+
 
 def iter_source_files(repo_src_root: Path, spec: LanguageSpec):
     for ext in spec.extensions:
         for path in repo_src_root.rglob(f"*{ext}"):
+            # rglob matches directories too, not just files -- real case found running
+            # against 206 cloned repos: an uninitialized git submodule left behind an
+            # empty placeholder directory whose name happened to end in ".py"
+            # (gmh5225/awesome-game-security), which crashed parse_file() with
+            # "[Errno 21] Is a directory" instead of being silently skipped like any
+            # other non-source path.
+            if not path.is_file():
+                continue
             rel_parts = path.relative_to(repo_src_root).parts[:-1]
             if any(part.lower() in EXCLUDED_DIR_NAMES for part in rel_parts):
+                continue
+            if _is_excluded_by_filename(path):
                 continue
             yield path
 
@@ -71,6 +109,25 @@ def string_literal_value(
     if not content_parts:
         return ""
     return "".join(node_text(c, source_bytes) for c in content_parts)
+
+
+def template_string_literal_value(node: Node, source_bytes: bytes) -> str | None:
+    """A JS/TS template (backtick) literal with no `${...}` interpolation is
+    functionally a plain string literal — real, common case for multi-line
+    descriptions (e.g. firecrawl-mcp-server's `firecrawl_scrape` description,
+    already in the shipped dataset, mis-flagged `description_is_literal:
+    false` before this existed). A template with interpolation is NOT safe
+    to treat as literal: naively concatenating only its `string_fragment`
+    children would silently drop the interpolated parts and fabricate a
+    plausible-but-wrong value, so this returns None whenever a
+    `template_substitution` child is present, same as string_literal_value's
+    "return None, let the caller fall back to raw-text capture" contract.
+    """
+    if node.type != "template_string":
+        return None
+    if any(c.type == "template_substitution" for c in node.children):
+        return None
+    return "".join(node_text(c, source_bytes) for c in node.children if c.type == "string_fragment")
 
 
 def run_query(language: Language, query_str: str, root: Node) -> list[tuple[int, dict[str, list[Node]]]]:

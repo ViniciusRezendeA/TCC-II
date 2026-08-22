@@ -3,7 +3,7 @@ from __future__ import annotations
 from tree_sitter import Node
 
 from mcp_pipeline.extraction.call_graph_builder import CallSite
-from mcp_pipeline.extraction.definition_index import FunctionDef
+from mcp_pipeline.extraction.definition_index import DefinitionIndex, FunctionDef
 from mcp_pipeline.extraction.import_index import ImportedName, ImportIndex
 from mcp_pipeline.extraction.language_registry import spec_for
 from mcp_pipeline.extraction.models import SourceLocation, ToolRecord
@@ -12,6 +12,12 @@ from mcp_pipeline.extraction.parser_utils import (
     node_text,
     run_query,
     string_literal_value,
+)
+from mcp_pipeline.extraction.value_index import (
+    MAX_VALUE_RESOLUTION_HOPS,
+    ValueDef,
+    ValueIndex,
+    resolve_value,
 )
 
 PY_LANGUAGE = spec_for("Python").ts_language
@@ -200,3 +206,227 @@ def _docstring_of(body_node: Node, source_bytes: bytes) -> tuple[str | None, boo
     if literal is not None:
         return literal.strip(), True
     return None, True
+
+
+def extract_values(root: Node, source_bytes: bytes, rel_path: str) -> list[ValueDef]:
+    """Module-top-level assignments only (`search_tool = types.Tool(...)`,
+    `TOOLS = [search_tool, ...]`) -- verified live that anchoring on
+    `(module (expression_statement (assignment ...)))` correctly excludes
+    assignments nested inside a function body or a class body, which aren't
+    reachable by bare-name reference the way module-level names are.
+    """
+    values: list[ValueDef] = []
+    query_str = """
+    (module
+      (expression_statement
+        (assignment left: (identifier) @name right: (_) @value)))
+    """
+    for _, caps in run_query(PY_LANGUAGE, query_str, root):
+        name = node_text(caps["name"][0], source_bytes)
+        values.append(ValueDef(bare_name=name, file=rel_path, value_node=caps["value"][0]))
+    return values
+
+
+def _first_return_expr(body_node: Node) -> Node | None:
+    """The first top-level `return <expr>` in a function body. All confirmed
+    real list_tools()/helper-function examples have a single simple return
+    at the top level -- a function with multiple conditional returns isn't
+    a confirmed case and isn't handled (falls through to "give up cleanly"
+    at the call site, same as any other unresolvable shape)."""
+    for child in body_node.children:
+        if child.type == "return_statement":
+            value_children = [c for c in child.children if c.type != "return"]
+            if value_children:
+                return value_children[0]
+    return None
+
+
+def _unwrap_await(node: Node) -> Node:
+    if node.type == "await":
+        inner = [c for c in node.children if c.type != "await"]
+        if inner:
+            return inner[0]
+    return node
+
+
+def _resolve_list_tools_return_expr(
+    node: Node,
+    current_file: str,
+    source_bytes: bytes,
+    definitions: DefinitionIndex,
+    values: ValueIndex,
+    imports_by_file: dict[str, ImportIndex],
+    source_bytes_by_file: dict[str, bytes],
+    hops_remaining: int,
+) -> tuple[Node, str, bytes] | None:
+    """Phase A of the plan's 2-phase value resolution: locate the literal
+    `list` expression a `list_tools()` handler (or a same-file helper it
+    delegates to) ultimately returns. Returns (list_node, its_file,
+    its_source_bytes), or None if it can't be resolved statically within
+    the hop budget -- dynamic construction (a comprehension over a runtime
+    registry), an unresolvable call, or budget exhausted all fall through
+    to None here; callers must treat that as "zero tools from this path",
+    never guess.
+    """
+    node = _unwrap_await(node)
+
+    if node.type == "list":
+        return node, current_file, source_bytes
+
+    if hops_remaining <= 0:
+        return None
+
+    if node.type == "identifier":
+        name = node_text(node, source_bytes)
+        resolved, _ambiguous = resolve_value(name, current_file, values, imports_by_file)
+        if resolved is None:
+            return None
+        resolved_source_bytes = source_bytes_by_file[resolved.file]
+        return _resolve_list_tools_return_expr(
+            resolved.value_node, resolved.file, resolved_source_bytes,
+            definitions, values, imports_by_file, source_bytes_by_file, hops_remaining - 1,
+        )
+
+    if node.type == "call":
+        # One hop of same-file helper-function-call indirection (real case:
+        # jgravelle/jcodemunch-mcp's list_tools() calling _build_tools_list()).
+        # A call that isn't a same-file function -- e.g. Tool(...) itself
+        # shouldn't appear here (list_tools() always returns a list, never a
+        # bare Tool), or a genuinely dynamic/external call -- gives up.
+        function_node = node.child_by_field_name("function")
+        if function_node is None or function_node.type != "identifier":
+            return None
+        callee_name = node_text(function_node, source_bytes)
+        same_file_fns = [d for d in definitions.by_bare_name.get(callee_name, []) if d.file == current_file]
+        if len(same_file_fns) != 1:
+            return None
+        helper = same_file_fns[0]
+        return_expr = _first_return_expr(helper.body_node)
+        if return_expr is None:
+            return None
+        return _resolve_list_tools_return_expr(
+            return_expr, helper.file, source_bytes_by_file[helper.file],
+            definitions, values, imports_by_file, source_bytes_by_file, hops_remaining - 1,
+        )
+
+    return None
+
+
+def _resolve_list_element(
+    node: Node,
+    current_file: str,
+    source_bytes: bytes,
+    values: ValueIndex,
+    imports_by_file: dict[str, ImportIndex],
+    source_bytes_by_file: dict[str, bytes],
+) -> tuple[Node, bytes] | None:
+    """Phase B: resolve one element of an already-located tool list to a
+    Tool(...)-shaped call node. Separate, small per-element cap (same-file,
+    then at most 1 import hop) independent of Phase A's budget -- these are
+    independent per-element lookups, not a chain. An element that fails to
+    resolve is skipped individually by the caller, not treated as aborting
+    the whole list.
+    """
+    if node.type == "call":
+        return node, source_bytes
+
+    if node.type == "identifier":
+        name = node_text(node, source_bytes)
+        resolved, _ambiguous = resolve_value(name, current_file, values, imports_by_file)
+        if resolved is None:
+            return None
+        resolved_node = resolved.value_node
+        if resolved_node.type == "call":
+            return resolved_node, source_bytes_by_file[resolved.file]
+        return None
+
+    return None
+
+
+LIST_TOOLS_DECORATOR_QUERY = """
+(decorated_definition
+  (decorator
+    (call
+      function: (attribute
+        object: (identifier)
+        attribute: (identifier) @decorator_method)
+      arguments: (argument_list)))
+  definition: (function_definition
+    name: (identifier) @tool_func_name
+    body: (block) @tool_func_body) @tool_func_def)
+"""
+
+
+def detect_lowlevel_list_tools(
+    root: Node,
+    source_bytes: bytes,
+    rel_path: str,
+    definitions: DefinitionIndex,
+    values: ValueIndex,
+    imports_by_file: dict[str, ImportIndex],
+    source_bytes_by_file: dict[str, bytes],
+) -> list[ToolRecord]:
+    """Detects the official MCP Python SDK's low-level `@<obj>.list_tools()`
+    decorator -- the alternative to the already-detected `@mcp.tool()`
+    high-level decorator sugar. Confirmed in 14 of 206 repos in the Etapa 2
+    pilot corpus, 8 with zero overlap with the high-level pattern.
+
+    Structural trade-off, explicit: the resulting call graph's level 1 is
+    the `list_tools()` function itself (metadata/schema construction), not
+    the tool's actual execution logic -- that lives in a separate
+    `@server.call_tool()` handler this pattern does not attempt to link to.
+    """
+    tools: list[ToolRecord] = []
+    for _, caps in run_query(PY_LANGUAGE, LIST_TOOLS_DECORATOR_QUERY, root):
+        if node_text(caps["decorator_method"][0], source_bytes) != "list_tools":
+            continue
+
+        func_node = caps["tool_func_def"][0]
+        func_name = node_text(caps["tool_func_name"][0], source_bytes)
+        body_node = caps["tool_func_body"][0]
+        class_name = _enclosing_class_name(func_node, source_bytes)
+        qualified_name = f"{class_name}.{func_name}" if class_name else func_name
+
+        return_expr = _first_return_expr(body_node)
+        if return_expr is None:
+            continue
+
+        located = _resolve_list_tools_return_expr(
+            return_expr, rel_path, source_bytes,
+            definitions, values, imports_by_file, source_bytes_by_file,
+            MAX_VALUE_RESOLUTION_HOPS,
+        )
+        if located is None:
+            continue
+        list_node, list_file, list_source_bytes = located
+
+        for element in list_node.children:
+            if element.type in ("[", "]", ","):
+                continue
+            resolved = _resolve_list_element(
+                element, list_file, list_source_bytes, values, imports_by_file, source_bytes_by_file
+            )
+            if resolved is None:
+                continue
+            tool_call_node, tool_source_bytes = resolved
+            args_node = tool_call_node.child_by_field_name("arguments")
+            if args_node is None:
+                continue
+
+            tool_name, tool_name_is_literal = _keyword_arg_value(args_node, "name", tool_source_bytes)
+            if tool_name is None or not tool_name_is_literal:
+                continue  # no literal name -- skip rather than fabricate
+            description, description_is_literal = _keyword_arg_value(args_node, "description", tool_source_bytes)
+
+            start_line, end_line = line_range(func_node)
+            tools.append(
+                ToolRecord(
+                    name=tool_name,
+                    description=description or "",
+                    description_is_literal=description_is_literal,
+                    sdk_pattern="python.list_tools_lowlevel",
+                    source_location=SourceLocation(file=rel_path, start_line=start_line, end_line=end_line),
+                    qualified_name=qualified_name,
+                )
+            )
+    return tools

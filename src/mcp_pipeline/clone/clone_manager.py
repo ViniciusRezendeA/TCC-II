@@ -49,9 +49,13 @@ class RepoMeta:
         return cls(repo=repo, commit_sha=commit_sha, cloned_at=cloned_at, src_path=meta_file.parent / "src")
 
 
-def slug_for(repo: RepoCandidate) -> str:
-    owner, name = repo.name_with_owner.split("/", 1)
+def slug_for_name_with_owner(name_with_owner: str) -> str:
+    owner, name = name_with_owner.split("/", 1)
     return f"{owner}__{name}"
+
+
+def slug_for(repo: RepoCandidate) -> str:
+    return slug_for_name_with_owner(repo.name_with_owner)
 
 
 def repo_dir(dest_root: Path, repo: RepoCandidate) -> Path:

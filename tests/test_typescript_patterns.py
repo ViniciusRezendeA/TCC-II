@@ -4,6 +4,7 @@ from tree_sitter import Parser
 
 from mcp_pipeline.extraction.language_registry import spec_for
 from mcp_pipeline.extraction.patterns.typescript_patterns import (
+    detect_fastmcp_npm_addtool,
     detect_mcp_tools,
     extract_calls,
     extract_definitions,
@@ -88,6 +89,130 @@ function registerTool(tool) {
     )
     tools = detect_mcp_tools(root, source_bytes, "server.ts")
     assert tools == []
+
+
+def test_template_string_description_without_interpolation_is_treated_as_literal():
+    """Real case (firecrawl-mcp-server's firecrawl_scrape, already in the
+    shipped dataset before this fix): a backtick description with no `${}`
+    interpolation is functionally a plain string, not a dynamic expression."""
+    root, source_bytes = parse(
+        """
+server.registerTool("firecrawl_scrape", {
+  description: `Retrieve and extract content from one supplied URL.`,
+  inputSchema: schema,
+}, async (args) => {
+  return scrape(args.url);
+});
+"""
+    )
+    tools = detect_mcp_tools(root, source_bytes, "server.ts")
+    assert tools[0].description == "Retrieve and extract content from one supplied URL."
+    assert tools[0].description_is_literal is True
+
+
+def test_template_string_description_with_interpolation_stays_non_literal():
+    root, source_bytes = parse(
+        """
+server.registerTool("list_messages", {
+  description: `Gets a message. Call ${OTHER_TOOL} first.`,
+  inputSchema: schema,
+}, async (args) => {
+  return list(args);
+});
+"""
+    )
+    tools = detect_mcp_tools(root, source_bytes, "server.ts")
+    assert tools[0].description_is_literal is False
+    assert "${OTHER_TOOL}" in tools[0].description
+
+
+def test_addtool_detects_member_call_static_object():
+    root, source_bytes = parse(
+        """
+server.addTool({
+  name: "firecrawl_scrape",
+  description: "Retrieve and extract content from one supplied URL.",
+  execute: async (args) => {
+    return scrape(args.url);
+  },
+});
+"""
+    )
+    tools = detect_fastmcp_npm_addtool(root, source_bytes, "server.ts")
+    assert len(tools) == 1
+    tool = tools[0]
+    assert tool.name == "firecrawl_scrape"
+    assert tool.description == "Retrieve and extract content from one supplied URL."
+    assert tool.description_is_literal is True
+    assert tool.sdk_pattern == "typescript.fastmcp_npm_addtool"
+    assert tool.qualified_name == synthetic_handler_name("server.ts", "firecrawl_scrape")
+
+
+def test_addtool_bare_identifier_wrapper_call_variant():
+    """Real case (brightdata/brightdata-mcp): a local wrapper function
+    conditionally forwards to server.addTool(tool) -- those internal calls
+    pass a non-literal `tool` parameter and must be skipped; only the outer
+    bare `addTool({...})` call (with a real literal object) should match."""
+    root, source_bytes = parse(
+        """
+const addTool = (tool) => {
+  if (allowed.has(tool.name)) {
+    server.addTool(tool);
+  }
+};
+
+addTool({
+  name: "search_engine",
+  description: "Scrape search results from Google, Bing or Yandex.",
+  execute: async (args) => search(args),
+});
+"""
+    )
+    tools = detect_fastmcp_npm_addtool(root, source_bytes, "server.ts")
+    assert len(tools) == 1
+    assert tools[0].name == "search_engine"
+
+
+def test_addtool_unrelated_bare_call_is_not_matched():
+    root, source_bytes = parse('otherBareCall({ name: "c", description: "d" });')
+    tools = detect_fastmcp_npm_addtool(root, source_bytes, "server.ts")
+    assert tools == []
+
+
+def test_addtool_skips_call_with_no_literal_name():
+    root, source_bytes = parse("server.addTool(tool);")
+    tools = detect_fastmcp_npm_addtool(root, source_bytes, "server.ts")
+    assert tools == []
+
+
+def test_addtool_description_is_optional():
+    root, source_bytes = parse(
+        """
+server.addTool({
+  name: "ping",
+  execute: async () => "pong",
+});
+"""
+    )
+    tools = detect_fastmcp_npm_addtool(root, source_bytes, "server.ts")
+    assert len(tools) == 1
+    assert tools[0].description == ""
+
+
+def test_extract_definitions_registers_synthetic_entry_for_addtool_handler():
+    root, source_bytes = parse(
+        """
+server.addTool({
+  name: "ping",
+  description: "Ping",
+  execute: async () => {
+    return "pong";
+  },
+});
+"""
+    )
+    defs = extract_definitions(root, source_bytes, "server.ts")
+    assert any(d.qualified_name == synthetic_handler_name("server.ts", "ping") for d in defs)
 
 
 def test_extract_definitions_covers_function_declaration_arrow_const_and_class_method():
