@@ -31,6 +31,27 @@ text_signals:
   - "io.modelcontextprotocol.sdk" # groupId Maven do SDK oficial Java
   - "ModelContextProtocol" # pacote NuGet do SDK oficial C#
 
+# Mesmos sinais acima, mas buscados dentro de arquivos de manifesto de
+# biblioteca (dependência declarada), não em README/description — via REST
+# Code Search API (limitada a 10 req/min, ver github/rest_code_search.py e
+# github/search_manifest.py), já que a busca de repositórios via GraphQL não
+# tem qualificador `filename:`/`in:file`. Cada hit é rehidratado via GraphQL
+# (REPO_BY_NAME_QUERY) antes de entrar no pool, para ter os mesmos campos
+# (stars, fork, linguagem) que as outras fontes.
+manifest_signals:
+  - signal: "@modelcontextprotocol/sdk"
+    file_qualifiers: ["filename:package.json"]
+  - signal: "@modelcontextprotocol/server"
+    file_qualifiers: ["filename:package.json"]
+  - signal: "FastMCP"
+    file_qualifiers: ["filename:pyproject.toml", "filename:requirements.txt", "filename:setup.py"]
+  - signal: "mcp.server.fastmcp"
+    file_qualifiers: ["filename:pyproject.toml", "filename:requirements.txt", "filename:setup.py"]
+  - signal: "io.modelcontextprotocol.sdk"
+    file_qualifiers: ["filename:pom.xml", "filename:build.gradle"]
+  - signal: "ModelContextProtocol"
+    file_qualifiers: ["extension:csproj"]
+
 # Linguagens-alvo (normalizado contra `primaryLanguage.name` no lado do cliente,
 # não embutido na query GraphQL — ver justificativa no plano de implementação).
 target_languages:

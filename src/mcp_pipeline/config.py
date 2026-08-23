@@ -23,9 +23,22 @@ load_dotenv(PROJECT_ROOT / ".env")
 
 
 @dataclass(frozen=True)
+class ManifestSignal:
+    """One text_signals entry paired with the library-manifest file(s) it's
+    expected to appear in for its ecosystem (e.g. "@modelcontextprotocol/sdk"
+    in package.json), used to drive the REST code-search fallback in
+    github/search_manifest.py.
+    """
+
+    signal: str
+    file_qualifiers: list[str]
+
+
+@dataclass(frozen=True)
 class Signals:
     topics: list[str]
     text_signals: list[str]
+    manifest_signals: list[ManifestSignal]
     target_languages: list[str]
     min_stars: int
     top_n: int
@@ -39,6 +52,10 @@ class Signals:
         return cls(
             topics=raw["topics"],
             text_signals=raw["text_signals"],
+            manifest_signals=[
+                ManifestSignal(signal=entry["signal"], file_qualifiers=entry["file_qualifiers"])
+                for entry in raw.get("manifest_signals", [])
+            ],
             target_languages=raw["target_languages"],
             min_stars=raw["min_stars"],
             top_n=raw["top_n"],

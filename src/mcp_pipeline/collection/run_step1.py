@@ -14,6 +14,7 @@ from mcp_pipeline.config import (
 )
 from mcp_pipeline.github.graphql_client import GraphQLClient
 from mcp_pipeline.github.queries import SMOKE_TEST_QUERY
+from mcp_pipeline.github.search_manifest import search_by_manifest_signals
 from mcp_pipeline.github.search_text import search_by_text_signals
 from mcp_pipeline.github.search_topics import search_by_topics
 from mcp_pipeline.logging_setup import setup_logging
@@ -55,15 +56,19 @@ def main() -> None:
     checkpoint = Checkpoint(STATE_DIR / "step1_progress.json")
 
     logger.info(
-        "Buscando repositórios: %s tópicos, %s sinais textuais, linguagens=%s, min_stars=%s",
+        "Buscando repositórios: %s tópicos, %s sinais textuais, %s sinais de manifesto, "
+        "linguagens=%s, min_stars=%s",
         len(signals.topics),
         len(signals.text_signals),
+        len(signals.manifest_signals),
         signals.target_languages,
         signals.min_stars,
     )
 
-    all_candidates = list(search_by_topics(client, checkpoint, signals)) + list(
-        search_by_text_signals(client, checkpoint, signals)
+    all_candidates = (
+        list(search_by_topics(client, checkpoint, signals))
+        + list(search_by_text_signals(client, checkpoint, signals))
+        + list(search_by_manifest_signals(client, checkpoint, signals, token))
     )
     logger.info("Total de resultados brutos (com duplicatas entre sub-queries): %s", len(all_candidates))
 

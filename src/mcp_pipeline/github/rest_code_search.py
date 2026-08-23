@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-"""Secondary, OPT-IN code-search fallback.
+"""Secondary code-search fallback, used by github/search_manifest.py.
 
 GitHub's GraphQL API has no `type: CODE` search — real code search only
 exists via the REST endpoint `/search/code`, which is capped at 10 requests/
@@ -10,10 +10,10 @@ search (see search_text.py), which stays consistent with the thesis's stated
 "GraphQL API" methodology and should already catch most real MCP servers
 (READMEs conventionally document the install command / package name).
 
-This module is NOT called by run_step1.py by default. Only wire it in if a
-manual review of the Phase-1 candidate pool shows a real recall gap that the
-README/description text search is missing — e.g. repos that use the SDK but
-never mention it in their README.
+This module is also called by run_step1.py via search_manifest.py, to catch
+repos that declare a signal as a library dependency (e.g. in package.json)
+but never mention it in their README — see manifest_signals in
+config/mcp_signals.yaml for which signal is checked against which file.
 """
 
 import logging

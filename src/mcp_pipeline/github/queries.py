@@ -64,3 +64,55 @@ def build_text_query_string(signal: str, min_stars: int) -> str:
     smoke-testing it for real.
     """
     return f'"{signal}" in:readme,description fork:false stars:>={min_stars}'
+
+
+def build_manifest_query_string(signal: str, file_qualifier: str) -> str:
+    """e.g. "@modelcontextprotocol/sdk" filename:package.json
+
+    For the REST Code Search API (see github/rest_code_search.py and
+    github/search_manifest.py), not the GraphQL repository search above —
+    GraphQL repository search has no `in:file`/`filename:`/`extension:`
+    qualifier, so it can only ever match signals mentioned in a README or
+    description, never a signal declared as a library dependency (e.g. in
+    package.json, pyproject.toml, pom.xml). `file_qualifier` is a full
+    GitHub code-search qualifier such as "filename:package.json" or
+    "extension:csproj", not a bare filename.
+    """
+    return f'"{signal}" {file_qualifier}'
+
+
+# Used to hydrate a repo found via REST code search (github/search_manifest.py)
+# with the same fields SEARCH_REPOS_QUERY returns, since the REST code-search
+# response's nested `repository` object omits stargazerCount/language/fork —
+# the fields dedupe_rank.py's filters need.
+REPO_BY_NAME_QUERY = """
+query RepoByName($owner: String!, $name: String!) {
+  rateLimit { cost remaining resetAt }
+  repository(owner: $owner, name: $name) {
+    id
+    nameWithOwner
+    url
+    description
+    stargazerCount
+    forkCount
+    isFork
+    isArchived
+    pushedAt
+    createdAt
+    primaryLanguage { name }
+    languages(first: 10, orderBy: {field: SIZE, direction: DESC}) {
+      nodes { name }
+    }
+    repositoryTopics(first: 20) {
+      nodes { topic { name } }
+    }
+    defaultBranchRef {
+      name
+      target {
+        ... on Commit { oid }
+      }
+    }
+    licenseInfo { spdxId }
+  }
+}
+"""

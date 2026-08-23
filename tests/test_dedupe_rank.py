@@ -38,6 +38,7 @@ def make_signals(**overrides) -> Signals:
     defaults = {
         "topics": ["mcp-server"],
         "text_signals": ["FastMCP"],
+        "manifest_signals": [],
         "target_languages": ["Python", "JavaScript", "TypeScript", "Java", "C#"],
         "min_stars": 100,
         "top_n": 206,
