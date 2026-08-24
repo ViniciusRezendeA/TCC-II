@@ -204,6 +204,30 @@ LANGUAGE_ADAPTERS: dict[str, LanguageAdapter] = {
 }
 
 
+def _effective_language(repo_src_root: Path, declared_language: str) -> str:
+    """GitHub's `primary_language` classification doesn't always match the
+    real dominant source language -- confirmed real cases, all declared
+    `JavaScript` despite being majority TypeScript in source (likely because
+    a committed `dist/`/build output of compiled `.js` skews GitHub's
+    byte-count language detection): `firecrawl/firecrawl-mcp-server`,
+    `grab/cursor-talk-to-figma-mcp`, `21st-dev/magic-mcp`, and others, found
+    while investigating the 135 repos that yielded 0 tools after the full
+    Etapa 2 run.
+
+    Deliberately narrow: only the JavaScript-declared-but-actually-TypeScript
+    direction is checked (this specific pair is the one where a compiled
+    build artifact plausibly causes GitHub's own classifier to disagree with
+    the real source) -- this is a targeted correction to which language spec
+    to use for ONE already-selected repo, not general multi-language
+    scanning (already explicitly out of scope; see the plan).
+    """
+    if declared_language != "JavaScript":
+        return declared_language
+    n_js = sum(1 for _ in iter_source_files(repo_src_root, spec_for("JavaScript")))
+    n_ts = sum(1 for _ in iter_source_files(repo_src_root, spec_for("TypeScript")))
+    return "TypeScript" if n_ts > n_js else declared_language
+
+
 def detect_tools_with_call_graphs(
     repo_src_root: Path, language: str
 ) -> list[tuple[ToolRecord, CallGraphNode]]:
@@ -214,6 +238,7 @@ def detect_tools_with_call_graphs(
     the plan's discussion of candidate repos that turn out not to be real
     MCP servers).
     """
+    language = _effective_language(repo_src_root, language)
     if language not in LANGUAGE_ADAPTERS:
         raise ValueError(
             f"Etapa 2 ainda não implementa detecção para {language!r}. "

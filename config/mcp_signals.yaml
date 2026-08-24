@@ -38,17 +38,55 @@ text_signals:
 # tem qualificador `filename:`/`in:file`. Cada hit é rehidratado via GraphQL
 # (REPO_BY_NAME_QUERY) antes de entrar no pool, para ter os mesmos campos
 # (stars, fork, linguagem) que as outras fontes.
+#
+# build_manifest_query_string (github/queries.py) restringe cada busca com
+# `path:/` (raiz do repositório) — sem isso, "@modelcontextprotocol/sdk"
+# filename:package.json sozinho batia total_count=103424, porque o próprio
+# package.json commitado do pacote dentro de node_modules/ casa trivialmente
+# (seu campo "name" é o próprio sinal); com path:/ cai para 52352. Testado
+# contra um token real: `fork:false` dá erro 422 nesse endpoint (diferente
+# da busca de repositórios) e `-path:DIR`/`stars:>=N` são no-ops silenciosos
+# — ver docstring de build_manifest_query_string para os números completos.
+# `requirements.txt` foi removido dos sinais Python abaixo pelo mesmo motivo
+# que um lockfile é evitado: gerado via `pip freeze`, lista a árvore de
+# dependências transitiva inteira, então casaria qualquer repo que dependa
+# de algo que dependa de FastMCP, não só quem usa o SDK diretamente.
+# pyproject.toml/setup.py são escritos à mão e continuam como sinal de
+# dependência direta.
+#
+# Mesmo com path:/, 3 dos 9 pares (signal, arquivo) ainda ficam bem acima do
+# limite de 1000 resultados do GitHub Search — nesses casos o REST Code
+# Search só devolve uma amostra de até 1000 hits em ordem de "best match"
+# (não por estrelas), não a busca exaustiva que os outros sinais têm:
+#   - "@modelcontextprotocol/sdk" + package.json: total_count=52352 (52x)
+#   - "FastMCP" + pyproject.toml: total_count=12928 (13x)
+#   - "@modelcontextprotocol/server" + package.json: total_count=1804 (1.8x)
+# Os outros pares ficam abaixo de 1000 (busca exaustiva real). Mantidos
+# por ora — mesmo incompletos, ainda contribuem candidatos reais que passam
+# pelo filtro de estrelas/fork/linguagem em dedupe_rank.py — mas revisar
+# antes de reportar cobertura no TCC como exaustiva para esses 3.
+#
+# `build.gradle.kts` (Kotlin DSL do Gradle) foi adicionado a
+# io.modelcontextprotocol.sdk após validar contra um token real:
+# total_count=36, bem abaixo do cap, sinal limpo (mesmo groupId Maven exato
+# já usado em pom.xml/build.gradle). Testado e descartado: sinal Python
+# "mcp" (nome real do pacote PyPI do SDK oficial, mais preciso que
+# "FastMCP"/"mcp.server.fastmcp" que são nome de classe/caminho de import,
+# não de dependência) — mas é curto demais para o tokenizer do Code Search
+# isolar como dependência: total_count=57856 em pyproject.toml e 2040 em
+# setup.py mesmo com path:/, inviável. `packages.config` (NuGet legado) para
+# ModelContextProtocol: total_count=0, sem valor.
 manifest_signals:
   - signal: "@modelcontextprotocol/sdk"
     file_qualifiers: ["filename:package.json"]
   - signal: "@modelcontextprotocol/server"
     file_qualifiers: ["filename:package.json"]
   - signal: "FastMCP"
-    file_qualifiers: ["filename:pyproject.toml", "filename:requirements.txt", "filename:setup.py"]
+    file_qualifiers: ["filename:pyproject.toml", "filename:setup.py"]
   - signal: "mcp.server.fastmcp"
-    file_qualifiers: ["filename:pyproject.toml", "filename:requirements.txt", "filename:setup.py"]
+    file_qualifiers: ["filename:pyproject.toml", "filename:setup.py"]
   - signal: "io.modelcontextprotocol.sdk"
-    file_qualifiers: ["filename:pom.xml", "filename:build.gradle"]
+    file_qualifiers: ["filename:pom.xml", "filename:build.gradle", "filename:build.gradle.kts"]
   - signal: "ModelContextProtocol"
     file_qualifiers: ["extension:csproj"]
 

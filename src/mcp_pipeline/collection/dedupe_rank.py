@@ -26,6 +26,7 @@ def dedupe(candidates: Iterable[RepoCandidate]) -> dict[str, RepoCandidate]:
             for signal in candidate.matched_signals:
                 if signal not in existing.matched_signals:
                     existing.matched_signals.append(signal)
+
     return by_id
 
 
@@ -33,19 +34,19 @@ def filter_and_rank(
     by_id: dict[str, RepoCandidate], signals: Signals
 ) -> list[RepoCandidate]:
     """Belt-and-suspenders re-validation of the fork/star filters already
-    inlined in the GraphQL query strings, plus client-side language
-    normalization (see queries.py for why language filtering isn't inlined
-    in the query itself). Returns the full filtered pool sorted by stars
-    descending — NOT yet cut down to top_n.
+    inlined in the GraphQL query strings (and applied client-side for the
+    REST manifest source, which has no working fork:/stars: qualifier — see
+    queries.py). Returns the full filtered pool sorted by stars descending —
+    NOT yet cut down to top_n.
+
+    Deliberately does NOT filter by signals.target_languages — a repo's
+    GitHub-detected primaryLanguage is noisy at the "is this an MCP server"
+    level (e.g. a Python server with heavy Dockerfile/config content can get
+    misclassified) and is kept in Signals only for later per-language
+    handling (Etapa 2, when extracting/removing tool definitions), not as a
+    Etapa 1 admission filter.
     """
-    target_languages = set(signals.target_languages)
-    filtered = [
-        c
-        for c in by_id.values()
-        if not c.is_fork
-        and c.stargazer_count >= signals.min_stars
-        and c.primary_language in target_languages
-    ]
+    filtered = [c for c in by_id.values() if not c.is_fork and c.stargazer_count >= signals.min_stars]
     filtered.sort(key=lambda c: c.stargazer_count, reverse=True)
     return filtered
 
@@ -75,7 +76,7 @@ def dedupe_and_rank(
 
     pool = filter_and_rank(by_id, signals)
     logger.info(
-        "%s repos pass fork/star/language filters (of %s unique candidates)",
+        "%s repos pass fork/star filters (of %s unique candidates)",
         len(pool),
         len(by_id),
     )
