@@ -6,6 +6,7 @@ import pytest
 
 from mcp_pipeline.extraction.tool_detector import (
     LANGUAGE_ADAPTERS,
+    _effective_language,
     detect_tools_with_call_graphs,
 )
 
@@ -258,6 +259,60 @@ server.addTool({
         "get_weather": "javascript.registerTool",
         "ping": "javascript.fastmcp_npm_addtool",
     }
+
+
+def test_effective_language_switches_js_to_ts_when_source_is_majority_typescript(tmp_path):
+    """Real case (firecrawl/firecrawl-mcp-server and others): GitHub
+    declares primary_language JavaScript, but the real source is majority
+    TypeScript (likely a committed dist/ build skewing GitHub's byte-count
+    classifier) -- the pipeline should scan the real language, not the
+    declared one, when they clearly disagree."""
+    repo = tmp_path / "src"
+    _write(repo / "index.ts", "export function f() { return 1; }\n")
+    _write(repo / "utils.ts", "export function g() { return 2; }\n")
+    _write(repo / "legacy.js", "function h() { return 3; }\n")
+
+    assert _effective_language(repo, "JavaScript") == "TypeScript"
+
+
+def test_effective_language_keeps_js_when_js_is_actually_dominant(tmp_path):
+    repo = tmp_path / "src"
+    _write(repo / "index.js", "function f() { return 1; }\n")
+    _write(repo / "utils.js", "function g() { return 2; }\n")
+    _write(repo / "types.ts", "export type X = number;\n")
+
+    assert _effective_language(repo, "JavaScript") == "JavaScript"
+
+
+def test_effective_language_leaves_other_languages_untouched(tmp_path):
+    repo = tmp_path / "src"
+    assert _effective_language(repo, "Python") == "Python"
+    assert _effective_language(repo, "TypeScript") == "TypeScript"
+
+
+def test_declared_javascript_repo_detected_as_typescript_end_to_end(tmp_path):
+    repo = tmp_path / "src"
+    _write(
+        repo / "server.ts",
+        """
+server.addTool({
+  name: "ping",
+  description: "Ping the server.",
+  execute: async () => {
+    return "pong";
+  },
+});
+""",
+    )
+    _write(repo / "helpers.ts", "export function noop(): void {}\n")
+    _write(repo / "helpers2.ts", "export function noop2(): void {}\n")
+
+    results = detect_tools_with_call_graphs(repo, "JavaScript")
+
+    assert len(results) == 1
+    tool, _graph = results[0]
+    assert tool.name == "ping"
+    assert tool.sdk_pattern == "typescript.fastmcp_npm_addtool"
 
 
 def test_java_and_csharp_adapters_unaffected_by_new_optional_fields():

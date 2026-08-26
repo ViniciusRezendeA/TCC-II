@@ -4,7 +4,7 @@ import argparse
 import sys
 
 from mcp_pipeline.collection.checkpoint import Checkpoint
-from mcp_pipeline.collection.dedupe_rank import dedupe_and_rank, write_jsonl
+from mcp_pipeline.collection.dedupe_rank import dedupe_and_rank, read_jsonl, write_jsonl
 from mcp_pipeline.config import (
     DATA_DIR,
     STATE_DIR,
@@ -14,12 +14,17 @@ from mcp_pipeline.config import (
 )
 from mcp_pipeline.github.graphql_client import GraphQLClient
 from mcp_pipeline.github.queries import SMOKE_TEST_QUERY
-from mcp_pipeline.github.search_manifest import search_by_manifest_signals
-from mcp_pipeline.github.search_text import search_by_text_signals
-from mcp_pipeline.github.search_topics import search_by_topics
+from mcp_pipeline.github.search_manifest import build_candidates_from_cached_pages, search_by_manifest_signals
 from mcp_pipeline.logging_setup import setup_logging
 
 logger = setup_logging("step1")
+
+# Every candidate as hydrated by the last full (non-cached) run, before
+# dedupe/filter — lets --use-cache re-run just the selection step (dedupe +
+# filter_and_rank) against already-paid-for GraphQL hydration calls, e.g.
+# while iterating on min_stars/top_n in mcp_signals.yaml or on
+# filter_and_rank itself, without re-spending REST/GraphQL rate limit.
+RAW_CANDIDATES_PATH = DATA_DIR / "raw" / "manifest_candidates.jsonl"
 
 
 def smoke_test(client: GraphQLClient) -> None:
@@ -41,36 +46,84 @@ def main() -> None:
         action="store_true",
         help="Só valida autenticação e rate limit, sem rodar a busca completa.",
     )
+    mutex = parser.add_mutually_exclusive_group()
+    mutex.add_argument(
+        "--use-cache",
+        action="store_true",
+        help=(
+            f"Pula a busca (REST + hidratação GraphQL) e reusa os candidatos já "
+            f"hidratados salvos em {RAW_CANDIDATES_PATH} pela última rodada sem "
+            f"--use-cache/--offline, rodando só a seleção (dedupe + filtro). Útil para "
+            f"iterar em min_stars/top_n ou em filter_and_rank sem gastar rate limit de novo."
+        ),
+    )
+    mutex.add_argument(
+        "--offline",
+        action="store_true",
+        help=(
+            "Monta candidate_pool.jsonl/selected_repos.jsonl só a partir dos search_pages "
+            "REST já em cache — zero chamadas de rede (nem REST nem GraphQL). Só filtra "
+            "por fork (único sinal de qualidade disponível sem hidratar); NÃO tem "
+            "stargazer_count/primary_language reais (ficam com valor neutro: 0/None) e "
+            "não aplica min_stars. Rankeia por número de signals que bateram em cada repo, "
+            "não por estrelas. Preview rápido só — para dados reais rode sem --offline."
+        ),
+    )
     args = parser.parse_args()
 
     ensure_dirs()
     signals = Signals.load()
-    token = get_github_token()
-    client = GraphQLClient(token)
 
-    logger.info("Rodando teste de fumaça...")
-    smoke_test(client)
-    if args.smoke_test_only:
+    if args.offline:
+        pool = build_candidates_from_cached_pages(signals)
+        selected = pool[: signals.top_n]
+        write_jsonl(pool, DATA_DIR / "candidate_pool.jsonl")
+        write_jsonl(selected, DATA_DIR / "selected_repos.jsonl")
+        logger.info(
+            "Etapa 1 (--offline, só REST, sem estrelas/linguagem reais) concluída: "
+            "%s repos no pool, %s selecionados (top %s) -> %s",
+            len(pool),
+            len(selected),
+            signals.top_n,
+            DATA_DIR / "selected_repos.jsonl",
+        )
         return
 
-    checkpoint = Checkpoint(STATE_DIR / "step1_progress.json")
+    if args.use_cache:
+        if not RAW_CANDIDATES_PATH.exists():
+            logger.error(
+                "--use-cache passado mas %s não existe — rode sem --use-cache pelo menos "
+                "uma vez antes para gerar o cache.",
+                RAW_CANDIDATES_PATH,
+            )
+            sys.exit(1)
+        all_candidates = read_jsonl(RAW_CANDIDATES_PATH)
+        logger.info(
+            "Usando %s candidatos em cache de %s (--use-cache, sem busca)",
+            len(all_candidates),
+            RAW_CANDIDATES_PATH,
+        )
+    else:
+        token = get_github_token()
+        client = GraphQLClient(token)
 
-    logger.info(
-        "Buscando repositórios: %s tópicos, %s sinais textuais, %s sinais de manifesto, "
-        "linguagens=%s, min_stars=%s",
-        len(signals.topics),
-        len(signals.text_signals),
-        len(signals.manifest_signals),
-        signals.target_languages,
-        signals.min_stars,
-    )
+        logger.info("Rodando teste de fumaça...")
+        smoke_test(client)
+        if args.smoke_test_only:
+            return
 
-    all_candidates = (
-        list(search_by_topics(client, checkpoint, signals))
-        + list(search_by_text_signals(client, checkpoint, signals))
-        + list(search_by_manifest_signals(client, checkpoint, signals, token))
-    )
-    logger.info("Total de resultados brutos (com duplicatas entre sub-queries): %s", len(all_candidates))
+        checkpoint = Checkpoint(STATE_DIR / "step1_progress.json")
+
+        logger.info(
+            "Buscando repositórios: %s sinais de manifesto, linguagens=%s, min_stars=%s",
+            len(signals.manifest_signals),
+            signals.target_languages,
+            signals.min_stars,
+        )
+
+        all_candidates = list(search_by_manifest_signals(client, checkpoint, signals, token))
+        write_jsonl(all_candidates, RAW_CANDIDATES_PATH)
+        logger.info("Total de resultados brutos (com duplicatas entre sub-queries): %s", len(all_candidates))
 
     pool, selected = dedupe_and_rank(all_candidates, signals)
 
