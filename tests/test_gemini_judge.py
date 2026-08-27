@@ -28,6 +28,17 @@ def _rubric_scores() -> RubricScores:
     )
 
 
+def test_rubric_schema_uses_integer_score_range_for_gemini():
+    score_schema = RubricScores.model_json_schema()["$defs"]["ComponentScore"]["properties"]["score"]
+
+    assert score_schema == {
+        "maximum": 5,
+        "minimum": 1,
+        "title": "Score",
+        "type": "integer",
+    }
+
+
 def test_evaluate_returns_scores_and_usage_on_success(monkeypatch):
     judge = _make_judge(monkeypatch)
     fake_response = SimpleNamespace(

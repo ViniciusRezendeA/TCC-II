@@ -27,3 +27,10 @@ judges:
     provider: google
     model_id: gemini-2.5-flash-lite
     enabled: true
+
+  - id: gemini-3.5-flash-lite
+    provider: google
+    model_id: gemini-3.5-flash-lite
+    enabled: true
+
+# python src\mcp_pipeline\pipeline\run_step3.py --judges gemini-3.5-flash-lite --limit 1

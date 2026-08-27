@@ -90,6 +90,125 @@ manifest_signals:
   - signal: "ModelContextProtocol"
     file_qualifiers: ["extension:csproj"]
 
+manifest_signals_v2:
+  # JavaScript / TypeScript
+  - signal: "@modelcontextprotocol/sdk"
+    file_qualifiers:
+      - "filename:package.json"
+    languages:
+      - "JavaScript"
+      - "TypeScript"
+
+  # Python
+  - signal: "mcp"
+    file_qualifiers:
+      - "filename:pyproject.toml"
+      - "filename:requirements.txt"
+      - "filename:setup.py"
+      - "filename:setup.cfg"
+    languages:
+      - "Python"
+
+  # Python - FastMCP
+  - signal: "fastmcp"
+    file_qualifiers:
+      - "filename:pyproject.toml"
+      - "filename:requirements.txt"
+      - "filename:setup.py"
+      - "filename:setup.cfg"
+    languages:
+      - "Python"
+
+  # Java
+  - signal: "io.modelcontextprotocol"
+    file_qualifiers:
+      - "filename:pom.xml"
+      - "filename:build.gradle"
+      - "filename:build.gradle.kts"
+    languages:
+      - "Java"
+
+  # Kotlin / Java
+  - signal: "io.modelcontextprotocol"
+    file_qualifiers:
+      - "filename:build.gradle.kts"
+      - "filename:build.gradle"
+      - "filename:pom.xml"
+    languages:
+      - "Kotlin"
+      - "Java"
+
+  # C#
+  - signal: "ModelContextProtocol"
+    file_qualifiers:
+      - "extension:csproj"
+    languages:
+      - "C#"
+
+  # Go
+  - signal: "modelcontextprotocol"
+    file_qualifiers:
+      - "filename:go.mod"
+    languages:
+      - "Go"
+
+  # Rust
+  - signal: "rmcp"
+    file_qualifiers:
+      - "filename:Cargo.toml"
+    languages:
+      - "Rust"
+
+  # Rust - official-ish ecosystem package naming
+  - signal: "modelcontextprotocol"
+    file_qualifiers:
+      - "filename:Cargo.toml"
+    languages:
+      - "Rust"
+
+  # Swift
+  - signal: "ModelContextProtocol"
+    file_qualifiers:
+      - "filename:Package.swift"
+    languages:
+      - "Swift"
+
+  # Ruby
+  - signal: "mcp"
+    file_qualifiers:
+      - "filename:Gemfile"
+      - "filename:gemspec"
+    languages:
+      - "Ruby"
+
+  # PHP
+  - signal: "modelcontextprotocol"
+    file_qualifiers:
+      - "filename:composer.json"
+    languages:
+      - "PHP"
+
+  # Dart
+  - signal: "mcp"
+    file_qualifiers:
+      - "filename:pubspec.yaml"
+    languages:
+      - "Dart"
+
+  # Elixir
+  - signal: "mcp"
+    file_qualifiers:
+      - "filename:mix.exs"
+    languages:
+      - "Elixir"
+
+  # Lua
+  - signal: "mcp"
+    file_qualifiers:
+      - "filename:rockspec"
+    languages:
+      - "Lua"
+
 # Linguagens-alvo (normalizado contra `primaryLanguage.name` no lado do cliente,
 # não embutido na query GraphQL — ver justificativa no plano de implementação).
 target_languages:

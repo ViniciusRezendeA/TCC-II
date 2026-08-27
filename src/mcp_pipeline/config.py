@@ -54,7 +54,7 @@ class Signals:
             text_signals=raw["text_signals"],
             manifest_signals=[
                 ManifestSignal(signal=entry["signal"], file_qualifiers=entry["file_qualifiers"])
-                for entry in raw.get("manifest_signals", [])
+                for entry in raw.get("manifest_signals_v2", [])
             ],
             target_languages=raw["target_languages"],
             min_stars=raw["min_stars"],
