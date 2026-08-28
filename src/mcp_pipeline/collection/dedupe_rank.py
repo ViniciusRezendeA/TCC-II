@@ -36,17 +36,19 @@ def filter_and_rank(
     """Belt-and-suspenders re-validation of the fork/star filters already
     inlined in the GraphQL query strings (and applied client-side for the
     REST manifest source, which has no working fork:/stars: qualifier — see
-    queries.py). Returns the full filtered pool sorted by stars descending —
-    NOT yet cut down to top_n.
-
-    Deliberately does NOT filter by signals.target_languages — a repo's
-    GitHub-detected primaryLanguage is noisy at the "is this an MCP server"
-    level (e.g. a Python server with heavy Dockerfile/config content can get
-    misclassified) and is kept in Signals only for later per-language
-    handling (Etapa 2, when extracting/removing tool definitions), not as a
-    Etapa 1 admission filter.
+    queries.py). Also drops repos whose GitHub-detected primaryLanguage isn't
+    in signals.target_languages, so the top_n slots aren't spent on languages
+    Etapa 2 has no (and no planned) extraction support for (e.g. HTML,
+    Jupyter Notebook, Dockerfile, Shell). Returns the full filtered pool
+    sorted by stars descending — NOT yet cut down to top_n.
     """
-    filtered = [c for c in by_id.values() if not c.is_fork and c.stargazer_count >= signals.min_stars]
+    filtered = [
+        c
+        for c in by_id.values()
+        if not c.is_fork
+        and c.stargazer_count >= signals.min_stars
+        and c.primary_language in signals.target_languages
+    ]
     filtered.sort(key=lambda c: c.stargazer_count, reverse=True)
     return filtered
 

@@ -32,6 +32,8 @@ matplotlib.use("Agg")  # sem display -- só salva PNG, roda igual em CI/terminal
 import matplotlib.pyplot as plt
 import pandas as pd
 
+from mcp_pipeline.collection.dedupe_rank import dedupe as dedupe_candidates
+from mcp_pipeline.collection.dedupe_rank import read_jsonl as read_candidates_jsonl
 from mcp_pipeline.config import DATA_DIR
 from mcp_pipeline.logging_setup import setup_logging
 
@@ -64,6 +66,49 @@ def repos_por_linguagem(selected_repos: list[dict]) -> pd.DataFrame:
     counts = df["primary_language"].value_counts().rename_axis("linguagem").reset_index(name="repositorios")
     counts["percentual"] = (counts["repositorios"] / len(df) * 100).round(1)
     return counts.sort_values("repositorios", ascending=False).reset_index(drop=True)
+
+
+def funil_coleta(raw_candidates: list, pool: list[dict], selected: list[dict]) -> pd.DataFrame:
+    """Funil de atrito da Etapa 1: quanto sobra a cada filtro aplicado, da busca bruta
+    (all_candidates.jsonl -- pode ter o mesmo repositório mais de uma vez, casado por
+    sub-queries/fontes de sinal diferentes) até o corte final por estrelas (top_n).
+    Reusa dedupe() do próprio dedupe_rank.py em vez de recontar por conta própria, para
+    esta tabela nunca divergir da lógica real de deduplicação da Etapa 1.
+    """
+    n_brutos = len(raw_candidates)
+    n_unicos = len(dedupe_candidates(raw_candidates))
+    n_pool = len(pool)
+    n_selecionados = len(selected)
+    df = pd.DataFrame(
+        [
+            {"etapa": "1. Candidatos brutos (com duplicata entre sub-queries)", "repositorios": n_brutos},
+            {"etapa": "2. Únicos (deduplicados por id)", "repositorios": n_unicos},
+            {"etapa": "3. Aprovados no filtro (não-fork, estrelas >= mínimo, linguagem-alvo)", "repositorios": n_pool},
+            {"etapa": "4. Selecionados (top_N por estrelas)", "repositorios": n_selecionados},
+        ]
+    )
+    df["percentual_do_bruto"] = (df["repositorios"] / n_brutos * 100).round(1) if n_brutos else 0.0
+    return df
+
+
+def candidatos_por_fonte(raw_candidates: list) -> pd.DataFrame:
+    """Quantos candidatos brutos cada fonte de sinal (topic/text/manifest) contribuiu,
+    pelo prefixo de matched_signals -- mesma lógica de
+    run_step1.py::_log_candidates_per_source, exportada aqui como tabela em vez de só
+    log. Um candidato casado por sinais de mais de uma fonte antes da deduplicação
+    final conta uma vez em cada fonte que o encontrou (soma pode passar de 100%).
+    """
+    per_source: dict[str, int] = {}
+    for candidate in raw_candidates:
+        for signal in candidate.matched_signals:
+            source = signal.split(":", 1)[0]
+            per_source[source] = per_source.get(source, 0) + 1
+    total = sum(per_source.values())
+    rows = [
+        {"fonte": source, "candidatos": n, "percentual": round(n / total * 100, 1) if total else 0.0}
+        for source, n in sorted(per_source.items(), key=lambda kv: -kv[1])
+    ]
+    return pd.DataFrame(rows)
 
 
 def tools_por_linguagem(dataset: list[dict]) -> pd.DataFrame:
@@ -345,60 +390,85 @@ def _histogram(series: pd.Series, bins, title: str, xlabel: str, ylabel: str, pa
 
 
 def generate_charts(tables: dict[str, pd.DataFrame], dataset: list[dict], charts_dir: Path) -> None:
+    """Cada bloco é condicional à tabela correspondente estar em `tables` -- desde que
+    dataset.jsonl passou a ser opcional (ver main()), as tabelas/gráficos da Etapa 2 podem
+    legitimamente estar ausentes numa rodada só de Etapa 1 (ex: antes da Etapa 2 ter sido
+    (re)executada)."""
     charts_dir.mkdir(parents=True, exist_ok=True)
 
-    _bar_chart(
-        tables["repos_por_linguagem"], "linguagem", "repositorios",
-        "Repositórios selecionados por linguagem (Etapa 1)", "Linguagem", "Repositórios",
-        charts_dir / "01_repos_por_linguagem.png",
-    )
-    _bar_chart(
-        tables["tools_por_linguagem"], "linguagem", "tools",
-        "Tools extraídas por linguagem (Etapa 2)", "Linguagem", "Tools",
-        charts_dir / "02_tools_por_linguagem.png",
-    )
-    _grouped_bar_chart(
-        tables["media_tools_por_server"][tables["media_tools_por_server"]["linguagem"] != "Total"],
-        "linguagem",
-        ["media_tools_por_repo_selecionado", "media_tools_por_repo_com_tools"],
-        ["Por repo selecionado (Etapa 1)", "Por repo com >=1 tool"],
-        "Média de tools por servidor, por linguagem", "Linguagem", "Média de tools",
-        charts_dir / "03_media_tools_por_server.png",
-    )
-    _bar_chart(
-        tables["distribuicao_sdk_pattern"], "sdk_pattern", "tools",
-        "Distribuição de tools por padrão de SDK (sdk_pattern)", "Padrão", "Tools",
-        charts_dir / "04_distribuicao_sdk_pattern.png", horizontal=True,
-    )
-    _bar_chart(
-        tables["taxa_cobertura_por_linguagem"], "linguagem", "taxa_cobertura_percentual",
-        "Taxa de confirmação da Etapa 2 por linguagem\n(% de repositórios selecionados com >=1 tool detectada)",
-        "Linguagem", "% com >=1 tool",
-        charts_dir / "05_taxa_cobertura_por_linguagem.png",
-    )
-    _bar_chart(
-        tables["call_graph_resolucao"], "categoria", "percentual",
-        "Resolução dos nós do call graph (níveis 2-3)", "", "% dos nós",
-        charts_dir / "06_call_graph_resolucao.png", horizontal=True,
-    )
-    _histogram(
-        distribuicao_tools_por_repo(dataset), bins=30,
-        title="Distribuição de tools por repositório\n(entre os repositórios com >=1 tool)",
-        xlabel="Tools no repositório (escala log)", ylabel="Nº de repositórios",
-        path=charts_dir / "07_distribuicao_tools_por_repo.png", log_x=True,
-    )
-    _histogram(
-        _loc_series(dataset), bins=30,
-        title="Distribuição de LOC (linhas de código) por tool\n(função implementadora, nível 1 do call graph)",
-        xlabel="LOC", ylabel="Nº de tools",
-        path=charts_dir / "08_distribuicao_loc.png",
-    )
-    _bar_chart(
-        tables["profundidade_call_graph"], "profundidade", "tools",
-        "Profundidade do call graph por tool\n(nível máximo alcançado; limitado a 3 por construção — MAX_LEVEL)",
-        "Profundidade (níveis)", "Tools",
-        charts_dir / "09_distribuicao_profundidade_call_graph.png",
-    )
+    if "repos_por_linguagem" in tables:
+        _bar_chart(
+            tables["repos_por_linguagem"], "linguagem", "repositorios",
+            "Repositórios selecionados por linguagem (Etapa 1)", "Linguagem", "Repositórios",
+            charts_dir / "01_repos_por_linguagem.png",
+        )
+    if "tools_por_linguagem" in tables:
+        _bar_chart(
+            tables["tools_por_linguagem"], "linguagem", "tools",
+            "Tools extraídas por linguagem (Etapa 2)", "Linguagem", "Tools",
+            charts_dir / "02_tools_por_linguagem.png",
+        )
+    if "media_tools_por_server" in tables:
+        _grouped_bar_chart(
+            tables["media_tools_por_server"][tables["media_tools_por_server"]["linguagem"] != "Total"],
+            "linguagem",
+            ["media_tools_por_repo_selecionado", "media_tools_por_repo_com_tools"],
+            ["Por repo selecionado (Etapa 1)", "Por repo com >=1 tool"],
+            "Média de tools por servidor, por linguagem", "Linguagem", "Média de tools",
+            charts_dir / "03_media_tools_por_server.png",
+        )
+    if "distribuicao_sdk_pattern" in tables:
+        _bar_chart(
+            tables["distribuicao_sdk_pattern"], "sdk_pattern", "tools",
+            "Distribuição de tools por padrão de SDK (sdk_pattern)", "Padrão", "Tools",
+            charts_dir / "04_distribuicao_sdk_pattern.png", horizontal=True,
+        )
+    if "taxa_cobertura_por_linguagem" in tables:
+        _bar_chart(
+            tables["taxa_cobertura_por_linguagem"], "linguagem", "taxa_cobertura_percentual",
+            "Taxa de confirmação da Etapa 2 por linguagem\n(% de repositórios selecionados com >=1 tool detectada)",
+            "Linguagem", "% com >=1 tool",
+            charts_dir / "05_taxa_cobertura_por_linguagem.png",
+        )
+    if "call_graph_resolucao" in tables:
+        _bar_chart(
+            tables["call_graph_resolucao"], "categoria", "percentual",
+            "Resolução dos nós do call graph (níveis 2-3)", "", "% dos nós",
+            charts_dir / "06_call_graph_resolucao.png", horizontal=True,
+        )
+    if dataset:
+        _histogram(
+            distribuicao_tools_por_repo(dataset), bins=30,
+            title="Distribuição de tools por repositório\n(entre os repositórios com >=1 tool)",
+            xlabel="Tools no repositório (escala log)", ylabel="Nº de repositórios",
+            path=charts_dir / "07_distribuicao_tools_por_repo.png", log_x=True,
+        )
+        _histogram(
+            _loc_series(dataset), bins=30,
+            title="Distribuição de LOC (linhas de código) por tool\n(função implementadora, nível 1 do call graph)",
+            xlabel="LOC", ylabel="Nº de tools",
+            path=charts_dir / "08_distribuicao_loc.png",
+        )
+    if "profundidade_call_graph" in tables:
+        _bar_chart(
+            tables["profundidade_call_graph"], "profundidade", "tools",
+            "Profundidade do call graph por tool\n(nível máximo alcançado; limitado a 3 por construção — MAX_LEVEL)",
+            "Profundidade (níveis)", "Tools",
+            charts_dir / "09_distribuicao_profundidade_call_graph.png",
+        )
+    if "funil_coleta" in tables:
+        _bar_chart(
+            tables["funil_coleta"], "etapa", "repositorios",
+            "Funil de atrito da Etapa 1\n(bruto -> único -> aprovado no filtro -> selecionado)",
+            "", "Repositórios",
+            charts_dir / "10_funil_coleta.png", horizontal=True,
+        )
+    if "candidatos_por_fonte" in tables:
+        _bar_chart(
+            tables["candidatos_por_fonte"], "fonte", "candidatos",
+            "Candidatos brutos por fonte de sinal (topic/text/manifest)", "Fonte", "Candidatos",
+            charts_dir / "11_candidatos_por_fonte.png",
+        )
 
     logger.info("Gráficos salvos em %s", charts_dir)
 
@@ -406,10 +476,13 @@ def generate_charts(tables: dict[str, pd.DataFrame], dataset: list[dict], charts
 # --- Planilhas ----------------------------------------------------------------
 
 
-def export_tables(tables: dict[str, pd.DataFrame], tables_dir: Path) -> None:
+def export_tables(tables: dict[str, pd.DataFrame], tables_dir: Path, workbook_name: str = "resumo_etapas_1_2.xlsx") -> None:
+    """`workbook_name` is overridable so scripts/analysis_evaluation_report.py (Etapa 3) can
+    reuse this instead of duplicating the CSV/XLSX export logic, without colliding with this
+    module's own resumo_etapas_1_2.xlsx."""
     tables_dir.mkdir(parents=True, exist_ok=True)
 
-    workbook_path = tables_dir / "resumo_etapas_1_2.xlsx"
+    workbook_path = tables_dir / workbook_name
     with pd.ExcelWriter(workbook_path, engine="openpyxl") as writer:
         for name, df in tables.items():
             df.to_excel(writer, sheet_name=name[:31], index=False)  # limite de 31 chars do Excel para nome de aba
@@ -432,47 +505,83 @@ def main() -> None:
     parser.add_argument(
         "--selected-repos", type=Path, default=None, help="Caminho para selected_repos.jsonl (default: data/selected_repos.jsonl)."
     )
+    parser.add_argument(
+        "--raw-candidates", type=Path, default=None,
+        help="Caminho para all_candidates.jsonl (default: data/raw/all_candidates.jsonl).",
+    )
+    parser.add_argument(
+        "--candidate-pool", type=Path, default=None, help="Caminho para candidate_pool.jsonl (default: data/candidate_pool.jsonl)."
+    )
     parser.add_argument("--output-dir", type=Path, default=None, help="Diretório de saída (default: data/analysis).")
     args = parser.parse_args()
 
     dataset_path = args.dataset or (DATA_DIR / "dataset.jsonl")
     selected_repos_path = args.selected_repos or (DATA_DIR / "selected_repos.jsonl")
+    raw_candidates_path = args.raw_candidates or (DATA_DIR / "raw" / "all_candidates.jsonl")
+    candidate_pool_path = args.candidate_pool or (DATA_DIR / "candidate_pool.jsonl")
     output_dir = args.output_dir or (DATA_DIR / "analysis")
 
-    if not dataset_path.exists():
-        logger.error("dataset.jsonl não encontrado em %s -- rode a Etapa 2 (assemble_dataset.py) primeiro.", dataset_path)
-        sys.exit(1)
     if not selected_repos_path.exists():
         logger.error("selected_repos.jsonl não encontrado em %s -- rode a Etapa 1 primeiro.", selected_repos_path)
         sys.exit(1)
-
-    dataset = load_jsonl(dataset_path)
     selected_repos = load_jsonl(selected_repos_path)
+
+    # dataset.jsonl é opcional aqui: sem ele, ainda dá pra gerar as tabelas que dependem só
+    # da Etapa 1 (ex: antes da Etapa 2 ter sido (re)executada) -- só as que dependem de
+    # tools extraídas ficam de fora, com aviso.
+    dataset: list[dict] = []
+    if dataset_path.exists():
+        dataset = load_jsonl(dataset_path)
+    else:
+        logger.warning(
+            "dataset.jsonl não encontrado em %s -- pulando tabelas/gráficos da Etapa 2 "
+            "(rode a Etapa 2 + assemble_dataset.py para gerá-las).",
+            dataset_path,
+        )
+
     logger.info("Carregados %s repositórios selecionados e %s tools.", len(selected_repos), len(dataset))
 
-    tables = {
+    tables: dict[str, pd.DataFrame] = {
         "repos_por_linguagem": repos_por_linguagem(selected_repos),
-        "tools_por_linguagem": tools_por_linguagem(dataset),
-        "media_tools_por_server": media_tools_por_server(selected_repos, dataset),
-        "distribuicao_sdk_pattern": distribuicao_sdk_pattern(dataset),
-        "taxa_cobertura_por_linguagem": taxa_cobertura_por_linguagem(selected_repos, dataset),
-        "call_graph_resolucao": call_graph_resolucao(dataset),
-        "description_literal_rate": description_literal_rate(dataset),
-        "top_repos_por_tools": top_repos_por_tools(dataset),
         "distribuicao_estrelas": distribuicao_estrelas(selected_repos),
-        "distribuicao_loc": distribuicao_loc(dataset),
-        "profundidade_call_graph": profundidade_call_graph(dataset),
     }
+
+    if raw_candidates_path.exists() and candidate_pool_path.exists():
+        raw_candidates = read_candidates_jsonl(raw_candidates_path)
+        candidate_pool = load_jsonl(candidate_pool_path)
+        tables["funil_coleta"] = funil_coleta(raw_candidates, candidate_pool, selected_repos)
+        tables["candidatos_por_fonte"] = candidatos_por_fonte(raw_candidates)
+    else:
+        logger.warning(
+            "all_candidates.jsonl e/ou candidate_pool.jsonl não encontrados -- pulando "
+            "funil_coleta e candidatos_por_fonte (esperados em %s e %s).",
+            raw_candidates_path,
+            candidate_pool_path,
+        )
+
+    if dataset:
+        tables.update(
+            {
+                "tools_por_linguagem": tools_por_linguagem(dataset),
+                "media_tools_por_server": media_tools_por_server(selected_repos, dataset),
+                "distribuicao_sdk_pattern": distribuicao_sdk_pattern(dataset),
+                "taxa_cobertura_por_linguagem": taxa_cobertura_por_linguagem(selected_repos, dataset),
+                "call_graph_resolucao": call_graph_resolucao(dataset),
+                "description_literal_rate": description_literal_rate(dataset),
+                "top_repos_por_tools": top_repos_por_tools(dataset),
+                "distribuicao_loc": distribuicao_loc(dataset),
+                "profundidade_call_graph": profundidade_call_graph(dataset),
+            }
+        )
 
     export_tables(tables, output_dir / "tables")
     generate_charts(tables, dataset, output_dir / "charts")
 
     logger.info(
-        "Concluído: %s repositórios (%s com >=1 tool), %s tools, %s padrões de SDK distintos.",
+        "Concluído: %s repositórios selecionados, %s tools, tabelas geradas: %s.",
         len(selected_repos),
-        len({r["repo"]["name_with_owner"] for r in dataset}),
         len(dataset),
-        tables["distribuicao_sdk_pattern"].shape[0],
+        ", ".join(tables.keys()),
     )
 
 

@@ -406,5 +406,5 @@ public sealed class WeatherTool
 
 
 def test_unsupported_language_raises_clear_error(tmp_path):
-    with pytest.raises(ValueError, match="Rust"):
-        detect_tools_with_call_graphs(tmp_path, "Rust")
+    with pytest.raises(ValueError, match="Swift"):
+        detect_tools_with_call_graphs(tmp_path, "Swift")

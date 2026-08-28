@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import json
 import logging
-
 from collections.abc import Iterator
 from dataclasses import replace
 from pathlib import Path
@@ -95,9 +94,21 @@ def search_by_manifest_signals(
     # languages.
     seen_full_names: set[str] = set()
 
+    total_subqueries = sum(
+        len(manifest_signal.file_qualifiers) * len(manifest_signal.languages)
+        for manifest_signal in signals.manifest_signals
+    )
+    logger.info(
+        "Etapa 1 (busca por manifesto): %s sub-queries planejadas a partir de %s sinais",
+        total_subqueries,
+        len(signals.manifest_signals),
+    )
+
+    subquery_num = 0
     for manifest_signal in signals.manifest_signals:
         for file_qualifier in manifest_signal.file_qualifiers:
             for language in manifest_signal.languages:
+                subquery_num += 1
                 label = (
                     f"manifest:{manifest_signal.signal}:"
                     f"{file_qualifier}:"
@@ -111,6 +122,13 @@ def search_by_manifest_signals(
                 )
 
                 matched_signal = f"manifest:{manifest_signal.signal}"
+
+                logger.info(
+                    "[%s/%s] Buscando filtro %r...",
+                    subquery_num,
+                    total_subqueries,
+                    label,
+                )
 
                 full_names = sorted(
                     {
@@ -127,9 +145,12 @@ def search_by_manifest_signals(
                 )
 
                 logger.info(
-                    "Manifest sub-query %r matched %s repos",
+                    "[%s/%s] Filtro %r encontrou %s repos (%s novos após remover já vistos nesta rodada)",
+                    subquery_num,
+                    total_subqueries,
                     label,
                     len(full_names),
+                    len(full_names - seen_full_names),
                 )
 
                 for full_name in full_names:

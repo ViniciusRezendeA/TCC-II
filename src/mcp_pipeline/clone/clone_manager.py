@@ -8,6 +8,9 @@ import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 
+from tqdm import tqdm
+from tqdm.contrib.logging import logging_redirect_tqdm
+
 from mcp_pipeline.github.models import RepoCandidate
 
 logger = logging.getLogger("mcp_pipeline.clone_manager")
@@ -140,26 +143,31 @@ def clone_all(
     successes: list[RepoMeta] = []
     failures: list[tuple[RepoCandidate, str]] = []
 
-    for i, repo in enumerate(repos, 1):
-        meta_file = meta_file_path(dest_root, repo)
-        if meta_file.exists():
-            logger.info("[%s/%s] %s já clonado, pulando", i, len(repos), repo.name_with_owner)
-            successes.append(RepoMeta.from_meta_file(meta_file))
-            continue
-        logger.info("[%s/%s] Clonando %s...", i, len(repos), repo.name_with_owner)
-        try:
-            meta = clone_repo(repo, dest_root)
-            successes.append(meta)
-        except CloneError as e:
-            logger.warning("Falha ao clonar %s: %s", repo.name_with_owner, e)
-            failures.append((repo, str(e)))
-            with open(errors_log, "a", encoding="utf-8") as f:
-                f.write(
-                    json.dumps(
-                        {"repo": repo.name_with_owner, "error": str(e)}, ensure_ascii=False
+    with logging_redirect_tqdm(loggers=[logger]), tqdm(total=len(repos), desc="Clonando repositórios", unit="repo") as bar:
+        for i, repo in enumerate(repos, 1):
+            meta_file = meta_file_path(dest_root, repo)
+            if meta_file.exists():
+                logger.info("[%s/%s] %s já clonado, pulando", i, len(repos), repo.name_with_owner)
+                successes.append(RepoMeta.from_meta_file(meta_file))
+                bar.set_postfix(ok=len(successes), falhas=len(failures))
+                bar.update(1)
+                continue
+            logger.info("[%s/%s] Clonando %s...", i, len(repos), repo.name_with_owner)
+            try:
+                meta = clone_repo(repo, dest_root)
+                successes.append(meta)
+            except CloneError as e:
+                logger.warning("Falha ao clonar %s: %s", repo.name_with_owner, e)
+                failures.append((repo, str(e)))
+                with open(errors_log, "a", encoding="utf-8") as f:
+                    f.write(
+                        json.dumps(
+                            {"repo": repo.name_with_owner, "error": str(e)}, ensure_ascii=False
+                        )
+                        + "\n"
                     )
-                    + "\n"
-                )
+            bar.set_postfix(ok=len(successes), falhas=len(failures))
+            bar.update(1)
 
     logger.info("Clonagem concluída: %s sucesso(s), %s falha(s)", len(successes), len(failures))
     return successes, failures

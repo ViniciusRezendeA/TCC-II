@@ -13,8 +13,12 @@ from mcp_pipeline.config import (
     get_github_token,
 )
 from mcp_pipeline.github.graphql_client import GraphQLClient
+from mcp_pipeline.github.models import RepoCandidate
 from mcp_pipeline.github.queries import SMOKE_TEST_QUERY
-from mcp_pipeline.github.search_manifest import build_candidates_from_cached_pages, search_by_manifest_signals
+from mcp_pipeline.github.search_manifest import (
+    build_candidates_from_cached_pages,
+    search_by_manifest_signals,
+)
 from mcp_pipeline.github.search_text import search_by_text_signals
 from mcp_pipeline.github.search_topics import search_by_topics
 from mcp_pipeline.logging_setup import setup_logging
@@ -131,18 +135,35 @@ def main() -> None:
         write_jsonl(all_candidates, RAW_CANDIDATES_PATH)
         logger.info("Total de resultados brutos (com duplicatas entre sub-queries): %s", len(all_candidates))
 
+    _log_candidates_per_source(all_candidates)
+
     pool, selected = dedupe_and_rank(all_candidates, signals)
 
     write_jsonl(pool, DATA_DIR / "candidate_pool.jsonl")
     write_jsonl(selected, DATA_DIR / "selected_repos.jsonl")
 
     logger.info(
-        "Etapa 1 concluída: %s repos no pool completo, %s selecionados (top %s) -> %s",
+        "Etapa 1 concluída: %s repos no pool completo (passaram filtro de fork/estrelas/linguagem) -> "
+        "%s selecionados (top %s) serão clonados e terão tools extraídas na Etapa 2 -> %s",
         len(pool),
         len(selected),
         signals.top_n,
         DATA_DIR / "selected_repos.jsonl",
     )
+
+
+def _log_candidates_per_source(all_candidates: list[RepoCandidate]) -> None:
+    """Breaks down raw candidate counts by filter source (manifest/topic/text),
+    derived from each candidate's matched_signals prefix rather than hardcoded
+    to whichever sources actually ran, so this stays correct if topics/text_signals
+    get wired back into main() alongside manifest_signals.
+    """
+    per_source: dict[str, int] = {}
+    for candidate in all_candidates:
+        for signal in candidate.matched_signals:
+            source = signal.split(":", 1)[0]
+            per_source[source] = per_source.get(source, 0) + 1
+    logger.info("Candidatos brutos por fonte de filtro: %s", per_source)
 
 
 if __name__ == "__main__":

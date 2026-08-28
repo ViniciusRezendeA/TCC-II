@@ -75,10 +75,22 @@ def test_filter_and_rank_drops_below_min_stars():
     assert filtered == []
 
 
-def test_filter_and_rank_keeps_non_target_language():
-    by_id = dedupe([make_repo(id="R_1", language="Rust")])
+def test_filter_and_rank_keeps_target_language():
+    by_id = dedupe([make_repo(id="R_1", language="Python")])
     filtered = filter_and_rank(by_id, make_signals())
     assert [c.id for c in filtered] == ["R_1"]
+
+
+def test_filter_and_rank_drops_non_target_language():
+    by_id = dedupe([make_repo(id="R_1", language="Rust")])
+    filtered = filter_and_rank(by_id, make_signals(target_languages=["Python", "JavaScript"]))
+    assert filtered == []
+
+
+def test_filter_and_rank_drops_null_language():
+    by_id = dedupe([make_repo(id="R_1", language=None)])
+    filtered = filter_and_rank(by_id, make_signals())
+    assert filtered == []
 
 
 def test_filter_and_rank_sorts_by_stars_descending():

@@ -20,12 +20,18 @@ def parse_file(path: Path, spec: LanguageSpec) -> tuple[Tree, bytes]:
 # alone, used to test the framework itself, plus 68 more in examples/ — 89%
 # of its raw tool count before this filter. modelcontextprotocol/python-sdk
 # similarly has all 98 of its detected tools in docs_src/ (documentation
-# code samples, not a server). Excluding these directories is a data-quality
-# fix, not a language-detection change: a repo's *production* tool surface
-# is what Etapa 2 is meant to measure.
+# code samples, not a server). modelcontextprotocol/kotlin-sdk has all 18 of
+# its detected tools in conformance-test/.../ConformanceTools.kt (SDK
+# conformance-suite fixtures named test_simple_text/test_image_content/etc,
+# not a real server) — same class of bug as the plain "test" case above, but
+# the hyphenated directory name doesn't match it (exact per-segment match,
+# not substring). Excluding these directories is a data-quality fix, not a
+# language-detection change: a repo's *production* tool surface is what
+# Etapa 2 is meant to measure.
 EXCLUDED_DIR_NAMES = frozenset(
     {
         "test", "tests", "__tests__", "spec", "specs", "testing",
+        "conformance-test", "conformance-tests",
         "example", "examples", "demo", "demos", "sample", "samples",
         "doc", "docs", "docs_src", "documentation",
         "node_modules", "vendor", "third_party", "dist", "build", "out",

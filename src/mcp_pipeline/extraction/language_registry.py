@@ -3,9 +3,14 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 import tree_sitter_c_sharp
+import tree_sitter_dart
+import tree_sitter_go
 import tree_sitter_java
 import tree_sitter_javascript
+import tree_sitter_kotlin
 import tree_sitter_python
+import tree_sitter_ruby
+import tree_sitter_rust
 import tree_sitter_typescript
 from tree_sitter import Language
 
@@ -28,6 +33,11 @@ LANGUAGES: dict[str, LanguageSpec] = {
     ),
     "Java": LanguageSpec("Java", Language(tree_sitter_java.language()), (".java",)),
     "C#": LanguageSpec("C#", Language(tree_sitter_c_sharp.language()), (".cs",)),
+    "Rust": LanguageSpec("Rust", Language(tree_sitter_rust.language()), (".rs",)),
+    "Ruby": LanguageSpec("Ruby", Language(tree_sitter_ruby.language()), (".rb",)),
+    "Dart": LanguageSpec("Dart", Language(tree_sitter_dart.language()), (".dart",)),
+    "Go": LanguageSpec("Go", Language(tree_sitter_go.language()), (".go",)),
+    "Kotlin": LanguageSpec("Kotlin", Language(tree_sitter_kotlin.language()), (".kt", ".kts")),
 }
 
 

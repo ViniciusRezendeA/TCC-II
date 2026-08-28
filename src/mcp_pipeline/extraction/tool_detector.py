@@ -32,6 +32,30 @@ from mcp_pipeline.extraction.patterns.csharp_patterns import (
 from mcp_pipeline.extraction.patterns.csharp_patterns import (
     extract_imports as csharp_extract_imports,
 )
+from mcp_pipeline.extraction.patterns.dart_patterns import (
+    detect_dart_tools,
+)
+from mcp_pipeline.extraction.patterns.dart_patterns import (
+    extract_calls as dart_extract_calls,
+)
+from mcp_pipeline.extraction.patterns.dart_patterns import (
+    extract_definitions as dart_extract_definitions,
+)
+from mcp_pipeline.extraction.patterns.dart_patterns import (
+    extract_imports as dart_extract_imports,
+)
+from mcp_pipeline.extraction.patterns.go_patterns import (
+    detect_go_tools,
+)
+from mcp_pipeline.extraction.patterns.go_patterns import (
+    extract_calls as go_extract_calls,
+)
+from mcp_pipeline.extraction.patterns.go_patterns import (
+    extract_definitions as go_extract_definitions,
+)
+from mcp_pipeline.extraction.patterns.go_patterns import (
+    extract_imports as go_extract_imports,
+)
 from mcp_pipeline.extraction.patterns.java_patterns import (
     detect_spring_ai_tools,
 )
@@ -65,6 +89,18 @@ from mcp_pipeline.extraction.patterns.javascript_patterns import (
 from mcp_pipeline.extraction.patterns.javascript_patterns import (
     extract_values as javascript_extract_values,
 )
+from mcp_pipeline.extraction.patterns.kotlin_patterns import (
+    detect_kotlin_tools,
+)
+from mcp_pipeline.extraction.patterns.kotlin_patterns import (
+    extract_calls as kotlin_extract_calls,
+)
+from mcp_pipeline.extraction.patterns.kotlin_patterns import (
+    extract_definitions as kotlin_extract_definitions,
+)
+from mcp_pipeline.extraction.patterns.kotlin_patterns import (
+    extract_imports as kotlin_extract_imports,
+)
 from mcp_pipeline.extraction.patterns.python_patterns import (
     detect_fastmcp_tools,
 )
@@ -82,6 +118,30 @@ from mcp_pipeline.extraction.patterns.python_patterns import (
 )
 from mcp_pipeline.extraction.patterns.python_patterns import (
     extract_values as python_extract_values,
+)
+from mcp_pipeline.extraction.patterns.ruby_patterns import (
+    detect_ruby_tools,
+)
+from mcp_pipeline.extraction.patterns.ruby_patterns import (
+    extract_calls as ruby_extract_calls,
+)
+from mcp_pipeline.extraction.patterns.ruby_patterns import (
+    extract_definitions as ruby_extract_definitions,
+)
+from mcp_pipeline.extraction.patterns.ruby_patterns import (
+    extract_imports as ruby_extract_imports,
+)
+from mcp_pipeline.extraction.patterns.rust_patterns import (
+    detect_rust_tools,
+)
+from mcp_pipeline.extraction.patterns.rust_patterns import (
+    extract_calls as rust_extract_calls,
+)
+from mcp_pipeline.extraction.patterns.rust_patterns import (
+    extract_definitions as rust_extract_definitions,
+)
+from mcp_pipeline.extraction.patterns.rust_patterns import (
+    extract_imports as rust_extract_imports,
 )
 from mcp_pipeline.extraction.patterns.typescript_patterns import (
     detect_fastmcp_npm_addtool as detect_typescript_fastmcp_npm_addtool,
@@ -200,6 +260,36 @@ LANGUAGE_ADAPTERS: dict[str, LanguageAdapter] = {
         extract_imports_fn=csharp_extract_imports,
         extract_calls=csharp_extract_calls,
         detect_tools=detect_csharp_tools,
+    ),
+    "Rust": LanguageAdapter(
+        extract_definitions=rust_extract_definitions,
+        extract_imports_fn=rust_extract_imports,
+        extract_calls=rust_extract_calls,
+        detect_tools=detect_rust_tools,
+    ),
+    "Ruby": LanguageAdapter(
+        extract_definitions=ruby_extract_definitions,
+        extract_imports_fn=ruby_extract_imports,
+        extract_calls=ruby_extract_calls,
+        detect_tools=detect_ruby_tools,
+    ),
+    "Dart": LanguageAdapter(
+        extract_definitions=dart_extract_definitions,
+        extract_imports_fn=dart_extract_imports,
+        extract_calls=dart_extract_calls,
+        detect_tools=detect_dart_tools,
+    ),
+    "Go": LanguageAdapter(
+        extract_definitions=go_extract_definitions,
+        extract_imports_fn=go_extract_imports,
+        extract_calls=go_extract_calls,
+        detect_tools=detect_go_tools,
+    ),
+    "Kotlin": LanguageAdapter(
+        extract_definitions=kotlin_extract_definitions,
+        extract_imports_fn=kotlin_extract_imports,
+        extract_calls=kotlin_extract_calls,
+        detect_tools=detect_kotlin_tools,
     ),
 }
 

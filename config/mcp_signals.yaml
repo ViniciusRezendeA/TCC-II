@@ -227,6 +227,12 @@ target_languages:
   - TypeScript
   - Java
   - "C#"
+  - Go
+  - Rust
+  - Ruby
+  - Dart
+  - Kotlin
+ 
 
 min_stars: 100
 top_n: 206

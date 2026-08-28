@@ -47,7 +47,7 @@ def test_process_repo_detects_python_tools_and_writes_tools_jsonl(tmp_path, monk
 
 def test_process_repo_with_unsupported_language_writes_empty_file(tmp_path, monkeypatch):
     dest_root = tmp_path / "repos"
-    meta = _clone_fake_repo(dest_root, "acme/rust-mcp", "Rust", monkeypatch)
+    meta = _clone_fake_repo(dest_root, "acme/swift-mcp", "Swift", monkeypatch)
 
     n_tools = process_repo(meta)
 

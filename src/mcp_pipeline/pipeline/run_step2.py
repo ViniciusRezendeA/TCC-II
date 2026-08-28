@@ -5,6 +5,9 @@ import json
 import sys
 from pathlib import Path
 
+from tqdm import tqdm
+from tqdm.contrib.logging import logging_redirect_tqdm
+
 from mcp_pipeline.clone.clone_manager import META_FILENAME, RepoMeta
 from mcp_pipeline.config import DATA_DIR, LOGS_DIR, ensure_dirs
 from mcp_pipeline.extraction.tool_detector import (
@@ -69,31 +72,38 @@ def main() -> None:
 
     processed, skipped, failed = 0, 0, 0
     total_tools = 0
-    for i, meta in enumerate(all_repos, 1):
-        slug = meta.repo.name_with_owner
-        tools_file = meta.src_path.parent / TOOLS_FILENAME
+    with logging_redirect_tqdm(loggers=[logger]), tqdm(total=len(all_repos), desc="Extraindo tools", unit="repo") as bar:
+        for i, meta in enumerate(all_repos, 1):
+            slug = meta.repo.name_with_owner
+            tools_file = meta.src_path.parent / TOOLS_FILENAME
 
-        if tools_file.exists():
-            skipped += 1
-            continue
-        if slug in previously_failed:
-            logger.info("[%s/%s] %s falhou antes, pulando (use --retry-failed para tentar de novo)", i, len(all_repos), slug)
-            skipped += 1
-            continue
+            if tools_file.exists():
+                skipped += 1
+                bar.set_postfix(tools=total_tools, falhas=failed, pulados=skipped)
+                bar.update(1)
+                continue
+            if slug in previously_failed:
+                logger.info("[%s/%s] %s falhou antes, pulando (use --retry-failed para tentar de novo)", i, len(all_repos), slug)
+                skipped += 1
+                bar.set_postfix(tools=total_tools, falhas=failed, pulados=skipped)
+                bar.update(1)
+                continue
 
-        logger.info("[%s/%s] Processando %s (%s)...", i, len(all_repos), slug, meta.repo.primary_language)
-        try:
-            n_tools = process_repo(meta)
-            total_tools += n_tools
-            processed += 1
-            logger.info("[%s/%s] %s: %s tool(s) encontrada(s)", i, len(all_repos), slug, n_tools)
-        except Exception as e:  # noqa: BLE001 — deliberately broad: one malformed/unexpected repo
-            # (tree-sitter internals, encoding issues, unanticipated AST shapes) must not abort
-            # the other ~205 repos in the batch, matching clone_all's resilience contract.
-            failed += 1
-            logger.warning("Falha ao processar %s: %s", slug, e)
-            with open(errors_log, "a", encoding="utf-8") as f:
-                f.write(json.dumps({"repo": slug, "error": str(e)}, ensure_ascii=False) + "\n")
+            logger.info("[%s/%s] Processando %s (%s)...", i, len(all_repos), slug, meta.repo.primary_language)
+            try:
+                n_tools = process_repo(meta)
+                total_tools += n_tools
+                processed += 1
+                logger.info("[%s/%s] %s: %s tool(s) encontrada(s)", i, len(all_repos), slug, n_tools)
+            except Exception as e:  # noqa: BLE001 — deliberately broad: one malformed/unexpected repo
+                # (tree-sitter internals, encoding issues, unanticipated AST shapes) must not abort
+                # the other ~205 repos in the batch, matching clone_all's resilience contract.
+                failed += 1
+                logger.warning("Falha ao processar %s: %s", slug, e)
+                with open(errors_log, "a", encoding="utf-8") as f:
+                    f.write(json.dumps({"repo": slug, "error": str(e)}, ensure_ascii=False) + "\n")
+            bar.set_postfix(tools=total_tools, falhas=failed, pulados=skipped)
+            bar.update(1)
 
     logger.info(
         "Etapa 2 concluída: %s processados, %s pulados (já feitos/falhados), %s falhas nesta rodada, %s tools no total",
