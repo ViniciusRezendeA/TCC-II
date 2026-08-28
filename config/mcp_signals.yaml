@@ -95,7 +95,6 @@ manifest_signals_v2:
     file_qualifiers: ["filename:package.json"]
     languages:
       - "JavaScript"
-      - "TypeScript"
   # JavaScript / TypeScript
   - signal: "@modelcontextprotocol/server"
     file_qualifiers: ["filename:package.json"]

@@ -31,6 +31,8 @@ logger = logging.getLogger("mcp_pipeline.rest_code_search")
 GITHUB_CODE_SEARCH_URL = "https://api.github.com/search/code"
 _MIN_SECONDS_BETWEEN_REQUESTS = 6.5  # keeps well under the 10 req/min cap
 _MAX_SEARCH_RESULTS = 1000  # GitHub Search API hard cap; page beyond this 422s
+_TRANSIENT_STATUS_CODES = {500, 502, 503, 504}
+_MAX_TRANSIENT_RETRIES = 5
 
 
 def search_code_for_signal(
@@ -103,17 +105,35 @@ def search_code_for_signal(
     }
 
     while True:
-        resp = requests.get(
-            GITHUB_CODE_SEARCH_URL,
-            headers=headers,
-            params={"q": query_string, "per_page": per_page, "page": page},
-            timeout=30,
-        )
-        if resp.status_code == 403:
-            retry_after = int(resp.headers.get("retry-after", 60))
-            logger.warning("Code search rate limited, sleeping %ss", retry_after)
-            time.sleep(retry_after)
-            continue
+        transient_attempt = 0
+        while True:
+            resp = requests.get(
+                GITHUB_CODE_SEARCH_URL,
+                headers=headers,
+                params={"q": query_string, "per_page": per_page, "page": page},
+                timeout=30,
+            )
+            if resp.status_code == 403:
+                retry_after = int(resp.headers.get("retry-after", 60))
+                logger.warning("Code search rate limited, sleeping %ss", retry_after)
+                time.sleep(retry_after)
+                continue
+            if resp.status_code in _TRANSIENT_STATUS_CODES:
+                transient_attempt += 1
+                if transient_attempt > _MAX_TRANSIENT_RETRIES:
+                    resp.raise_for_status()
+                backoff = _MIN_SECONDS_BETWEEN_REQUESTS * (2**transient_attempt)
+                logger.warning(
+                    "Code search got transient %s on page %s (attempt %s/%s), retrying in %ss",
+                    resp.status_code,
+                    page,
+                    transient_attempt,
+                    _MAX_TRANSIENT_RETRIES,
+                    backoff,
+                )
+                time.sleep(backoff)
+                continue
+            break
         resp.raise_for_status()
         payload = resp.json()
 
