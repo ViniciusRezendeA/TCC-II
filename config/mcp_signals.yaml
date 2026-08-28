@@ -91,13 +91,24 @@ manifest_signals:
     file_qualifiers: ["extension:csproj"]
 
 manifest_signals_v2:
+  - signal: "@modelcontextprotocol/node"
+    file_qualifiers: ["filename:package.json"]
+    languages:
+      - "JavaScript"
+      - "TypeScript"
+  # JavaScript / TypeScript
+  - signal: "@modelcontextprotocol/server"
+    file_qualifiers: ["filename:package.json"]
+    languages:
+      - "JavaScript"
+
   # JavaScript / TypeScript
   - signal: "@modelcontextprotocol/sdk"
     file_qualifiers:
       - "filename:package.json"
     languages:
       - "JavaScript"
-      - "TypeScript"
+
 
   # Python
   - signal: "mcp"
@@ -136,7 +147,7 @@ manifest_signals_v2:
       - "filename:pom.xml"
     languages:
       - "Kotlin"
-      - "Java"
+
 
   # C#
   - signal: "ModelContextProtocol"

@@ -133,8 +133,6 @@ def build_manifest_query_string(
     return (
         f'"{signal}" '
         f"{file_qualifier} "
-        f"language:{language} "
-        "path:/"
     )
 
 
