@@ -251,6 +251,43 @@ def distribuicao_estrelas(selected_repos: list[dict]) -> pd.DataFrame:
     )
 
 
+def _loc_series(dataset: list[dict]) -> pd.Series:
+    """Uma linha por tool -- usada só para o histograma; distribuicao_loc()
+    já cobre o resumo estatístico em planilha (mesmo padrão de
+    distribuicao_tools_por_repo() vs. top_repos_por_tools())."""
+    return pd.Series([r["tool"]["loc"] for r in dataset])
+
+
+def distribuicao_loc(dataset: list[dict]) -> pd.DataFrame:
+    """Estatísticas de LOC da função que implementa cada tool -- computado em
+    tool_detector.py a partir do FunctionDef resolvido (start_def), não de
+    tool["source_location"] (que, nos padrões .tool()/.registerTool() de
+    JS/TS, é o call site de registro, não o corpo do handler). Nota: em
+    Java/C#, o nó do método inclui a linha de anotação/atributo
+    (@Tool/[McpServerTool]), o que infla o LOC em ~1 linha por tool
+    relativo a Python -- diferença de gramática, não de tamanho real."""
+    loc = _loc_series(dataset)
+    return pd.DataFrame(
+        {
+            "estatistica": ["mínimo", "p25", "mediana", "p75", "máximo", "média"],
+            "loc": [
+                int(loc.min()), int(loc.quantile(0.25)), int(loc.median()),
+                int(loc.quantile(0.75)), int(loc.max()), round(loc.mean(), 1),
+            ],
+        }
+    )
+
+
+def profundidade_call_graph(dataset: list[dict]) -> pd.DataFrame:
+    """Profundidade do call graph de cada tool (maior `level` alcançado).
+    Limitada a {1, 2, 3} por construção -- MAX_LEVEL em call_graph_builder.py
+    trava a árvore em 3 níveis; ver a docstring de build_call_graph()."""
+    depths = pd.Series([r["tool"]["call_graph_depth"] for r in dataset])
+    counts = depths.value_counts().rename_axis("profundidade").reset_index(name="tools")
+    counts["percentual"] = (counts["tools"] / len(dataset) * 100).round(1)
+    return counts.sort_values("profundidade").reset_index(drop=True)
+
+
 # --- Gráficos ----------------------------------------------------------------
 
 
@@ -350,6 +387,18 @@ def generate_charts(tables: dict[str, pd.DataFrame], dataset: list[dict], charts
         xlabel="Tools no repositório (escala log)", ylabel="Nº de repositórios",
         path=charts_dir / "07_distribuicao_tools_por_repo.png", log_x=True,
     )
+    _histogram(
+        _loc_series(dataset), bins=30,
+        title="Distribuição de LOC (linhas de código) por tool\n(função implementadora, nível 1 do call graph)",
+        xlabel="LOC", ylabel="Nº de tools",
+        path=charts_dir / "08_distribuicao_loc.png",
+    )
+    _bar_chart(
+        tables["profundidade_call_graph"], "profundidade", "tools",
+        "Profundidade do call graph por tool\n(nível máximo alcançado; limitado a 3 por construção — MAX_LEVEL)",
+        "Profundidade (níveis)", "Tools",
+        charts_dir / "09_distribuicao_profundidade_call_graph.png",
+    )
 
     logger.info("Gráficos salvos em %s", charts_dir)
 
@@ -411,6 +460,8 @@ def main() -> None:
         "description_literal_rate": description_literal_rate(dataset),
         "top_repos_por_tools": top_repos_por_tools(dataset),
         "distribuicao_estrelas": distribuicao_estrelas(selected_repos),
+        "distribuicao_loc": distribuicao_loc(dataset),
+        "profundidade_call_graph": profundidade_call_graph(dataset),
     }
 
     export_tables(tables, output_dir / "tables")

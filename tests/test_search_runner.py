@@ -159,13 +159,26 @@ def test_already_completed_signal_replays_from_disk_without_calling_client(tmp_p
     assert client_that_must_not_be_called.calls == []
 
 
-def test_replay_yields_nothing_when_no_cached_pages_exist_but_query_matches(tmp_path):
+def test_done_with_missing_cached_pages_requeries_instead_of_yielding_nothing(tmp_path):
+    """Real incident, not hypothetical: a checkpoint file can survive an
+    otherwise-complete wipe of the data/ directory it references (they're
+    separate directories) — `state/step1_progress.json` still says every
+    sub-query is "done", but `data/raw/search_pages/` is gone. A genuinely-
+    completed query, even with 0 real matches, always writes at least one
+    page file before marking itself done, so "done=True but 0 page files on
+    disk" can only mean the cache was lost after the fact. The old behavior
+    (trust "done", replay an empty cache, silently yield nothing) caused the
+    single largest manifest signal to silently contribute 0 candidates on a
+    real run. The fix re-queries instead of trusting a "done" flag whose
+    referenced cache doesn't exist.
+    """
     checkpoint = Checkpoint(tmp_path / "state.json")
     checkpoint.set("search::topic:mcp-server", {"end_cursor": "x", "done": True, "query_string": QUERY_A})
+    client = one_page_client(ids=("R_9",))
 
     results = list(
         run_paginated_repo_search(
-            client=FakeClient({}),
+            client=client,
             checkpoint=checkpoint,
             signal_label="topic:mcp-server",
             query_string=QUERY_A,
@@ -174,7 +187,9 @@ def test_replay_yields_nothing_when_no_cached_pages_exist_but_query_matches(tmp_
         )
     )
 
-    assert results == []
+    assert [r.id for r in results] == ["R_9"]
+    assert len(client.calls) == 1
+    assert checkpoint.get("search::topic:mcp-server")["done"] is True
 
 
 def test_changed_query_string_is_treated_as_stale_and_requeries(tmp_path):

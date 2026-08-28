@@ -55,10 +55,14 @@ def other_tool(x):
     call_texts = {c.raw_call_text for c in weather_graph.calls[0].calls}
     assert "requests.get(city)" in call_texts
     assert "cache_utils.get_cached(city)" in call_texts
+    assert weather_tool.loc == 3  # def/docstring/return -- decorator line excluded
+    assert weather_tool.call_graph_depth == 3  # get_weather -> _fetch -> get_cached
 
     other_tool_record, other_graph = by_name["other_tool"]
     assert other_tool_record.description == "Second tool"
     assert other_graph.calls == []  # `return x` has no call expressions
+    assert other_tool_record.loc == 2  # def/return -- decorator line excluded
+    assert other_tool_record.call_graph_depth == 1  # no calls at all
 
 
 def test_python_lowlevel_list_tools_inline_static_list(tmp_path):
@@ -225,6 +229,12 @@ async function handleGetWeather(args) {
     assert tool.sdk_pattern == "javascript.registerTool"
     assert graph.qualified_name == "handleGetWeather"
     assert graph.calls[0].qualified_name == "getCached"
+    # handleGetWeather's own 3-line body (lines 9-11 of the fixture), NOT the
+    # 4-line server.registerTool(...) call site (lines 4-7) that
+    # tool.source_location points to -- this is what pins loc to start_def,
+    # not tool.source_location.
+    assert tool.loc == 3
+    assert tool.call_graph_depth == 2  # handleGetWeather -> getCached (leaf)
 
 
 def test_javascript_detects_fastmcp_npm_addtool_alongside_registertool(tmp_path):

@@ -5,6 +5,7 @@ from pathlib import Path
 from mcp_pipeline.extraction.call_graph_builder import (
     CallSite,
     build_call_graph,
+    call_graph_depth,
     resolve_call,
 )
 from mcp_pipeline.extraction.definition_index import (
@@ -14,6 +15,7 @@ from mcp_pipeline.extraction.definition_index import (
 )
 from mcp_pipeline.extraction.import_index import ImportedName
 from mcp_pipeline.extraction.language_registry import spec_for
+from mcp_pipeline.extraction.models import CallGraphNode
 from mcp_pipeline.extraction.parser_utils import (
     iter_source_files,
     parse_file,
@@ -216,3 +218,43 @@ def get_weather(city):
     assert level3.level == 3
     assert level3.qualified_name == "get_weather"
     assert level3.calls == []  # level-3 nodes are never call-site-scanned, so recursion can't go to level 4
+
+
+def test_call_graph_depth_reaches_max_level_when_tree_is_full(tmp_path):
+    repo = tmp_path / "src"
+    _write(
+        repo / "server.py",
+        '''
+from . import cache_utils
+import requests
+
+
+class WeatherServer:
+    def get_weather(self, city):
+        return self._fetch(city)
+
+    def _fetch(self, city):
+        requests.get(city)
+        return cache_utils.get_cached(city)
+''',
+    )
+    _write(repo / "cache_utils.py", "def get_cached(key):\n    return None\n")
+
+    definitions = build_definition_index(repo, SPEC, extract_definitions)
+    imports_by_file = {}
+    source_bytes_by_file = {}
+    for f in iter_source_files(repo, SPEC):
+        tree, source_bytes = parse_file(f, SPEC)
+        rel = relative_path(f, repo)
+        imports_by_file[rel] = extract_imports(tree.root_node, source_bytes)
+        source_bytes_by_file[rel] = source_bytes
+
+    start = definitions.by_qualified_name["WeatherServer.get_weather"]
+    graph = build_call_graph(start, definitions, imports_by_file, source_bytes_by_file, extract_calls)
+
+    assert call_graph_depth(graph) == 3
+
+
+def test_call_graph_depth_of_leaf_only_node_is_one():
+    leaf = CallGraphNode(level=1, resolved=True, external=False, ambiguous=False)
+    assert call_graph_depth(leaf) == 1

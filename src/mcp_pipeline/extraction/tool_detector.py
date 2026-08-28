@@ -6,7 +6,7 @@ from pathlib import Path
 
 from tree_sitter import Node
 
-from mcp_pipeline.extraction.call_graph_builder import CallExtractor, build_call_graph
+from mcp_pipeline.extraction.call_graph_builder import CallExtractor, build_call_graph, call_graph_depth
 from mcp_pipeline.extraction.definition_index import (
     DefinitionExtractor,
     DefinitionIndex,
@@ -295,5 +295,11 @@ def detect_tools_with_call_graphs(
             # at scale, not silently normal.
             continue
         graph = build_call_graph(start_def, definitions, imports_by_file, source_bytes_by_file, adapter.extract_calls)
+        # From start_def/graph, NOT tool.source_location: for JS/TS's
+        # .tool()/.registerTool() patterns, source_location is the registration
+        # call site, which can have a different line range than the handler
+        # itself (see models.py's ToolRecord.loc docstring).
+        tool.loc = start_def.end_line - start_def.start_line + 1
+        tool.call_graph_depth = call_graph_depth(graph)
         results.append((tool, graph))
     return results

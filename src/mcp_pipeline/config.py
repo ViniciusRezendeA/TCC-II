@@ -32,6 +32,7 @@ class ManifestSignal:
 
     signal: str
     file_qualifiers: list[str]
+    languages: list[str]
 
 
 @dataclass(frozen=True)
@@ -44,23 +45,34 @@ class Signals:
     top_n: int
     result_count_warning_threshold: int
 
+
     @classmethod
     def load(cls, path: Path | None = None) -> Signals:
         path = path or (CONFIG_DIR / "mcp_signals.yaml")
+
         with open(path, encoding="utf-8") as f:
             raw = yaml.safe_load(f)
+
+        manifest_signals = [
+            ManifestSignal(
+                signal=entry["signal"],
+                file_qualifiers=entry["file_qualifiers"],
+                languages=entry["languages"],
+            )
+            for entry in raw["manifest_signals_v2"]
+        ]
+
         return cls(
             topics=raw["topics"],
             text_signals=raw["text_signals"],
-            manifest_signals=[
-                ManifestSignal(signal=entry["signal"], file_qualifiers=entry["file_qualifiers"])
-                for entry in raw.get("manifest_signals_v2", [])
-            ],
+            manifest_signals=manifest_signals,
             target_languages=raw["target_languages"],
             min_stars=raw["min_stars"],
             top_n=raw["top_n"],
             result_count_warning_threshold=raw["result_count_warning_threshold"],
         )
+
+
 
 
 def get_github_token() -> str:

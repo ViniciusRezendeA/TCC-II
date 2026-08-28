@@ -64,11 +64,26 @@ def search_code_for_signal(
     saved_query_string = saved.get("query_string")
 
     if done and saved_query_string == query_string:
-        logger.info("Code sub-query %r already completed, replaying cached pages", signal_label)
-        yield from _replay_cached_pages(signal_label, raw_pages_dir)
-        return
-
-    if done and saved_query_string != query_string:
+        if cached_page_files(signal_label, raw_pages_dir):
+            logger.info("Code sub-query %r already completed, replaying cached pages", signal_label)
+            yield from _replay_cached_pages(signal_label, raw_pages_dir)
+            return
+        # Same real incident as search_runner.py's identical check: a
+        # genuinely-completed sub-query always writes at least one page file
+        # before marking itself done, so "done=True but zero page files on
+        # disk" only means the cache was lost after the fact (raw_pages_dir
+        # cleared independently of the checkpoint) -- never a legitimate
+        # zero-result outcome. Silently replaying nothing here is what
+        # caused the single largest manifest signal to contribute 0
+        # candidates on a real run, with no error or warning.
+        logger.warning(
+            "Code sub-query %r was marked done, but its cached pages are missing on disk "
+            "(raw_pages_dir cleared independently of the checkpoint?) — treating as stale "
+            "and re-running from scratch instead of silently yielding nothing",
+            signal_label,
+        )
+        page = 1
+    elif done and saved_query_string != query_string:
         logger.warning(
             "Code sub-query %r was marked done for a different query string (%r vs current %r) "
             "— treating checkpoint as stale and re-running from scratch",

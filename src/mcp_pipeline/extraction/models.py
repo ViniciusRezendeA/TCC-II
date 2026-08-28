@@ -25,6 +25,14 @@ class ToolRecord:
     sdk_pattern: str  # e.g. "python.fastmcp_decorator" — see patterns/*.py
     source_location: SourceLocation
     qualified_name: str  # links this tool to its Level-1 node in the definition index
+    loc: int = 0  # lines of the implementing function: end_line - start_line + 1 of
+    # the resolved FunctionDef (see tool_detector.py) -- NOT of source_location,
+    # which for JS/TS .tool()/.registerTool() patterns is the registration call
+    # site, not the handler. 0 is a "not computed yet" sentinel; real values are
+    # always >= 1.
+    call_graph_depth: int = 0  # max `level` reached in this tool's call graph tree.
+    # Bounded to {1, 2, 3} by MAX_LEVEL in call_graph_builder.py. 0 is a "not
+    # computed yet" sentinel; real values are always >= 1.
 
     def to_dict(self) -> dict:
         return {
@@ -34,6 +42,8 @@ class ToolRecord:
             "sdk_pattern": self.sdk_pattern,
             "source_location": self.source_location.to_dict(),
             "qualified_name": self.qualified_name,
+            "loc": self.loc,
+            "call_graph_depth": self.call_graph_depth,
         }
 
     @classmethod
@@ -45,6 +55,8 @@ class ToolRecord:
             sdk_pattern=d["sdk_pattern"],
             source_location=SourceLocation.from_dict(d["source_location"]),
             qualified_name=d["qualified_name"],
+            loc=d["loc"],
+            call_graph_depth=d["call_graph_depth"],
         )
 
 

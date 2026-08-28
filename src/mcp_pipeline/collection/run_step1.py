@@ -15,16 +15,22 @@ from mcp_pipeline.config import (
 from mcp_pipeline.github.graphql_client import GraphQLClient
 from mcp_pipeline.github.queries import SMOKE_TEST_QUERY
 from mcp_pipeline.github.search_manifest import build_candidates_from_cached_pages, search_by_manifest_signals
+from mcp_pipeline.github.search_text import search_by_text_signals
+from mcp_pipeline.github.search_topics import search_by_topics
 from mcp_pipeline.logging_setup import setup_logging
 
 logger = setup_logging("step1")
 
 # Every candidate as hydrated by the last full (non-cached) run, before
 # dedupe/filter — lets --use-cache re-run just the selection step (dedupe +
-# filter_and_rank) against already-paid-for GraphQL hydration calls, e.g.
-# while iterating on min_stars/top_n in mcp_signals.yaml or on
-# filter_and_rank itself, without re-spending REST/GraphQL rate limit.
-RAW_CANDIDATES_PATH = DATA_DIR / "raw" / "manifest_candidates.jsonl"
+# filter_and_rank) against already-paid-for GraphQL/REST calls, e.g. while
+# iterating on min_stars/top_n in mcp_signals.yaml or on filter_and_rank
+# itself, without re-spending rate limit. Combines all 3 sources (topics,
+# text_signals, manifest_signals) — renamed from the earlier
+# manifest_candidates.jsonl once search_by_topics/search_by_text_signals
+# were wired back in alongside the REST manifest search below, since the
+# cache is no longer manifest-only.
+RAW_CANDIDATES_PATH = DATA_DIR / "raw" / "all_candidates.jsonl"
 
 
 def smoke_test(client: GraphQLClient) -> None:

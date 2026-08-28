@@ -73,11 +73,29 @@ def run_paginated_repo_search(
     saved_query_string = saved.get("query_string")
 
     if done and saved_query_string == query_string:
-        logger.info("Sub-query %r already completed in a previous run, replaying cached pages", signal_label)
-        yield from _replay_cached_pages(signal_label, raw_pages_dir)
-        return
-
-    if done and saved_query_string != query_string:
+        if _cached_page_files(signal_label, raw_pages_dir):
+            logger.info("Sub-query %r already completed in a previous run, replaying cached pages", signal_label)
+            yield from _replay_cached_pages(signal_label, raw_pages_dir)
+            return
+        # A genuinely-completed query, even with 0 real matches, always
+        # writes at least one page file (nodes: [], hasNextPage: false)
+        # before marking itself done — so "done=True but zero page files on
+        # disk" can only mean the cache was lost after the fact (e.g.
+        # raw_pages_dir cleared independently of the checkpoint file), never
+        # a legitimate zero-result outcome. Silently yielding nothing here
+        # previously caused a real incident: the checkpoint survived a
+        # data/ wipe but the page cache didn't, and every "done" sub-query
+        # silently contributed 0 candidates on the next run — including the
+        # single largest manifest signal — with no error or warning.
+        logger.warning(
+            "Sub-query %r was marked done, but its cached pages are missing on disk "
+            "(raw_pages_dir cleared independently of the checkpoint?) — treating as stale "
+            "and re-running from scratch instead of silently yielding nothing",
+            signal_label,
+        )
+        after = None
+        page_num = 0
+    elif done and saved_query_string != query_string:
         logger.warning(
             "Sub-query %r was marked done for a different query string (%r vs current %r) "
             "— treating checkpoint as stale and re-running from scratch",

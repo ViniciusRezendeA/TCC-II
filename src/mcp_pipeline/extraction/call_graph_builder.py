@@ -46,6 +46,18 @@ def build_call_graph(
                         source_bytes_by_file=source_bytes_by_file, extract_calls=extract_calls)
 
 
+def call_graph_depth(node: CallGraphNode) -> int:
+    """Depth of the call graph tree rooted at `node`: the highest `level`
+    reached by any node in the tree. The tool's own level-1 node alone (no
+    calls) has depth 1. Bounded to MAX_LEVEL by construction -- build_call_graph()
+    never produces a node past level MAX_LEVEL, so this is a deliberately
+    coarse {1, 2, 3}-valued metric, not an unlimited depth.
+    """
+    if not node.calls:
+        return node.level
+    return max(call_graph_depth(child) for child in node.calls)
+
+
 def _build_node(
     fn_def: FunctionDef,
     level: int,

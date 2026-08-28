@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import pytest
+
 from mcp_pipeline.extraction.models import CallGraphNode, SourceLocation, ToolRecord
 
 
@@ -16,9 +18,39 @@ def test_tool_record_round_trips():
         sdk_pattern="python.fastmcp_decorator",
         source_location=SourceLocation(file="server.py", start_line=10, end_line=12),
         qualified_name="WeatherServer.get_weather",
+        loc=3,
+        call_graph_depth=2,
     )
     reloaded = ToolRecord.from_dict(tool.to_dict())
     assert reloaded == tool
+
+
+def test_tool_record_loc_and_call_graph_depth_default_to_zero():
+    tool = ToolRecord(
+        name="x",
+        description="",
+        description_is_literal=False,
+        sdk_pattern="x",
+        source_location=SourceLocation(file="f.py", start_line=1, end_line=1),
+        qualified_name="x",
+    )
+    assert tool.loc == 0
+    assert tool.call_graph_depth == 0
+
+
+def test_tool_record_from_dict_requires_loc_and_call_graph_depth():
+    stale = ToolRecord(
+        name="x",
+        description="",
+        description_is_literal=False,
+        sdk_pattern="x",
+        source_location=SourceLocation(file="f.py", start_line=1, end_line=1),
+        qualified_name="x",
+    ).to_dict()
+    del stale["loc"]
+    del stale["call_graph_depth"]
+    with pytest.raises(KeyError):
+        ToolRecord.from_dict(stale)
 
 
 def test_call_graph_node_round_trips_with_nested_children():
