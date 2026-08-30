@@ -1,11 +1,12 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from pathlib import PurePosixPath
 
 from tree_sitter import Node
 
 from mcp_pipeline.extraction.call_graph_builder import CallSite
-from mcp_pipeline.extraction.definition_index import FunctionDef
+from mcp_pipeline.extraction.definition_index import DefinitionIndex, FunctionDef
 from mcp_pipeline.extraction.import_index import ImportedName, ImportIndex
 from mcp_pipeline.extraction.language_registry import spec_for
 from mcp_pipeline.extraction.models import SourceLocation, ToolRecord
@@ -15,6 +16,7 @@ from mcp_pipeline.extraction.parser_utils import (
     run_query,
     string_literal_value,
 )
+from mcp_pipeline.extraction.value_index import ValueDef, ValueIndex, resolve_value
 
 GO_LANGUAGE = spec_for("Go").ts_language
 
@@ -108,6 +110,36 @@ def extract_imports(root: Node, source_bytes: bytes) -> ImportIndex:
     return result
 
 
+def extract_values(root: Node, source_bytes: bytes, rel_path: str) -> list[ValueDef]:
+    """Package-top-level `const NAME = "literal"` bindings -- both the
+    single-spec (`const x = "y"`) and grouped-block (`const (\\n x = "y"\\n
+    z = "w"\\n)`) forms produce the same const_spec shape, verified against
+    a real case (kagent-dev/kagent's `listToolName`/`invokeToolName`/etc,
+    all package-level constants used as `mcp.Tool{Name: ...}` in
+    `mcp.AddTool` calls instead of inline string literals). Anchored on
+    const_declaration being a direct child of source_file, mirroring
+    python_patterns.py's module-top-level-only extract_values, so a const
+    declared inside a function body isn't treated as repo-wide-referenceable.
+    Doesn't handle a multi-name single spec (`const a, b = "x", "y"`) --
+    not a confirmed real case.
+    """
+    values: list[ValueDef] = []
+    for child in root.children:
+        if child.type != "const_declaration":
+            continue
+        for spec in child.children:
+            if spec.type != "const_spec":
+                continue
+            name_node = spec.child_by_field_name("name")
+            value_list = spec.child_by_field_name("value")
+            if name_node is None or value_list is None or not value_list.children:
+                continue
+            values.append(
+                ValueDef(bare_name=node_text(name_node, source_bytes), file=rel_path, value_node=value_list.children[0])
+            )
+    return values
+
+
 def extract_calls(body_node: Node, source_bytes: bytes) -> list[CallSite]:
     call_sites: list[CallSite] = []
     for _, caps in run_query(GO_LANGUAGE, "(call_expression function: (_) @fn) @call", body_node):
@@ -129,7 +161,12 @@ def extract_calls(body_node: Node, source_bytes: bytes) -> list[CallSite]:
     return call_sites
 
 
-def _go_named_field(literal_value: Node, key: str, source_bytes: bytes) -> tuple[str | None, bool]:
+ResolveName = Callable[[Node], "tuple[str, bool] | None"]
+
+
+def _go_named_field(
+    literal_value: Node, key: str, source_bytes: bytes, resolve_name: ResolveName | None = None
+) -> tuple[str | None, bool]:
     for child in literal_value.children:
         if child.type != "keyed_element":
             continue
@@ -143,6 +180,10 @@ def _go_named_field(literal_value: Node, key: str, source_bytes: bytes) -> tuple
         literal = _go_string_value(value_inner, source_bytes)
         if literal is not None:
             return literal, True
+        if resolve_name is not None and value_inner.type == "identifier":
+            resolved = resolve_name(value_inner)
+            if resolved is not None:
+                return resolved
         return node_text(value_inner, source_bytes), False
     return None, True
 
@@ -158,7 +199,9 @@ def _enclosing_receiver_type(node: Node, source_bytes: bytes) -> str | None:
     return None
 
 
-def detect_go_tools(root: Node, source_bytes: bytes, rel_path: str) -> list[ToolRecord]:
+def _detect_go_tools(
+    root: Node, source_bytes: bytes, rel_path: str, resolve_name: ResolveName | None = None
+) -> list[ToolRecord]:
     """Detects the official `go-sdk` package's `mcp.AddTool(server,
     &mcp.Tool{Name:, Description:, ...}, handler)` pattern -- verified
     against real parses in 2 independent real MCP-server repos
@@ -175,6 +218,12 @@ def detect_go_tools(root: Node, source_bytes: bytes, rel_path: str) -> list[Tool
     shape) would need real local type inference to resolve, out of scope
     here same as everywhere else in this pipeline (name-based, not
     type-resolved).
+
+    `resolve_name`, when given, lets `Name:`/`Description:` fall back to a
+    package-level `const` when the field isn't an inline literal (see
+    `detect_go_tools_with_context` below) -- e.g. kagent-dev/kagent's real
+    `Name: listToolName` sites, which are 0/5 real AddTool calls with an
+    inline literal name but all 5 resolve cleanly to one.
     """
     tools: list[ToolRecord] = []
     for _, caps in run_query(
@@ -202,10 +251,10 @@ def detect_go_tools(root: Node, source_bytes: bytes, rel_path: str) -> list[Tool
         if literal_value is None:
             continue
 
-        tool_name, tool_name_is_literal = _go_named_field(literal_value, "Name", source_bytes)
+        tool_name, tool_name_is_literal = _go_named_field(literal_value, "Name", source_bytes, resolve_name)
         if tool_name is None or not tool_name_is_literal:
             continue
-        description, description_is_literal = _go_named_field(literal_value, "Description", source_bytes)
+        description, description_is_literal = _go_named_field(literal_value, "Description", source_bytes, resolve_name)
 
         call_node = caps["call"][0]
         if handler_arg.type == "identifier":
@@ -232,3 +281,36 @@ def detect_go_tools(root: Node, source_bytes: bytes, rel_path: str) -> list[Tool
             )
         )
     return tools
+
+
+def detect_go_tools_with_context(
+    root: Node,
+    source_bytes: bytes,
+    rel_path: str,
+    definitions: DefinitionIndex,
+    values: ValueIndex,
+    imports_by_file: dict[str, ImportIndex],
+    source_bytes_by_file: dict[str, bytes],
+) -> list[ToolRecord]:
+    """The only Go tool detector actually wired into LANGUAGE_ADAPTERS
+    (`tool_detector.py`'s Phase-1 `detect_tools` is a no-op for Go) --
+    Go has a single registration pattern, not a high-level/low-level split
+    like Python/TS/JS, so there's no separate simpler detector to keep
+    around; this always has the repo-wide ValueIndex available, at the
+    (already paid elsewhere for Python/TS/JS) cost of running Phase 2 for
+    every Go repo, not just the ones that turn out to need it.
+    """
+    del definitions  # unused -- Go's qualified_name resolution only needs the enclosing receiver type (AST-local), not the repo-wide DefinitionIndex
+
+    def resolve_name(name_node: Node) -> tuple[str, bool] | None:
+        name = node_text(name_node, source_bytes)
+        value_def, _ambiguous = resolve_value(name, rel_path, values, imports_by_file)
+        if value_def is None:
+            return None
+        value_source = source_bytes_by_file.get(value_def.file, source_bytes)
+        literal = _go_string_value(value_def.value_node, value_source)
+        if literal is None:
+            return None
+        return literal, True
+
+    return _detect_go_tools(root, source_bytes, rel_path, resolve_name)

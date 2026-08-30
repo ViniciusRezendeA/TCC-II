@@ -45,7 +45,7 @@ from mcp_pipeline.extraction.patterns.dart_patterns import (
     extract_imports as dart_extract_imports,
 )
 from mcp_pipeline.extraction.patterns.go_patterns import (
-    detect_go_tools,
+    detect_go_tools_with_context,
 )
 from mcp_pipeline.extraction.patterns.go_patterns import (
     extract_calls as go_extract_calls,
@@ -55,6 +55,9 @@ from mcp_pipeline.extraction.patterns.go_patterns import (
 )
 from mcp_pipeline.extraction.patterns.go_patterns import (
     extract_imports as go_extract_imports,
+)
+from mcp_pipeline.extraction.patterns.go_patterns import (
+    extract_values as go_extract_values,
 )
 from mcp_pipeline.extraction.patterns.java_patterns import (
     detect_spring_ai_tools,
@@ -283,7 +286,14 @@ LANGUAGE_ADAPTERS: dict[str, LanguageAdapter] = {
         extract_definitions=go_extract_definitions,
         extract_imports_fn=go_extract_imports,
         extract_calls=go_extract_calls,
-        detect_tools=detect_go_tools,
+        # No single-file high-level pattern for Go, unlike every other
+        # language here -- Go's one registration pattern always needs the
+        # repo-wide ValueIndex to resolve `Name: someConst` (see
+        # go_patterns.py's detect_go_tools_with_context docstring), so
+        # Phase 1 contributes nothing and is left as a no-op.
+        detect_tools=lambda root, source_bytes, rel_path: [],
+        extract_values=go_extract_values,
+        detect_tools_with_context=detect_go_tools_with_context,
     ),
     "Kotlin": LanguageAdapter(
         extract_definitions=kotlin_extract_definitions,

@@ -107,8 +107,15 @@ def clone_repo(repo: RepoCandidate, dest_root: Path) -> RepoMeta:
             text=True,
         )
     except subprocess.CalledProcessError as e:
+        # git can leave a partial working tree behind on failure (e.g. "clone
+        # succeeded, but checkout failed" when disk space runs out mid-checkout
+        # on a huge repo) -- left alone, that garbage both wastes disk forever
+        # and makes a retry's `target.exists()` cleanup redundant at best, so
+        # it's removed right here instead of trusting a future caller to do it.
+        shutil.rmtree(target, ignore_errors=True)
         raise CloneError(f"git falhou para {repo.name_with_owner}: {e.stderr.strip()}") from e
     except subprocess.TimeoutExpired as e:
+        shutil.rmtree(target, ignore_errors=True)
         raise CloneError(f"git clone excedeu o timeout para {repo.name_with_owner}") from e
 
     meta = RepoMeta(

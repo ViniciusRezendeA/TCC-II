@@ -39,14 +39,19 @@ text_signals:
 # (REPO_BY_NAME_QUERY) antes de entrar no pool, para ter os mesmos campos
 # (stars, fork, linguagem) que as outras fontes.
 #
-# build_manifest_query_string (github/queries.py) restringe cada busca com
-# `path:/` (raiz do repositório) — sem isso, "@modelcontextprotocol/sdk"
+# build_manifest_query_string (github/queries.py) chegou a restringir cada
+# busca com `path:/` (raiz do repositório) — sem isso, "@modelcontextprotocol/sdk"
 # filename:package.json sozinho batia total_count=103424, porque o próprio
 # package.json commitado do pacote dentro de node_modules/ casa trivialmente
-# (seu campo "name" é o próprio sinal); com path:/ cai para 52352. Testado
-# contra um token real: `fork:false` dá erro 422 nesse endpoint (diferente
-# da busca de repositórios) e `-path:DIR`/`stars:>=N` são no-ops silenciosos
-# — ver docstring de build_manifest_query_string para os números completos.
+# (seu campo "name" é o próprio sinal); com path:/ caía para 52352. Esse
+# qualificador foi removido depois (deixava de casar manifesto legítimo
+# aninhado em subdiretório de monorepo, ex: packages/foo/package.json) — a
+# query atual não usa mais `path:/`, então os total_count deste bloco (aqui
+# e abaixo) são um registro histórico da validação, não o comportamento
+# atual da query. Testado contra um token real: `fork:false` dá erro 422
+# nesse endpoint (diferente da busca de repositórios) e `-path:DIR`/
+# `stars:>=N` são no-ops silenciosos — ver docstring de
+# build_manifest_query_string para os números completos.
 # `requirements.txt` foi removido dos sinais Python abaixo pelo mesmo motivo
 # que um lockfile é evitado: gerado via `pip freeze`, lista a árvore de
 # dependências transitiva inteira, então casaria qualquer repo que dependa
@@ -54,8 +59,9 @@ text_signals:
 # pyproject.toml/setup.py são escritos à mão e continuam como sinal de
 # dependência direta.
 #
-# Mesmo com path:/, 3 dos 9 pares (signal, arquivo) ainda ficam bem acima do
-# limite de 1000 resultados do GitHub Search — nesses casos o REST Code
+# Mesmo com path:/ ainda ativo (ver nota histórica acima), 3 dos 9 pares
+# (signal, arquivo) ficavam bem acima do limite de 1000 resultados do
+# GitHub Search — nesses casos o REST Code
 # Search só devolve uma amostra de até 1000 hits em ordem de "best match"
 # (não por estrelas), não a busca exaustiva que os outros sinais têm:
 #   - "@modelcontextprotocol/sdk" + package.json: total_count=52352 (52x)
@@ -74,39 +80,19 @@ text_signals:
 # "FastMCP"/"mcp.server.fastmcp" que são nome de classe/caminho de import,
 # não de dependência) — mas é curto demais para o tokenizer do Code Search
 # isolar como dependência: total_count=57856 em pyproject.toml e 2040 em
-# setup.py mesmo com path:/, inviável. `packages.config` (NuGet legado) para
-# ModelContextProtocol: total_count=0, sem valor.
-manifest_signals:
-  - signal: "@modelcontextprotocol/sdk"
-    file_qualifiers: ["filename:package.json"]
-  - signal: "@modelcontextprotocol/server"
-    file_qualifiers: ["filename:package.json"]
-  - signal: "FastMCP"
-    file_qualifiers: ["filename:pyproject.toml", "filename:setup.py"]
-  - signal: "mcp.server.fastmcp"
-    file_qualifiers: ["filename:pyproject.toml", "filename:setup.py"]
-  - signal: "io.modelcontextprotocol.sdk"
-    file_qualifiers: ["filename:pom.xml", "filename:build.gradle", "filename:build.gradle.kts"]
-  - signal: "ModelContextProtocol"
-    file_qualifiers: ["extension:csproj"]
-
+# setup.py mesmo com path:/ ainda ativo, inviável. `packages.config` (NuGet
+# legado) para ModelContextProtocol: total_count=0, sem valor.
 manifest_signals_v2:
   - signal: "@modelcontextprotocol/node"
     file_qualifiers: ["filename:package.json"]
-    languages:
-      - "JavaScript"
   # JavaScript / TypeScript
   - signal: "@modelcontextprotocol/server"
     file_qualifiers: ["filename:package.json"]
-    languages:
-      - "JavaScript"
 
   # JavaScript / TypeScript
   - signal: "@modelcontextprotocol/sdk"
     file_qualifiers:
       - "filename:package.json"
-    languages:
-      - "JavaScript"
 
 
   # Python
@@ -116,8 +102,6 @@ manifest_signals_v2:
       - "filename:requirements.txt"
       - "filename:setup.py"
       - "filename:setup.cfg"
-    languages:
-      - "Python"
 
   # Python - FastMCP
   - signal: "fastmcp"
@@ -126,8 +110,6 @@ manifest_signals_v2:
       - "filename:requirements.txt"
       - "filename:setup.py"
       - "filename:setup.cfg"
-    languages:
-      - "Python"
 
   # Java
   - signal: "io.modelcontextprotocol"
@@ -135,8 +117,6 @@ manifest_signals_v2:
       - "filename:pom.xml"
       - "filename:build.gradle"
       - "filename:build.gradle.kts"
-    languages:
-      - "Java"
 
   # Kotlin / Java
   - signal: "io.modelcontextprotocol"
@@ -144,80 +124,58 @@ manifest_signals_v2:
       - "filename:build.gradle.kts"
       - "filename:build.gradle"
       - "filename:pom.xml"
-    languages:
-      - "Kotlin"
 
 
   # C#
   - signal: "ModelContextProtocol"
     file_qualifiers:
       - "extension:csproj"
-    languages:
-      - "C#"
 
   # Go
   - signal: "modelcontextprotocol"
     file_qualifiers:
       - "filename:go.mod"
-    languages:
-      - "Go"
 
   # Rust
   - signal: "rmcp"
     file_qualifiers:
       - "filename:Cargo.toml"
-    languages:
-      - "Rust"
 
   # Rust - official-ish ecosystem package naming
   - signal: "modelcontextprotocol"
     file_qualifiers:
       - "filename:Cargo.toml"
-    languages:
-      - "Rust"
 
   # Swift
   - signal: "ModelContextProtocol"
     file_qualifiers:
       - "filename:Package.swift"
-    languages:
-      - "Swift"
 
   # Ruby
   - signal: "mcp"
     file_qualifiers:
       - "filename:Gemfile"
       - "filename:gemspec"
-    languages:
-      - "Ruby"
 
   # PHP
   - signal: "modelcontextprotocol"
     file_qualifiers:
       - "filename:composer.json"
-    languages:
-      - "PHP"
 
   # Dart
   - signal: "mcp"
     file_qualifiers:
       - "filename:pubspec.yaml"
-    languages:
-      - "Dart"
 
   # Elixir
   - signal: "mcp"
     file_qualifiers:
       - "filename:mix.exs"
-    languages:
-      - "Elixir"
 
   # Lua
   - signal: "mcp"
     file_qualifiers:
       - "filename:rockspec"
-    languages:
-      - "Lua"
 
 # Linguagens-alvo (normalizado contra `primaryLanguage.name` no lado do cliente,
 # não embutido na query GraphQL — ver justificativa no plano de implementação).
@@ -236,6 +194,12 @@ target_languages:
 
 min_stars: 100
 top_n: 206
+
+# Aplicado pós-extração (Etapa 2), não no filtro de candidatos da Etapa 1: o
+# número de tools só existe depois do clone + tree-sitter, então isto decide
+# quais repos já clonados/processados entram em dataset.jsonl, não quais são
+# buscados/selecionados no GitHub. Ver assemble_dataset.py.
+min_tools: 1
 
 # Guarda-corpo: se o repositoryCount de alguma sub-query individual se aproximar
 # deste valor, é sinal de que o sinal textual está amplo demais (GitHub Search

@@ -43,6 +43,7 @@ def make_signals(**overrides) -> Signals:
         "min_stars": 100,
         "top_n": 206,
         "result_count_warning_threshold": 900,
+        "min_tools": 1,
     }
     defaults.update(overrides)
     return Signals(**defaults)

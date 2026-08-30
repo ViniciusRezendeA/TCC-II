@@ -375,21 +375,74 @@ def _grouped_bar_chart(df: pd.DataFrame, x_col: str, y_cols: list[str], labels: 
     plt.close(fig)
 
 
-def _histogram(series: pd.Series, bins, title: str, xlabel: str, ylabel: str, path: Path, log_x: bool = False) -> None:
+def _histogram(
+    series: pd.Series, bins, title: str, xlabel: str, ylabel: str, path: Path,
+    log_x: bool = False, horizontal: bool = False,
+) -> None:
+    """`xlabel`/`ylabel` always name the value axis (bins) and the count axis,
+    respectively, regardless of orientation -- `horizontal` only swaps which
+    physical axis (x or y) each ends up on, so call sites don't need to know
+    or care which orientation they'll render in."""
     fig, ax = plt.subplots(figsize=CHART_STYLE["figsize"])
-    ax.hist(series, bins=bins, color="#3b6ea5", edgecolor="white")
-    if log_x:
-        ax.set_xscale("log")
-    ax.set_xlabel(xlabel)
-    ax.set_ylabel(ylabel)
+    if horizontal:
+        ax.hist(series, bins=bins, color="#3b6ea5", edgecolor="white", orientation="horizontal")
+        if log_x:
+            ax.set_yscale("log")
+        ax.set_ylabel(xlabel)
+        ax.set_xlabel(ylabel)
+        ax.grid(axis="x", linestyle="--", alpha=0.4)
+    else:
+        ax.hist(series, bins=bins, color="#3b6ea5", edgecolor="white")
+        if log_x:
+            ax.set_xscale("log")
+        ax.set_xlabel(xlabel)
+        ax.set_ylabel(ylabel)
+        ax.grid(axis="y", linestyle="--", alpha=0.4)
     ax.set_title(title)
-    ax.grid(axis="y", linestyle="--", alpha=0.4)
     fig.tight_layout()
     fig.savefig(path, dpi=CHART_STYLE["dpi"], bbox_inches="tight")
     plt.close(fig)
 
 
-def generate_charts(tables: dict[str, pd.DataFrame], dataset: list[dict], charts_dir: Path) -> None:
+def _boxplot(
+    series: pd.Series, title: str, value_label: str, path: Path, horizontal: bool = False, log_scale: bool = False
+) -> None:
+    """Real quartiles/whiskers/outliers computed by matplotlib from the raw
+    series (Tukey's 1.5*IQR rule), not a hand-drawn box from pre-aggregated
+    stats -- so outliers like a single wildly popular repo actually show up
+    as flier points instead of stretching the whiskers to the extremes."""
+    fig, ax = plt.subplots(figsize=CHART_STYLE["figsize"])
+    bp = ax.boxplot(series, vert=not horizontal, patch_artist=True, widths=0.35)
+    for box in bp["boxes"]:
+        box.set(facecolor="#3b6ea5", alpha=0.55, edgecolor="#3b6ea5", linewidth=1.4)
+    for element in ("whiskers", "caps"):
+        for line in bp[element]:
+            line.set(color="#3b6ea5", linewidth=1.4)
+    for line in bp["medians"]:
+        line.set(color="#1f3f5c", linewidth=1.8)
+    for flier in bp["fliers"]:
+        flier.set(marker="o", markerfacecolor="#3b6ea5", markeredgecolor="#3b6ea5", markersize=5, alpha=0.5)
+    if horizontal:
+        if log_scale:
+            ax.set_xscale("log")
+        ax.set_yticks([])
+        ax.set_xlabel(value_label)
+        ax.grid(axis="x", linestyle="--", alpha=0.4)
+    else:
+        if log_scale:
+            ax.set_yscale("log")
+        ax.set_xticks([])
+        ax.set_ylabel(value_label)
+        ax.grid(axis="y", linestyle="--", alpha=0.4)
+    ax.set_title(title)
+    fig.tight_layout()
+    fig.savefig(path, dpi=CHART_STYLE["dpi"], bbox_inches="tight")
+    plt.close(fig)
+
+
+def generate_charts(
+    tables: dict[str, pd.DataFrame], dataset: list[dict], charts_dir: Path, selected_repos: list[dict] | None = None
+) -> None:
     """Cada bloco é condicional à tabela correspondente estar em `tables` -- desde que
     dataset.jsonl passou a ser opcional (ver main()), as tabelas/gráficos da Etapa 2 podem
     legitimamente estar ausentes numa rodada só de Etapa 1 (ex: antes da Etapa 2 ter sido
@@ -447,7 +500,7 @@ def generate_charts(tables: dict[str, pd.DataFrame], dataset: list[dict], charts
             _loc_series(dataset), bins=30,
             title="Distribuição de LOC (linhas de código) por tool\n(função implementadora, nível 1 do call graph)",
             xlabel="LOC", ylabel="Nº de tools",
-            path=charts_dir / "08_distribuicao_loc.png",
+            path=charts_dir / "08_distribuicao_loc.png", horizontal=True,
         )
     if "profundidade_call_graph" in tables:
         _bar_chart(
@@ -468,6 +521,13 @@ def generate_charts(tables: dict[str, pd.DataFrame], dataset: list[dict], charts
             tables["candidatos_por_fonte"], "fonte", "candidatos",
             "Candidatos brutos por fonte de sinal (topic/text/manifest)", "Fonte", "Candidatos",
             charts_dir / "11_candidatos_por_fonte.png",
+        )
+    if selected_repos:
+        _boxplot(
+            pd.Series([r["stargazer_count"] for r in selected_repos]),
+            "Distribuição de estrelas dos repositórios selecionados (Etapa 1)",
+            "Estrelas (escala log)",
+            charts_dir / "12_distribuicao_estrelas.png", horizontal=True, log_scale=True,
         )
 
     logger.info("Gráficos salvos em %s", charts_dir)
@@ -575,7 +635,7 @@ def main() -> None:
         )
 
     export_tables(tables, output_dir / "tables")
-    generate_charts(tables, dataset, output_dir / "charts")
+    generate_charts(tables, dataset, output_dir / "charts", selected_repos)
 
     logger.info(
         "Concluído: %s repositórios selecionados, %s tools, tabelas geradas: %s.",

@@ -32,7 +32,6 @@ class ManifestSignal:
 
     signal: str
     file_qualifiers: list[str]
-    languages: list[str]
 
 
 @dataclass(frozen=True)
@@ -44,6 +43,7 @@ class Signals:
     min_stars: int
     top_n: int
     result_count_warning_threshold: int
+    min_tools: int  # aplicado pós-Etapa 2 (assemble_dataset.py), não no filtro de candidatos da Etapa 1
 
 
     @classmethod
@@ -57,7 +57,6 @@ class Signals:
             ManifestSignal(
                 signal=entry["signal"],
                 file_qualifiers=entry["file_qualifiers"],
-                languages=entry["languages"],
             )
             for entry in raw["manifest_signals_v2"]
         ]
@@ -70,6 +69,7 @@ class Signals:
             min_stars=raw["min_stars"],
             top_n=raw["top_n"],
             result_count_warning_threshold=raw["result_count_warning_threshold"],
+            min_tools=raw["min_tools"],
         )
 
 

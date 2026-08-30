@@ -17,19 +17,44 @@ para o desenho detalhado, decisões e riscos conhecidos.
 - ✅ **Clonagem de repositórios**: implementada, testada e validada contra os
   206 repos (0 falhas).
 - ✅ **Etapa 2** (detecção de tools + call graph): implementada e validada
-  ponta a ponta contra os 206 repositórios reais. Cobre, por linguagem, o
-  padrão de alto nível de cada SDK oficial (Python, TypeScript, JavaScript,
-  Java, C#) **e** dois padrões adicionais genuinamente compartilhados por
-  múltiplos projetos: o padrão de baixo nível oficial (Python
-  `@server.list_tools()`, TS/JS `setRequestHandler`) e o pacote de terceiros
-  `fastmcp` do npm. **3.535 tools extraídas de 71 dos 206 repositórios**
-  (`data/dataset.jsonl`). 162 testes automatizados.
-  - **Fora de escopo, por decisão documentada**: arquiteturas de registro
-    100% customizadas usadas por um único repositório cada (ex: anotação
-    própria do `ghidra-mcp`, os 4 esquemas diferentes de C# encontrados),
-    builder oficial do Java (nenhum repositório real da amostra o usa), e
-    escanear mais de uma linguagem por repositório — ver o plano para a
-    investigação completa e a justificativa.
+  ponta a ponta contra os 206 repositórios reais, cobrindo **todas as 10
+  `target_languages`** configuradas (`config/mcp_signals.yaml`): o padrão de
+  alto nível de cada SDK oficial — Python (`@mcp.tool()`), TypeScript/
+  JavaScript (`.tool()`/`.registerTool()`), Java (Spring AI `@Tool`), C#
+  (`[McpServerTool]`), Rust (`#[tool]`/`rmcp`), Dart (`registerTool(Tool(...))`
+  do `dart_mcp`), Go (`mcp.AddTool(...)` do `go-sdk`) e Kotlin
+  (`addTool(...)` do `kotlin-sdk`) — **e** três padrões adicionais
+  genuinamente compartilhados por múltiplos projetos: o padrão de baixo
+  nível oficial (Python `@server.list_tools()`, TS/JS `setRequestHandler`),
+  o pacote de terceiros `fastmcp` do npm, e a classe `< ...Tool` da gem
+  Ruby `fast-mcp`. Go também resolve `Name:`/`Description:` contra
+  constantes de pacote (`const NOME = "literal"`) quando não são string
+  literal inline, via o mesmo mecanismo de `ValueIndex` já usado nos
+  padrões de baixo nível de Python/TS/JS. **2.968 tools extraídas de 85 dos
+  206 repositórios** (`data/dataset.jsonl`). 217 testes automatizados (216
+  passando; 1 falha pré-existente em `test_gemini_judge.py`, não
+  relacionada à Etapa 2).
+  - Cobertura por linguagem (repositórios selecionados → com pelo menos 1
+    tool detectada → tools extraídas): TypeScript 62→24→436, Python
+    51→27→1853, Java 34→9→355, Rust 19→11→123, C# 10→7→125, Dart 8→1→4,
+    Ruby 8→1→1, Kotlin 6→0→0, JavaScript 4→3→58, Go 4→2→13. Kotlin ficou em
+    0 por decisão consistente com as demais linguagens (mesmo critério do
+    JS/TS): exige nome literal (ou resolvível para um literal, no caso do
+    Go) no `name = "..."` do `addTool(...)`, e os 6 repositórios reais da
+    amostra usam um valor genuinamente dinâmico (campo de um objeto
+    construído em loop, resultado de função) em vez de literal ou
+    constante — não confirmado como resolvível estaticamente, ver o plano
+    de extensão de linguagens.
+  - **Fora de escopo, por decisão documentada**: Swift (sem padrão de
+    registro único compartilhado — SDK oficial de baixo nível, cada
+    repositório liga a implementação ao `Tool(...)` de um jeito diferente),
+    Elixir, Lua e PHP (sem candidatos reais suficientes em `target_languages`
+    para justificar o investimento — ver o plano de extensão de linguagens
+    para a investigação completa), arquiteturas de registro 100%
+    customizadas usadas por um único repositório cada (ex: anotação própria
+    do `ghidra-mcp`, os 4 esquemas diferentes de C# encontrados), builder
+    oficial do Java (nenhum repositório real da amostra o usa), e escanear
+    mais de uma linguagem por repositório.
 - ✅ **Etapa 3** (classificação via LLM-as-a-Judge): implementada e testada
   — júri multi-provedor em tier econômico (Claude Haiku 4.5, OpenAI
   gpt-4.1-mini, Google Gemini 2.5 Flash-Lite), rubrica de 6 componentes,

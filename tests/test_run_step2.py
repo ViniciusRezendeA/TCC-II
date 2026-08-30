@@ -69,6 +69,33 @@ def test_process_repo_with_no_tools_writes_empty_file(tmp_path, monkeypatch):
     assert tools_file.read_text() == ""
 
 
+def test_process_repo_deletes_source_when_below_min_tools(tmp_path, monkeypatch):
+    dest_root = tmp_path / "repos"
+    meta = _clone_fake_repo(dest_root, "acme/not-mcp", "Python", monkeypatch)
+    (meta.src_path / "readme_gen.py").write_text("def build():\n    return 1\n")
+
+    n_tools = process_repo(meta, min_tools=1)
+
+    assert n_tools == 0
+    assert not meta.src_path.exists()
+    # repo_meta.json + tools.jsonl (the resumability markers) survive.
+    assert meta.src_path.parent.joinpath("repo_meta.json").exists()
+    assert meta.src_path.parent.joinpath("tools.jsonl").exists()
+
+
+def test_process_repo_keeps_source_when_it_meets_min_tools(tmp_path, monkeypatch):
+    dest_root = tmp_path / "repos"
+    meta = _clone_fake_repo(dest_root, "acme/weather-mcp", "Python", monkeypatch)
+    (meta.src_path / "server.py").write_text(
+        '@mcp.tool()\ndef get_weather(city):\n    """Fetch the weather."""\n    return city\n'
+    )
+
+    n_tools = process_repo(meta, min_tools=1)
+
+    assert n_tools == 1
+    assert meta.src_path.exists()
+
+
 def test_iter_cloned_repos_finds_all_repo_meta_files(tmp_path, monkeypatch):
     dest_root = tmp_path / "repos"
     _clone_fake_repo(dest_root, "acme/one", "Python", monkeypatch)

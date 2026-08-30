@@ -69,14 +69,12 @@ def build_text_query_string(signal: str, min_stars: int) -> str:
 def build_manifest_query_string(
     signal: str,
     file_qualifier: str,
-    *,
-    language: str,
 ) -> str:
     """Build a REST Code Search query for a manifest dependency signal.
 
     Example:
 
-        "@modelcontextprotocol/sdk" filename:package.json language:TypeScript path:/
+        "@modelcontextprotocol/sdk" filename:package.json
 
     The query is intended for the REST Code Search API (see
     github/rest_code_search.py and github/search_manifest.py), not the
@@ -84,24 +82,6 @@ def build_manifest_query_string(
 
     `file_qualifier` is a full GitHub code-search qualifier such as
     "filename:package.json" or "extension:csproj", not a bare filename.
-
-    `language` is added directly to the Code Search query so that each
-    manifest signal is partitioned by its configured programming language.
-    This is important because GitHub Code Search has a 1,000-result
-    retrieval cap for a single query. Filtering by language only after
-    retrieving the results would not recover repositories that were already
-    excluded by that cap.
-
-    `path:/` restricts matches to the repo root, which is where a project's
-    own manifest normally lives. This cuts out the dominant source of false
-    positives observed when this query was first run without it: a manifest
-    matching the signal deep inside e.g. node_modules/ is almost always the
-    dependency's own committed copy (its package.json's "name" field
-    trivially equals the signal), not the analyzed repo declaring the signal
-    as one of its own dependencies.
-
-    The trade-off is that a legitimate manifest nested in a monorepo
-    subdirectory (e.g. packages/foo/package.json) is no longer matched.
 
     Two qualifiers that would otherwise help do NOT work on this endpoint:
 
@@ -125,9 +105,9 @@ def build_manifest_query_string(
     dependencies and therefore may produce more false positives than
     hand-authored manifests such as pyproject.toml or setup.py.
 
-    Even with `path:/` and language partitioning, some individual
-    signal/language combinations may still exceed GitHub's 1,000-result
-    retrieval cap. Those cases require additional query partitioning.
+    Some individual signal/file-qualifier combinations may still exceed
+    GitHub's 1,000-result retrieval cap. Those cases require additional
+    query partitioning.
     """
 
     return (

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import shutil
 import sys
 from pathlib import Path
 
@@ -9,7 +10,7 @@ from tqdm import tqdm
 from tqdm.contrib.logging import logging_redirect_tqdm
 
 from mcp_pipeline.clone.clone_manager import META_FILENAME, RepoMeta
-from mcp_pipeline.config import DATA_DIR, LOGS_DIR, ensure_dirs
+from mcp_pipeline.config import DATA_DIR, LOGS_DIR, Signals, ensure_dirs
 from mcp_pipeline.extraction.tool_detector import (
     LANGUAGE_ADAPTERS,
     detect_tools_with_call_graphs,
@@ -26,12 +27,20 @@ def iter_cloned_repos(repos_root: Path):
         yield RepoMeta.from_meta_file(meta_file)
 
 
-def process_repo(meta: RepoMeta) -> int:
+def process_repo(meta: RepoMeta, min_tools: int = 1) -> int:
     """Detects tools + builds call graphs for one already-cloned repo,
     writes `tools.jsonl` next to its repo_meta.json. Returns the tool count.
     A repo whose language isn't yet supported (Etapa 2's language coverage
     is incremental — see the plan's Fase 5) or that yields zero real tools
     both legitimately produce an empty tools.jsonl, not an error.
+
+    When the result is below `min_tools`, the cloned `src/` tree is deleted
+    right away: that source is only ever read again by Etapa 3
+    (evaluation/payload.py) for repos that make it into dataset.jsonl, so
+    keeping it for a disqualified repo is pure wasted disk (some repos are
+    several GB). `repo_meta.json` and `tools.jsonl` are kept — clone_all's
+    and this function's own resumability checks only look at those two
+    files' existence, never at `src/`, so a rerun still correctly skips it.
     """
     tools_file = meta.src_path.parent / TOOLS_FILENAME
     language = meta.repo.primary_language
@@ -39,12 +48,21 @@ def process_repo(meta: RepoMeta) -> int:
     if language not in LANGUAGE_ADAPTERS:
         tools_file.write_text("", encoding="utf-8")
         logger.info("%s: linguagem %r ainda não suportada, tools.jsonl vazio", meta.repo.name_with_owner, language)
-        return 0
+        n_tools = 0
+    else:
+        results = detect_tools_with_call_graphs(meta.src_path, language)
+        with open(tools_file, "w", encoding="utf-8") as f:
+            f.writelines(json.dumps({"tool": tool.to_dict(), "call_graph": graph.to_dict()}, ensure_ascii=False) + "\n" for tool, graph in results)
+        n_tools = len(results)
 
-    results = detect_tools_with_call_graphs(meta.src_path, language)
-    with open(tools_file, "w", encoding="utf-8") as f:
-        f.writelines(json.dumps({"tool": tool.to_dict(), "call_graph": graph.to_dict()}, ensure_ascii=False) + "\n" for tool, graph in results)
-    return len(results)
+    if n_tools < min_tools and meta.src_path.exists():
+        shutil.rmtree(meta.src_path)
+        logger.info(
+            "%s: %s tool(s) < min_tools=%s, código-fonte removido para liberar espaço",
+            meta.repo.name_with_owner, n_tools, min_tools,
+        )
+
+    return n_tools
 
 
 def main() -> None:
@@ -54,6 +72,7 @@ def main() -> None:
     args = parser.parse_args()
 
     ensure_dirs()
+    signals = Signals.load()
     repos_root = DATA_DIR / "repos"
     errors_log = LOGS_DIR / "step2_errors.jsonl"
     errors_log.parent.mkdir(parents=True, exist_ok=True)
@@ -91,7 +110,7 @@ def main() -> None:
 
             logger.info("[%s/%s] Processando %s (%s)...", i, len(all_repos), slug, meta.repo.primary_language)
             try:
-                n_tools = process_repo(meta)
+                n_tools = process_repo(meta, min_tools=signals.min_tools)
                 total_tools += n_tools
                 processed += 1
                 logger.info("[%s/%s] %s: %s tool(s) encontrada(s)", i, len(all_repos), slug, n_tools)

@@ -101,6 +101,33 @@ def test_clone_repo_raises_clone_error_when_cleanup_fails(tmp_path, monkeypatch)
     run_mock.assert_not_called()
 
 
+def test_clone_repo_removes_partial_checkout_on_git_failure(tmp_path, monkeypatch):
+    """A partial checkout left behind by a failed `git clone` (e.g. disk fills
+    up mid-checkout on a huge repo -- "Clone succeeded, but checkout failed")
+    must not linger: it both wastes disk indefinitely and would leave
+    is_already_cloned() lying on a retry if a future code path ever wrote
+    repo_meta.json without a full checkout.
+    """
+    def fake_run_partial_then_fail(*args, **kwargs):
+        cmd = args[0]
+        if cmd[:2] == ["git", "clone"]:
+            dest = Path(cmd[-1])
+            dest.mkdir(parents=True, exist_ok=True)
+            (dest / "partial_file.txt").write_text("some partial content")
+            raise subprocess.CalledProcessError(128, cmd, stderr="no space left on device")
+        raise AssertionError(f"unexpected command: {cmd}")
+
+    monkeypatch.setattr(
+        "mcp_pipeline.clone.clone_manager.subprocess.run", MagicMock(side_effect=fake_run_partial_then_fail)
+    )
+    repo = make_repo(name_with_owner="acme/huge-repo")
+
+    with pytest.raises(CloneError):
+        clone_repo(repo, tmp_path)
+
+    assert not repo_dir(tmp_path, repo).exists()
+
+
 def test_repo_meta_from_meta_file_round_trips(tmp_path, monkeypatch):
     monkeypatch.setattr(
         "mcp_pipeline.clone.clone_manager.subprocess.run", MagicMock(side_effect=_fake_run_success)

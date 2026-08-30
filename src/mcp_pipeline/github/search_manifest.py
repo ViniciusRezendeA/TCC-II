@@ -47,32 +47,19 @@ def search_by_manifest_signals(
 ) -> Iterator[RepoCandidate]:
     """Find repositories that declare a signal as a library dependency.
 
-    Each manifest signal can define:
-
-    - one or more file qualifiers;
-    - one or more target languages.
-
-    A separate REST Code Search sub-query is executed for every
-    (signal, manifest file, language) combination.
+    Each manifest signal can define one or more file qualifiers. A separate
+    REST Code Search sub-query is executed for every (signal, manifest file)
+    combination.
 
     For example:
 
         signal: "@modelcontextprotocol/sdk"
         file_qualifiers:
             - "filename:package.json"
-        languages:
-            - "JavaScript"
-            - "TypeScript"
 
     produces:
 
-        manifest:@modelcontextprotocol/sdk filename:package.json language:JavaScript
-        manifest:@modelcontextprotocol/sdk filename:package.json language:TypeScript
-
-    The language qualifier is pushed into GitHub Code Search itself rather
-    than being applied only after the results have been retrieved. This is
-    important because GitHub Code Search caps a single query at 1,000
-    retrievable results.
+        manifest:@modelcontextprotocol/sdk filename:package.json
 
     REST fetching is resumable page by page. search_code_for_signal writes
     every raw page to disk and checkpoints progress before yielding, so an
@@ -81,21 +68,19 @@ def search_by_manifest_signals(
     Hydration (one GraphQL call per unique repository, to get stars/fork/
     language and other metadata) is resumable through hydration_cache_path.
 
-    The final star/language validation is intentionally still performed
-    downstream by filter_and_rank(). The language qualifier here reduces
-    the search population; it does not replace the final client-side
-    validation.
+    The final star/language validation is performed downstream by
+    filter_and_rank(), against signals.target_languages — this function
+    does not filter by language itself.
     """
 
     hydration_cache = _load_hydration_cache(hydration_cache_path)
 
     # Prevent hydrating the same repository more than once during this run,
-    # even when it matches multiple manifest signals, file qualifiers, or
-    # languages.
+    # even when it matches multiple manifest signals or file qualifiers.
     seen_full_names: set[str] = set()
 
     total_subqueries = sum(
-        len(manifest_signal.file_qualifiers) * len(manifest_signal.languages)
+        len(manifest_signal.file_qualifiers)
         for manifest_signal in signals.manifest_signals
     )
     logger.info(
@@ -107,80 +92,74 @@ def search_by_manifest_signals(
     subquery_num = 0
     for manifest_signal in signals.manifest_signals:
         for file_qualifier in manifest_signal.file_qualifiers:
-            for language in manifest_signal.languages:
-                subquery_num += 1
-                label = (
-                    f"manifest:{manifest_signal.signal}:"
-                    f"{file_qualifier}:"
-                    f"language={language}"
-                )
+            subquery_num += 1
+            label = f"manifest:{manifest_signal.signal}:{file_qualifier}"
 
-                query_string = build_manifest_query_string(
-                    manifest_signal.signal,
-                    file_qualifier,
-                    language=language,
-                )
+            query_string = build_manifest_query_string(
+                manifest_signal.signal,
+                file_qualifier,
+            )
 
-                matched_signal = f"manifest:{manifest_signal.signal}"
+            matched_signal = f"manifest:{manifest_signal.signal}"
 
-                logger.info(
-                    "[%s/%s] Buscando filtro %r...",
-                    subquery_num,
-                    total_subqueries,
-                    label,
-                )
+            logger.info(
+                "[%s/%s] Buscando filtro %r...",
+                subquery_num,
+                total_subqueries,
+                label,
+            )
 
-                full_names = sorted(
-                    {
-                        repo["full_name"]
-                        for repo in search_code_for_signal(
-                            token=github_token,
-                            signal_label=label,
-                            query_string=query_string,
-                            checkpoint=checkpoint,
-                            raw_pages_dir=raw_pages_dir,
-                        )
-                        if repo.get("full_name")
-                    }
-                )
+            full_names = sorted(
+                {
+                    repo["full_name"]
+                    for repo in search_code_for_signal(
+                        token=github_token,
+                        signal_label=label,
+                        query_string=query_string,
+                        checkpoint=checkpoint,
+                        raw_pages_dir=raw_pages_dir,
+                    )
+                    if repo.get("full_name")
+                }
+            )
 
-                logger.info(
-                    "[%s/%s] Filtro %r encontrou %s repos (%s novos após remover já vistos nesta rodada)",
-                    subquery_num,
-                    total_subqueries,
-                    label,
-                    len(full_names),
-                    len(full_names - seen_full_names),
-                )
+            logger.info(
+                "[%s/%s] Filtro %r encontrou %s repos (%s novos após remover já vistos nesta rodada)",
+                subquery_num,
+                total_subqueries,
+                label,
+                len(full_names),
+                len(set(full_names) - seen_full_names),
+            )
 
-                for full_name in full_names:
-                    if full_name in seen_full_names:
-                        continue
+            for full_name in full_names:
+                if full_name in seen_full_names:
+                    continue
 
-                    seen_full_names.add(full_name)
+                seen_full_names.add(full_name)
 
-                    cached = hydration_cache.get(full_name)
+                cached = hydration_cache.get(full_name)
 
-                    if cached is not None:
-                        yield replace(
-                            cached,
-                            matched_signals=[matched_signal],
-                        )
-                        continue
+                if cached is not None:
+                    yield replace(
+                        cached,
+                        matched_signals=[matched_signal],
+                    )
+                    continue
 
-                    for candidate in _hydrate_repo(
-                        client,
-                        full_name,
-                        matched_signal=matched_signal,
-                    ):
-                        _append_to_hydration_cache(
-                            hydration_cache_path,
-                            candidate,
-                        )
-                        hydration_cache[
-                            candidate.name_with_owner
-                        ] = candidate
-                        yield candidate
+                for candidate in _hydrate_repo(
+                    client,
+                    full_name,
+                    matched_signal=matched_signal,
+                ):
+                    _append_to_hydration_cache(
+                        hydration_cache_path,
+                        candidate,
+                    )
+                    hydration_cache[
+                        candidate.name_with_owner
+                    ] = candidate
+                    yield candidate
 
 
 def build_candidates_from_cached_pages(
@@ -220,65 +199,60 @@ def build_candidates_from_cached_pages(
         matched_signal = f"manifest:{manifest_signal.signal}"
 
         for file_qualifier in manifest_signal.file_qualifiers:
-            for language in manifest_signal.languages:
-                label = (
-                    f"manifest:{manifest_signal.signal}:"
-                    f"{file_qualifier}:"
-                    f"language={language}"
+            label = f"manifest:{manifest_signal.signal}:{file_qualifier}"
+
+            for page_file in cached_page_files(
+                label,
+                raw_pages_dir,
+            ):
+                payload = json.loads(
+                    page_file.read_text(encoding="utf-8")
                 )
 
-                for page_file in cached_page_files(
-                    label,
-                    raw_pages_dir,
-                ):
-                    payload = json.loads(
-                        page_file.read_text(encoding="utf-8")
-                    )
+                for item in payload.get("items", []):
+                    repo = item.get("repository")
 
-                    for item in payload.get("items", []):
-                        repo = item.get("repository")
+                    if not repo or repo.get("fork"):
+                        continue
 
-                        if not repo or repo.get("fork"):
-                            continue
+                    full_name = repo.get("full_name")
 
-                        full_name = repo.get("full_name")
+                    if not full_name:
+                        continue
 
-                        if not full_name:
-                            continue
+                    existing = by_full_name.get(full_name)
 
-                        existing = by_full_name.get(full_name)
+                    if existing is None:
+                        by_full_name[full_name] = RepoCandidate(
+                            id=repo.get("node_id") or full_name,
+                            name_with_owner=full_name,
+                            url=(
+                                repo.get("html_url")
+                                or f"https://github.com/{full_name}"
+                            ),
+                            description=repo.get("description"),
+                            stargazer_count=0,
+                            fork_count=0,
+                            is_fork=False,
+                            is_archived=False,
+                            pushed_at="",
+                            created_at="",
+                            primary_language=None,
+                            languages=[],
+                            topics=[],
+                            default_branch=None,
+                            default_branch_oid=None,
+                            license_spdx_id=None,
+                            matched_signals=[matched_signal],
+                        )
 
-                        if existing is None:
-                            by_full_name[full_name] = RepoCandidate(
-                                id=repo.get("node_id") or full_name,
-                                name_with_owner=full_name,
-                                url=(
-                                    repo.get("html_url")
-                                    or f"https://github.com/{full_name}"
-                                ),
-                                description=repo.get("description"),
-                                stargazer_count=0,
-                                fork_count=0,
-                                is_fork=False,
-                                is_archived=False,
-                                pushed_at="",
-                                created_at="",
-                                primary_language=None,
-                                languages=[],
-                                topics=[],
-                                default_branch=None,
-                                default_branch_oid=None,
-                                license_spdx_id=None,
-                                matched_signals=[matched_signal],
-                            )
-
-                        elif (
+                    elif (
+                        matched_signal
+                        not in existing.matched_signals
+                    ):
+                        existing.matched_signals.append(
                             matched_signal
-                            not in existing.matched_signals
-                        ):
-                            existing.matched_signals.append(
-                                matched_signal
-                            )
+                        )
 
     candidates = list(by_full_name.values())
 
