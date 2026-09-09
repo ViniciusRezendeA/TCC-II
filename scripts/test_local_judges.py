@@ -1,11 +1,11 @@
 #!/usr/bin/env python
-"""Teste piloto dos novos juízes locais (Prometheus + Llama).
+"""Teste piloto dos juízes locais (Qwen + Llama).
 
-Roda avaliação em ~20 tools aleatórios de dataset.jsonl contra os 2 novos juízes,
+Roda avaliação em ~20 tools aleatórios de dataset.jsonl contra os juízes locais,
 registrando latências, erros e validação de estrutura das respostas.
 
 Uso:
-  uv run python scripts/test_local_judges.py [--sample-size N] [--judge prometheus|llama|both]
+  uv run python scripts/test_local_judges.py [--sample-size N] [--judge qwen|llama|both]
 """
 
 from __future__ import annotations
@@ -86,7 +86,7 @@ def main():
     parser.add_argument("--sample-size", type=int, default=20, help="Número de tools para testar")
     parser.add_argument(
         "--judge",
-        choices=["prometheus", "llama", "both"],
+        choices=["qwen", "llama", "both"],
         default="both",
         help="Qual juiz testar",
     )
@@ -105,7 +105,7 @@ def main():
     tools = load_sample_tools(dataset_path, args.sample_size)
     logger.info(f"Carregado {len(tools)} tools")
 
-    judge_filter = {args.judge} if args.judge != "both" else {"prometheus", "llama"}
+    judge_filter = {args.judge} if args.judge != "both" else {"qwen", "llama"}
     judges = [j for j in load_judges() if j.provider in judge_filter or j.judge_id in judge_filter]
 
     if not judges:

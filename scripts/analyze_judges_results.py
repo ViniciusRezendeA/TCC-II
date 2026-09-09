@@ -309,7 +309,7 @@ def main():
     parser = argparse.ArgumentParser(description="Analisa resultados dos juízes (style Hassan et al.)")
     parser.add_argument(
         "--judge",
-        help="Judge ID específico para analisar (ex: prometheus-7b-v2.0)",
+        help="Judge ID específico para analisar (ex: qwen2.5-14b-instruct)",
     )
     parser.add_argument("--limit", type=int, help="Limitar número de resultados")
     args = parser.parse_args()

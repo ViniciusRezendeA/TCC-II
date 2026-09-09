@@ -255,11 +255,11 @@ def main():
     print(f"\n🚨 Implicações:")
     print(f"  • A quota de 1M tokens/dia é muito restritiva para 12.171 tools")
     print(f"  • Recomenda-se usar Gemini como SECUNDÁRIO, não primário")
-    print(f"  • Melhor opção: Prometheus local + Llama local")
+    print(f"  • Melhor opção: Qwen local + Llama local")
     print(f"  • Se usar Gemini: considere --limit pequeno para testes")
 
     print(f"\n📋 Recomendações:")
-    print(f"  1. Mantenha Prometheus e Llama como juízes primários (locais)")
+    print(f"  1. Mantenha Qwen e Llama como juízes primários (locais)")
     print(f"  2. Use Gemini para subset de validação (~10-20 tools)")
     print(f"  3. Para dataset completo, espere upgrade do plano")
     print(f"  4. Monitore quota diária em console.cloud.google.com")
@@ -289,7 +289,7 @@ def main():
     print(f"\nProximo passo:")
     print(f"  1. Revise limitações acima")
     print(f"  2. Mantenha Gemini desabilitado em config/judges.yaml")
-    print(f"  3. Execute Etapa 3 com Prometheus + Llama locais")
+    print(f"  3. Execute Etapa 3 com Qwen + Llama locais")
     print(f"  4. Se quiser testar Gemini: use --limit 5 --judges gemini-2.5-flash-lite")
 
 

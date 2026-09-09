@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """Health check para servidores llama.cpp locais.
 
-Valida conectividade e autenticação com Prometheus e Llama via llama-server.
+Valida conectividade e autenticação com os juízes locais via llama-server.
 
 Uso:
   uv run python scripts/check_local_llm_servers.py
@@ -114,25 +114,18 @@ def main():
     from dotenv import load_dotenv
     load_dotenv()
 
-    prometheus_url = os.getenv("PROMETHEUS_LLM_BASE_URL", "http://192.168.15.15:8091/v1")
-    prometheus_token = os.getenv("PROMETHEUS_LLM_BEARER_TOKEN", "")
-
     llama_url = os.getenv("LOCAL_LLM_BASE_URL", "http://192.168.15.15:8090/v1")
     llama_token = os.getenv("LOCAL_LLM_BEARER_TOKEN", "")
 
-    if not prometheus_token or not llama_token:
+    qwen_url = os.getenv("QWEN_LLM_BASE_URL", "")
+    qwen_token = os.getenv("QWEN_LLM_BEARER_TOKEN", "")
+
+    if not llama_token:
         print("\n✗ Erro: Credenciais não encontradas em .env")
-        print("  Certifique-se que PROMETHEUS_LLM_BEARER_TOKEN e LOCAL_LLM_BEARER_TOKEN estão definidas")
+        print("  Certifique-se que LOCAL_LLM_BEARER_TOKEN está definida")
         sys.exit(1)
 
     results = {}
-
-    results["prometheus"] = check_server(
-        "Prometheus 7B V2.0",
-        prometheus_url,
-        prometheus_token,
-        "prometheus-7b-v2.0",
-    )
 
     results["llama"] = check_server(
         "Llama (llama-uncensored)",
@@ -140,6 +133,16 @@ def main():
         llama_token,
         "llama-uncensored",
     )
+
+    if qwen_url and qwen_token:
+        results["qwen"] = check_server(
+            "Qwen2.5-14B-Instruct",
+            qwen_url,
+            qwen_token,
+            "qwen2.5-14b-instruct",
+        )
+    else:
+        print("\n⏭️  Pulando Qwen2.5-14B-Instruct: QWEN_LLM_BASE_URL/QWEN_LLM_BEARER_TOKEN não configuradas em .env")
 
     print(f"\n{'='*60}")
     print("RESUMO")

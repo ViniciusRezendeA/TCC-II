@@ -38,13 +38,13 @@ Please update your code...
 
 ### ✅ RECOMENDADO: Estratégia Local (FUNCIONANDO)
 
-**Use Prometheus + Llama locais via llama-server:**
+**Use Qwen + Llama locais via llama-server:**
 
 ```bash
 # Setup (1h)
 uv run python scripts/check_local_llm_servers.py
 
-# Execução (17 dias)
+# Execução (tempo depende do hardware)
 uv run python -m mcp_pipeline.pipeline.run_step3
 
 # Resultado: 0% de custo, sem limites
@@ -74,7 +74,7 @@ Se preferir Cloud para redundância:
 # Usar Claude + OpenAI em paralelo com local
 # Custo: ~$8-15 para dataset completo
 uv run python -m mcp_pipeline.pipeline.run_step3 \
-  --judges prometheus-7b-v2.0,llama-uncensored,claude-haiku-4-5,gpt-4.1-mini
+  --judges qwen2.5-14b-instruct,llama-uncensored,claude-haiku-4-5,gpt-4.1-mini
 ```
 
 **Custo estimado**:
@@ -91,9 +91,9 @@ uv run python -m mcp_pipeline.pipeline.run_step3 \
 
 judges:
   # ✅ LOCAL (FUNCIONA, RECOMENDADO)
-  - id: prometheus-7b-v2.0
-    provider: prometheus
-    model_id: prometheus-7b-v2.0
+  - id: qwen2.5-14b-instruct
+    provider: qwen
+    model_id: qwen2.5-14b-instruct
     enabled: true
 
   - id: llama-uncensored
@@ -124,7 +124,7 @@ uv run python -m mcp_pipeline.pipeline.run_step3
 
 # Com cloud adicional (custo, se habilitado)
 uv run python -m mcp_pipeline.pipeline.run_step3 \
-  --judges prometheus-7b-v2.0,llama-uncensored,claude-haiku-4-5
+  --judges qwen2.5-14b-instruct,llama-uncensored,claude-haiku-4-5
 ```
 
 ---
@@ -133,7 +133,7 @@ uv run python -m mcp_pipeline.pipeline.run_step3 \
 
 | Opção | Disponível | Custo | Tempo | Recomendação |
 |-------|-----------|-------|-------|--------------|
-| **Local (Prometheus + Llama)** | ✅ Sim | $0 | 17 dias | ✅ USE ISTO |
+| **Local (Qwen + Llama)** | ✅ Sim | $0 | tempo depende do hardware | ✅ USE ISTO |
 | **Gemini free tier** | ❌ Não (404) | $0 | N/A | ❌ Não funciona |
 | **Gemini pago** | ❓ Provável | $$ | ? | ⚠️ Se precisar Cloud |
 | **Claude + OpenAI** | ✅ Sim | $8-15 | 1-2 dias | ✅ Se quiser rápido |
@@ -142,7 +142,7 @@ uv run python -m mcp_pipeline.pipeline.run_step3 \
 
 ## Ação Recomendada
 
-1. **Use estratégia LOCAL** (Prometheus + Llama)
+1. **Use estratégia LOCAL** (Qwen + Llama)
    ```bash
    uv run python -m mcp_pipeline.pipeline.run_step3
    ```

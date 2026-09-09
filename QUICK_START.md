@@ -9,30 +9,31 @@ cp .env.example .env
 
 # 2. Servidores locais rodando
 uv run python scripts/check_local_llm_servers.py
-# ✓ Acesso OK (ambos Prometheus + Llama)
+# ✓ Acesso OK (ambos Qwen + Llama)
 ```
 
 ---
 
-## Opção 1: Apenas Prometheus (Recomendado para Começar)
+## Opção 1: Apenas Qwen (Recomendado para Começar)
 
-**Especializado em LLM-as-a-Judge, mais rápido**
+**Aderência a instruções superior entre os juízes locais disponíveis — o juiz é
+sempre escolhido via `--judges`, nunca hardcoded em script.**
 
 ```bash
 # Teste rápido (10 tools)
-uv run python -m mcp_pipeline.pipeline.run_step3 --judges prometheus-7b-v2.0 --limit 10
+uv run python -m mcp_pipeline.pipeline.run_step3 --judges qwen2.5-14b-instruct --limit 10
 
-# Validação (100 tools, ~2 horas)
-uv run python -m mcp_pipeline.pipeline.run_step3 --judges prometheus-7b-v2.0 --limit 100
+# Validação (100 tools)
+uv run python -m mcp_pipeline.pipeline.run_step3 --judges qwen2.5-14b-instruct --limit 100
 
-# Dataset completo (12.171 tools, ~8-10 dias)
-uv run python -m mcp_pipeline.pipeline.run_step3 --judges prometheus-7b-v2.0
+# Dataset completo (12.171 tools)
+uv run python -m mcp_pipeline.pipeline.run_step3 --judges qwen2.5-14b-instruct
 ```
 
 **Monitorar:**
 ```bash
 tail -f logs/step3.log  # Progresso em tempo real
-tail -f logs/step3_errors_prometheus-7b-v2.0.jsonl  # Erros (se houver)
+tail -f logs/step3_errors_qwen2.5-14b-instruct.jsonl  # Erros (se houver)
 ```
 
 ---
@@ -45,43 +46,46 @@ tail -f logs/step3_errors_prometheus-7b-v2.0.jsonl  # Erros (se houver)
 # Teste rápido (10 tools)
 uv run python -m mcp_pipeline.pipeline.run_step3 --judges llama-uncensored --limit 10
 
-# Validação (100 tools, ~2-3 horas)
+# Validação (100 tools)
 uv run python -m mcp_pipeline.pipeline.run_step3 --judges llama-uncensored --limit 100
 
-# Dataset completo (12.171 tools, ~10-12 dias)
+# Dataset completo (12.171 tools)
 uv run python -m mcp_pipeline.pipeline.run_step3 --judges llama-uncensored
 ```
 
 ---
 
-## Opção 3: Ambos em Paralelo ⚡ (MAIS RÁPIDO)
+## Opção 3: Ambos em Paralelo ⚡
 
-**Roda Prometheus + Llama em paralelo, metade do tempo**
+**Roda Qwen + Llama em paralelo**
 
 ```bash
 # Teste rápido (10 tools com 2 juízes)
 uv run python -m mcp_pipeline.pipeline.run_step3 --limit 10
 
-# Validação (100 tools com 2 juízes, ~1-2 horas)
+# Validação (100 tools com 2 juízes)
 uv run python -m mcp_pipeline.pipeline.run_step3 --limit 100
 
-# Dataset completo (12.171 tools com 2 juízes, ~5-7 dias) ⚡
+# Dataset completo (12.171 tools com 2 juízes)
 uv run python -m mcp_pipeline.pipeline.run_step3
 ```
 
 **Resultado em 2 arquivos:**
-- `data/evaluations/prometheus-7b-v2.0.jsonl`
+- `data/evaluations/qwen2.5-14b-instruct.jsonl`
 - `data/evaluations/llama-uncensored.jsonl`
 
 ---
 
 ## 📊 Comparação Rápida
 
-| Comando | Juiz(es) | Tempo | Casos de uso |
-|---------|----------|-------|--------------|
-| `--judges prometheus-7b-v2.0` | 1 | 8-10 dias | ✅ Começar aqui |
-| `--judges llama-uncensored` | 1 | 10-12 dias | Alternativa |
-| (sem --judges) | 2 | 5-7 dias | ⚡ **Recomendado** |
+| Comando | Juiz(es) | Casos de uso |
+|---------|----------|--------------|
+| `--judges qwen2.5-14b-instruct` | 1 | ✅ Começar aqui |
+| `--judges llama-uncensored` | 1 | Alternativa |
+| (sem --judges) | 2 | ⚡ Roda ambos em paralelo |
+
+Tempo por lote depende do hardware que serve cada llama-server — meça com o
+teste de 10 tools de cada opção antes de projetar a duração do dataset completo.
 
 ---
 
@@ -92,9 +96,9 @@ uv run python -m mcp_pipeline.pipeline.run_step3
 --limit N                          # Processa apenas N tools
 
 # Escolher juízes
---judges prometheus-7b-v2.0        # Apenas Prometheus
+--judges qwen2.5-14b-instruct      # Apenas Qwen
 --judges llama-uncensored          # Apenas Llama
---judges prometheus-7b-v2.0,llama  # Ambos (sem --judges usa padrão: ambos)
+--judges qwen2.5-14b-instruct,llama-uncensored  # Ambos (sem --judges usa padrão: ambos)
 
 # Cenários
 --scenarios description_only       # Apenas descrição (sem código)
@@ -110,9 +114,9 @@ uv run python -m mcp_pipeline.pipeline.run_step3
 ## Exemplos Combinados
 
 ```bash
-# Teste rápido: Prometheus + apenas descrição + 5 tools
+# Teste rápido: Qwen + apenas descrição + 5 tools
 uv run python -m mcp_pipeline.pipeline.run_step3 \
-  --judges prometheus-7b-v2.0 \
+  --judges qwen2.5-14b-instruct \
   --scenarios description_only \
   --limit 5
 
@@ -134,14 +138,14 @@ uv run python -m mcp_pipeline.pipeline.run_step3 \
 tail -f logs/step3.log
 
 # Ver erros específicos de um juiz
-tail -f logs/step3_errors_prometheus-7b-v2.0.jsonl
+tail -f logs/step3_errors_qwen2.5-14b-instruct.jsonl
 tail -f logs/step3_errors_llama-uncensored.jsonl
 
 # Ver resultados (JSON, um por linha)
-head -5 data/evaluations/prometheus-7b-v2.0.jsonl | jq .
+head -5 data/evaluations/qwen2.5-14b-instruct.jsonl | jq .
 
 # Contar avaliações concluídas
-wc -l data/evaluations/prometheus-7b-v2.0.jsonl
+wc -l data/evaluations/qwen2.5-14b-instruct.jsonl
 wc -l data/evaluations/llama-uncensored.jsonl
 ```
 
@@ -178,9 +182,8 @@ uv run python -m scripts.analysis_report
 
 | Problema | Solução |
 |----------|---------|
-| Conexão recusada (Prometheus/Llama) | Verificar se servidores estão rodando |
-| Timeout na chamada | Aumentar timeout em `openai_compatible_judge.py` |
-| Taxa muito lenta | Usar 2 juízes em paralelo: `uv run python -m mcp_pipeline.pipeline.run_step3` |
+| Conexão recusada (Qwen/Llama) | Verificar se servidores estão rodando |
+| Timeout na chamada | `openai_compatible_judge.py` já roda sem limite de timeout por padrão |
 | Muitas refusas de segurança | Normal para MCP servers com ferramentas de pentesting |
 | Precisa ver dados de um tool específico | Buscar em `data/evaluations/*.jsonl` com `jq` ou `grep` |
 
@@ -190,11 +193,11 @@ uv run python -m scripts.analysis_report
 
 **Para 1ª vez:**
 ```bash
-# Teste rápido: 10 tools com Prometheus
-uv run python -m mcp_pipeline.pipeline.run_step3 --judges prometheus-7b-v2.0 --limit 10
+# Teste rápido: 10 tools com Qwen
+uv run python -m mcp_pipeline.pipeline.run_step3 --judges qwen2.5-14b-instruct --limit 10
 
 # Se OK, validação: 100 tools
-uv run python -m mcp_pipeline.pipeline.run_step3 --judges prometheus-7b-v2.0 --limit 100
+uv run python -m mcp_pipeline.pipeline.run_step3 --judges qwen2.5-14b-instruct --limit 100
 
 # Se OK, dataset completo com ambos juízes
 uv run python -m mcp_pipeline.pipeline.run_step3

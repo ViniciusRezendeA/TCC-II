@@ -57,7 +57,7 @@ para o desenho detalhado, decisões e riscos conhecidos.
     mais de uma linguagem por repositório.
 - ✅ **Etapa 3** (classificação via LLM-as-a-Judge): implementada, testada e expandida
   — júri multi-provedor com suporte a juízes cloud (Claude Haiku 4.5, OpenAI
-  gpt-4.1-mini, Google Gemini 2.5 Flash-Lite) e juízes locais (Prometheus 7B V2.0,
+  gpt-4.1-mini, Google Gemini 2.5 Flash-Lite) e juízes locais (Qwen2.5-14B-Instruct,
   Llama via llama.cpp). Rubrica de 6 componentes, execução resumível e concorrente
   por juiz. Pronto para execução local e remota — requer configuração de `.env` com
   chaves de API (cloud) ou endpoints locais (llama-server).
@@ -129,7 +129,7 @@ preencher a chave dos juízes habilitados em `config/judges.yaml`).
 uv run python -m mcp_pipeline.pipeline.run_step3 [--limit N] [--judges id1,id2] [--scenarios description_only,with_source] [--retry-failed]
 ```
 
-### Com juízes locais (Prometheus 7B + Llama via llama.cpp)
+### Com juízes locais (Qwen2.5-14B-Instruct + Llama via llama.cpp)
 
 **Setup inicial:**
 
@@ -138,8 +138,8 @@ uv run python -m mcp_pipeline.pipeline.run_step3 [--limit N] [--judges id1,id2] 
 ```bash
 cp .env.example .env
 # Edite .env com:
-# - PROMETHEUS_LLM_BASE_URL=http://192.168.15.15:8091/v1
-# - PROMETHEUS_LLM_BEARER_TOKEN=seu_token_aqui
+# - QWEN_LLM_BASE_URL=http://192.168.15.15:8091/v1
+# - QWEN_LLM_BEARER_TOKEN=seu_token_aqui
 # - LOCAL_LLM_BASE_URL=http://192.168.15.15:8090/v1
 # - LOCAL_LLM_BEARER_TOKEN=seu_token_aqui
 ```
@@ -158,16 +158,16 @@ uv run python scripts/test_local_judges.py --sample-size 20 --judge both
 
 4. Se o teste passar, execute a Etapa 3 com a configuração desejada:
 
-**Apenas Prometheus (recomendado para começar):**
+**Apenas Qwen (recomendado para começar) — o juiz é sempre escolhido via `--judges`, nunca hardcoded em script:**
 ```bash
 # Teste: 10 tools
-uv run python -m mcp_pipeline.pipeline.run_step3 --judges prometheus-7b-v2.0 --limit 10
+uv run python -m mcp_pipeline.pipeline.run_step3 --judges qwen2.5-14b-instruct --limit 10
 
 # Validação: 100 tools
-uv run python -m mcp_pipeline.pipeline.run_step3 --judges prometheus-7b-v2.0 --limit 100
+uv run python -m mcp_pipeline.pipeline.run_step3 --judges qwen2.5-14b-instruct --limit 100
 
-# Dataset completo (~8-10 dias)
-uv run python -m mcp_pipeline.pipeline.run_step3 --judges prometheus-7b-v2.0
+# Dataset completo
+uv run python -m mcp_pipeline.pipeline.run_step3 --judges qwen2.5-14b-instruct
 ```
 
 **Apenas Llama:**
@@ -184,7 +184,8 @@ uv run python -m mcp_pipeline.pipeline.run_step3 --judges llama-uncensored
 # Teste: 10 tools com ambos juízes
 uv run python -m mcp_pipeline.pipeline.run_step3 --limit 10
 
-# Dataset completo (~5-7 dias com 2 juízes em paralelo)
+# Dataset completo -- tempo depende do modelo carregado no llama-server de cada
+# endpoint; meça com o teste de 10 tools acima antes de projetar a duração total.
 uv run python -m mcp_pipeline.pipeline.run_step3
 ```
 

@@ -18,14 +18,14 @@ from mcp_pipeline.evaluation.prompts import RUBRIC_SYSTEM_PROMPT, build_user_mes
 
 # Grammar-constrains the local llama.cpp server's output to this exact shape (all 6
 # components present, each with a 1-5 score and reasoning string) instead of relying on
-# generic "valid JSON" mode -- small local judges (Prometheus, Llama) otherwise drift from
+# generic "valid JSON" mode -- small local judges (Qwen, Llama) otherwise drift from
 # the schema even when the prose instructions describe it correctly.
 _RUBRIC_JSON_SCHEMA = RubricScores.model_json_schema()
 
 
 class OpenAICompatibleJudge:
     """Judge para servidores llama.cpp (llama-server) com API compatível com OpenAI.
-    Usado para Prometheus e Llama rodando localmente na rede.
+    Usado para Qwen e Llama rodando localmente na rede.
 
     Requisições HTTP diretas (não usa SDK OpenAI) para ter controle total sobre headers
     de autenticação Bearer e timeouts de conexão local.

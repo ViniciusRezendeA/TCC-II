@@ -17,7 +17,7 @@ Este documento compara as 3 estratégias de juízes (Local, Cloud, Misto) com fo
 ## Estratégia 1: 100% Local (Recomendado para Free Tier)
 
 ### Juízes
-- Prometheus 7B V2.0 (llama-server em 192.168.15.15:8091)
+- Qwen2.5-14B-Instruct (llama-server, endereço em QWEN_LLM_BASE_URL)
 - Llama uncensored (llama-server em 192.168.15.15:8090)
 
 ### Capacidade Diária
@@ -48,9 +48,9 @@ Este documento compara as 3 estratégias de juízes (Local, Cloud, Misto) com fo
 ```yaml
 # config/judges.yaml
 judges:
-  - id: prometheus-7b-v2.0
-    provider: prometheus
-    model_id: prometheus-7b-v2.0
+  - id: qwen2.5-14b-instruct
+    provider: qwen
+    model_id: qwen2.5-14b-instruct
     enabled: true
 
   - id: llama-uncensored
@@ -141,14 +141,14 @@ judges:
 
 ### Recomendação Otimizada
 
-Use **Prometheus + Llama locais** como primários + **Gemini para validação pequena**.
+Use **Qwen + Llama locais** como primários + **Gemini para validação pequena**.
 
 ```yaml
 # config/judges.yaml - RECOMENDADO
 judges:
   # Primários (local) - rápidos, sem limite
-  - id: prometheus-7b-v2.0
-    provider: prometheus
+  - id: qwen2.5-14b-instruct
+    provider: qwen
     enabled: true
 
   - id: llama-uncensored
@@ -165,8 +165,8 @@ judges:
 
 **Fase 1: Dataset completo (local)**
 ```bash
-# Avalia todas as 24.342 avaliações com Prometheus + Llama
-# ~17 dias, nenhum custo
+# Avalia todas as 24.342 avaliações com Qwen + Llama
+# tempo depende do hardware do llama-server, nenhum custo
 uv run python -m mcp_pipeline.pipeline.run_step3
 ```
 
@@ -238,7 +238,7 @@ Avaliações/dia: 21.600 (com ~47 tokens cada = impossível)
 
 | Caso de Uso | Recomendação | Alternativa |
 |-------------|--------------|------------|
-| Dataset completo (24k tools) | Local (Prometheus + Llama) | Cloud (com custo $8-15) |
+| Dataset completo (24k tools) | Local (Qwen + Llama) | Cloud (com custo $8-15) |
 | Testes/desenvolvimento | Local (--limit 10-20) | Gemini (--limit 5) |
 | Validação seletiva | Local, depois Gemini | Cloud (Claude + OpenAI) |
 | Produção/reprodutibilidade | Local | Claude (pago) |
@@ -258,7 +258,7 @@ uv run python scripts/test_local_judges.py --sample-size 20
 
 ### Passo 2: Execução Primária (Semana 1-3)
 ```bash
-# Roda com Prometheus + Llama
+# Roda com Qwen + Llama
 uv run python -m mcp_pipeline.pipeline.run_step3
 
 # Monitorar:
@@ -291,7 +291,7 @@ uv run python -m scripts.analysis_report
 
 **Para este projeto com 12.171 ferramentas:**
 
-1. **Use Local (Prometheus + Llama)** como primário
+1. **Use Local (Qwen + Llama)** como primário
    - ✅ 0% de custo
    - ✅ Nenhuma limitação de rate
    - ✅ ~17 dias de tempo total

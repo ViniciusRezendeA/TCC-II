@@ -6,7 +6,9 @@ import json
 # checkpoint_key()) whenever the rubric text or the RubricScores schema changes materially
 # -- old results stay in the output JSONL tagged with their own prompt_version instead of
 # being silently skipped or overwritten.
-PROMPT_VERSION = "v1"
+# v2: Changed SOURCE_CODE handling from "may use" (enrich) to "MUST validate" (congruence check)
+#     Added explicit penalty guidance for omissions/contradictions found in code
+PROMPT_VERSION = "v2"
 
 RUBRIC_COMPONENTS: list[tuple[str, str, str]] = [
     (
@@ -87,10 +89,18 @@ Likert scale (apply uniformly to all 6 components):
 {LIKERT_SCALE}
 
 Handling "SOURCE_CODE":
-- If "SOURCE_CODE" is present in the input, you may use it to inform "limitations" and "parameter_explanation" specifically: does the code reveal constraints, failure modes, or parameter semantics that the description omits?
+- If "SOURCE_CODE" is present: VALIDATE CONGRUENCE between description and code implementation. Specifically for "limitations" and "parameter_explanation", you MUST check if the code reveals:
+  * Constraints or failure modes the description does NOT mention
+  * Parameter behavior or semantics that differs from what the description states
+  * Edge cases, error conditions, or type constraints not documented in the description
+
+  CRITICAL: If you identify omissions or contradictions, PENALIZE the score accordingly. The goal is to measure how accurately the description reflects the actual implementation. Do not use the code to enrich or complete the description—use it to validate congruence. A vague description is still vague even if the code clarifies the implementation.
+
+  For "examples" and "guidelines": Code may provide context but should NOT automatically inflate scores. Only increase score if the description itself demonstrates knowledge of the constraints/behaviors the code reveals.
+
 - If "SOURCE_CODE" is absent, judge the description strictly on its own terms. Do not penalize it for omitting information that only the source code would reveal.
 
-For each of the 6 components, return a Likert score (1-5) and a brief (1-3 sentence) reasoning that cites specific evidence from the description (and from SOURCE_CODE, when present and relevant)."""
+For each of the 6 components, return a Likert score (1-5) and a brief (1-3 sentence) reasoning that cites specific evidence from the description (and from SOURCE_CODE, when present and relevant). When SOURCE_CODE is present, explain in your reasoning whether you identified any omissions or contradictions."""
 
 
 def build_user_message(payload: dict) -> str:

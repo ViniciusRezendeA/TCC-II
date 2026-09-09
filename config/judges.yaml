@@ -2,28 +2,12 @@
 # evaluation/judges/registry.py::load_judges() via PROVIDER_CLASSES -- adicionar,
 # remover ou trocar de modelo é editar este arquivo, sem tocar em código.
 #
-# Tier econômico/mini nos 3 juízes (não flagship) por decisão explícita: espelha a
-# escolha real de Hasan et al. (2026), que usaram modelos pequenos nos 3 juízes
-# (gpt-4.1-mini, claude-haiku-3.5, qwen3-30b-a3b), não os mais capazes disponíveis.
+# Apenas juízes locais (llama.cpp) + Gemini (cloud, free tier) -- Claude e GPT
+# não são usados neste projeto.
 #
-# model_id do OpenAI e do Google foram confirmados na Fase 0 (2026-08-19) direto na
-# documentação oficial (platform.openai.com/docs/pricing via developers.openai.com,
-# ai.google.dev/gemini-api/docs/pricing) -- não são um palpite. gpt-4.1-mini tem
-# descontinuação anunciada para 2026-11-04; como a "Aplicação da Avaliação" do TCC
-# está prevista para outubro, está dentro do prazo, mas vale reconferir se a
-# implementação real atrasar para depois dessa data.
+# model_id do Google foi confirmado na Fase 0 (2026-08-19) direto na documentação
+# oficial (ai.google.dev/gemini-api/docs/pricing) -- não é um palpite.
 judges:
-  # Juízes originais (cloud)
-  - id: claude-haiku-4-5
-    provider: anthropic
-    model_id: claude-haiku-4-5
-    enabled: false
-
-  - id: gpt-4.1-mini
-    provider: openai
-    model_id: gpt-4.1-mini
-    enabled: false
-
   - id: gemini-2.5-flash
     provider: google
     model_id: gemini-2.5-flash
@@ -34,18 +18,18 @@ judges:
     model_id: gemini-2.5-flash-lite
     enabled: false
 
-  # Juízes locais (llama.cpp) — novos
-  - id: prometheus-7b-v2.0
-    provider: prometheus
-    model_id: prometheus-7b-v2.0
-    enabled: true
-
+  # Juízes locais (llama.cpp)
   - id: llama-uncensored
     provider: llama
     model_id: llama-uncensored
     enabled: true
 
-# Testes:
-# python -m mcp_pipeline.pipeline.run_step3 --judges prometheus-7b-v2.0 --limit 5
+  - id: qwen2.5-14b-instruct
+    provider: qwen
+    model_id: qwen2.5-14b-instruct
+    enabled: true
+
+# Testes (o modelo é sempre escolhido via --judges, nunca hardcoded em script):
 # python -m mcp_pipeline.pipeline.run_step3 --judges llama-uncensored --limit 5
-# python -m mcp_pipeline.pipeline.run_step3 --judges prometheus-7b-v2.0,llama-uncensored --limit 20
+# python -m mcp_pipeline.pipeline.run_step3 --judges qwen2.5-14b-instruct --limit 5
+# python -m mcp_pipeline.pipeline.run_step3 --judges qwen2.5-14b-instruct,llama-uncensored --limit 20
