@@ -21,7 +21,7 @@ class PrometheusJudge(OpenAICompatibleJudge):
         self._base_url = None
         self._bearer_token = None
         self._max_tokens = 16_000
-        self._timeout_seconds = 300
+        self._timeout_seconds = None
 
     def _ensure_initialized(self) -> None:
         """Lazy initialization: valida credenciais apenas quando necessário."""

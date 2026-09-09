@@ -38,7 +38,7 @@ class OpenAICompatibleJudge:
         base_url: str,
         bearer_token: str,
         max_tokens: int = 16_000,
-        timeout_seconds: int = 300,
+        timeout_seconds: int | None = None,
     ):
         self.judge_id = judge_id
         self.provider = "local"
@@ -76,7 +76,8 @@ class OpenAICompatibleJudge:
         except requests.ConnectionError as e:
             raise JudgeError(f"conexão recusada ao {self.judge_id} ({self._base_url}): {e}") from e
         except requests.Timeout as e:
-            raise JudgeError(f"timeout ao chamar {self.judge_id} (limite: {self._timeout_seconds}s): {e}") from e
+            timeout_str = f"limite: {self._timeout_seconds}s" if self._timeout_seconds else "sem limite"
+            raise JudgeError(f"timeout ao chamar {self.judge_id} ({timeout_str}): {e}") from e
         except requests.RequestException as e:
             raise JudgeError(f"erro HTTP ao chamar {self.judge_id}: {e}") from e
 

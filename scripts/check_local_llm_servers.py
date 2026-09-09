@@ -40,7 +40,7 @@ def check_server(name: str, base_url: str, bearer_token: str, model_id: str) -> 
 
     try:
         print(f"→ Conectando a {url}...")
-        response = requests.post(url, headers=headers, json=payload, timeout=10)
+        response = requests.post(url, headers=headers, json=payload, timeout=None)
 
         print(f"  Status HTTP: {response.status_code}")
 
@@ -93,7 +93,7 @@ def check_server(name: str, base_url: str, bearer_token: str, model_id: str) -> 
         print(f"    {e}")
         return False
     except requests.Timeout as e:
-        print(f"  ✗ FALHA: Timeout (10s)")
+        print(f"  ✗ FALHA: Timeout na conexão")
         print(f"    {e}")
         return False
     except requests.RequestException as e:
