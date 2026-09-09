@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import time
 from typing import Optional
 
@@ -96,9 +97,19 @@ class OpenAICompatibleJudge:
 
         try:
             parsed_json = json.loads(message_content)
+        except json.JSONDecodeError:
+            # Try to extract JSON from response (handles cases where model wraps JSON in explanation text)
+            json_match = re.search(r'\{.*\}', message_content, re.DOTALL)
+            if json_match:
+                try:
+                    parsed_json = json.loads(json_match.group(0))
+                except json.JSONDecodeError as e:
+                    raise JudgeError(f"resposta de {self.judge_id} não é JSON válido no content: {e}") from e
+            else:
+                raise JudgeError(f"resposta de {self.judge_id} não contém JSON válido: {message_content[:200]}") from None
+
+        try:
             scores = RubricScores.model_validate(parsed_json)
-        except json.JSONDecodeError as e:
-            raise JudgeError(f"resposta de {self.judge_id} não é JSON válido no content: {e}") from e
         except ValueError as e:
             raise JudgeError(f"resposta de {self.judge_id} não valida contra RubricScores: {e}") from e
 
