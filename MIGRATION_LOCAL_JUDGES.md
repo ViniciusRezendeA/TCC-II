@@ -89,24 +89,66 @@ Exemplos de saída:
 
 Após validar no teste piloto, execute a Etapa 3 completa:
 
-### Apenas Prometheus (recomendado para começar):
+### ✅ APENAS PROMETHEUS (Recomendado para começar)
+
 ```bash
-# 100 tools primeiros:
+# Teste: 10 tools
+uv run python -m mcp_pipeline.pipeline.run_step3 --judges prometheus-7b-v2.0 --limit 10
+
+# Validação: 100 tools
 uv run python -m mcp_pipeline.pipeline.run_step3 --judges prometheus-7b-v2.0 --limit 100
 
-# Dataset completo (12.171 tools):
+# Dataset completo (12.171 tools, ~8-10 dias)
 uv run python -m mcp_pipeline.pipeline.run_step3 --judges prometheus-7b-v2.0
 ```
 
-### Apenas Llama:
+**Vantagem**: Prometheus é especializado em LLM-as-a-Judge, mais rápido  
+**Tempo estimado**: ~8-10 dias para dataset completo
+
+### ✅ APENAS LLAMA
+
 ```bash
+# Teste: 10 tools
+uv run python -m mcp_pipeline.pipeline.run_step3 --judges llama-uncensored --limit 10
+
+# Validação: 100 tools
 uv run python -m mcp_pipeline.pipeline.run_step3 --judges llama-uncensored --limit 100
+
+# Dataset completo (12.171 tools, ~10-12 dias)
+uv run python -m mcp_pipeline.pipeline.run_step3 --judges llama-uncensored
 ```
 
-### Ambos (mais lento, ~2x tempo):
+**Vantagem**: Alternativa para comparar resultados  
+**Tempo estimado**: ~10-12 dias para dataset completo
+
+### ✅ AMBOS EM PARALELO (Padrão, mais rápido)
+
 ```bash
+# Teste: 10 tools com ambos juízes
+uv run python -m mcp_pipeline.pipeline.run_step3 --limit 10
+
+# Validação: 100 tools com ambos juízes
+uv run python -m mcp_pipeline.pipeline.run_step3 --limit 100
+
+# Dataset completo com ambos (12.171 tools, ~5-7 dias)
+# Máximo paralelismo, resultado em 2 juízes
 uv run python -m mcp_pipeline.pipeline.run_step3
 ```
+
+**Vantagem**: Roda Prometheus + Llama em paralelo, mais rápido  
+**Tempo estimado**: ~5-7 dias para dataset completo (2 juízes)
+
+---
+
+## Comparação: 1 Juiz vs 2 Juízes
+
+| Configuração | Juízes | Tempo estimado | Avaliações/dia | Casos de uso |
+|--------------|--------|----------------|----|---|
+| Apenas Prometheus | 1 | ~8-10 dias | ~1.440-1.800 | Teste rápido, LLM especializado |
+| Apenas Llama | 1 | ~10-12 dias | ~1.200-1.440 | Teste, comparação |
+| **Ambos em paralelo** | 2 | **~5-7 dias** | **~3.500+** | ✅ **Recomendado** |
+
+**Dica**: Para dataset completo, 2 juízes em paralelo é mais eficiente que rodar 1 depois do outro.
 
 ## Monitoramento
 

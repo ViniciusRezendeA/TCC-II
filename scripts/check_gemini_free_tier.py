@@ -1,7 +1,9 @@
 #!/usr/bin/env python
-"""Health check para Gemini API (free tier).
+"""Health check para Gemini API 3.1 Flash (free tier).
 
 Valida conectividade, autenticação e avisos sobre limitações da API gratuita.
+
+Modelo testado: gemini-3.1-flash-live-preview (mais recente)
 
 Limitações conhecidas do Gemini free tier:
 - Rate limit: 15 requisições por minuto
@@ -59,7 +61,7 @@ def calculate_daily_capacity() -> dict:
     }
 
 
-def check_connectivity(api_key: str, model_id: str = "gemini-2.5-flash-lite") -> tuple[bool, str, dict]:
+def check_connectivity(api_key: str, model_id: str = "gemini-3.1-flash-live-preview") -> tuple[bool, str, dict]:
     """Testa conectividade com Gemini."""
     print(f"\n{'='*70}")
     print(f"Testando conectividade com {model_id}...")
@@ -145,7 +147,7 @@ def check_connectivity(api_key: str, model_id: str = "gemini-2.5-flash-lite") ->
         return False, f"Erro inesperado: {type(e).__name__}: {str(e)[:150]}", {}
 
 
-def check_rubric_compatibility(api_key: str, model_id: str = "gemini-2.5-flash-lite") -> tuple[bool, str]:
+def check_rubric_compatibility(api_key: str, model_id: str = "gemini-3.1-flash-live-preview") -> tuple[bool, str]:
     """Testa se o modelo consegue fazer parsing da rubrica com JSON schema."""
     print(f"\n{'='*70}")
     print("Testando compatibilidade com rubrica (JSON schema)...")

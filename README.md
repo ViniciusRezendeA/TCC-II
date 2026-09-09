@@ -156,19 +156,35 @@ uv run python scripts/check_local_llm_servers.py
 uv run python scripts/test_local_judges.py --sample-size 20 --judge both
 ```
 
-4. Se o teste passar, execute a Etapa 3 contra o dataset completo ou um limite:
+4. Se o teste passar, execute a Etapa 3 com a configuração desejada:
 
+**Apenas Prometheus (recomendado para começar):**
 ```bash
-# Apenas Prometheus:
+# Teste: 10 tools
+uv run python -m mcp_pipeline.pipeline.run_step3 --judges prometheus-7b-v2.0 --limit 10
+
+# Validação: 100 tools
 uv run python -m mcp_pipeline.pipeline.run_step3 --judges prometheus-7b-v2.0 --limit 100
 
-# Apenas Llama:
-uv run python -m mcp_pipeline.pipeline.run_step3 --judges llama-uncensored --limit 100
+# Dataset completo (~8-10 dias)
+uv run python -m mcp_pipeline.pipeline.run_step3 --judges prometheus-7b-v2.0
+```
 
-# Ambos (leva mais tempo):
-uv run python -m mcp_pipeline.pipeline.run_step3 --judges prometheus-7b-v2.0,llama-uncensored --limit 100
+**Apenas Llama:**
+```bash
+# Teste: 10 tools
+uv run python -m mcp_pipeline.pipeline.run_step3 --judges llama-uncensored --limit 10
 
-# Sem limite (dataset completo):
+# Dataset completo (~10-12 dias)
+uv run python -m mcp_pipeline.pipeline.run_step3 --judges llama-uncensored
+```
+
+**Ambos em paralelo (mais rápido, recomendado para dataset completo):**
+```bash
+# Teste: 10 tools com ambos juízes
+uv run python -m mcp_pipeline.pipeline.run_step3 --limit 10
+
+# Dataset completo (~5-7 dias com 2 juízes em paralelo)
 uv run python -m mcp_pipeline.pipeline.run_step3
 ```
 

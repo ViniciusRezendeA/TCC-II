@@ -39,6 +39,7 @@ class GeminiJudge:
     - Cada ferramenta ~3k tokens (prompt + resposta)
     - Dataset completo (12.171 tools × 2 cenários): ~73M tokens → ~73 dias a 1M/dia
 
+    Modelo recomendado: gemini-3.1-flash-live-preview (mais recente, possível melhor performance)
     Recomendação: Use como SECUNDÁRIO para validação (10-20 tools), não para dataset completo.
     Veja scripts/check_gemini_free_tier.py para análise de capacidade diária.
     """
