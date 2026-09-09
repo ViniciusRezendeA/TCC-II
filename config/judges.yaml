@@ -13,24 +13,39 @@
 # está prevista para outubro, está dentro do prazo, mas vale reconferir se a
 # implementação real atrasar para depois dessa data.
 judges:
+  # Juízes originais (cloud)
   - id: claude-haiku-4-5
     provider: anthropic
     model_id: claude-haiku-4-5
-    enabled: true
+    enabled: false
 
   - id: gpt-4.1-mini
     provider: openai
     model_id: gpt-4.1-mini
-    enabled: true
+    enabled: false
 
   - id: gemini-2.5-flash-lite
     provider: google
     model_id: gemini-2.5-flash-lite
-    enabled: true
+    enabled: false
 
   - id: gemini-3.5-flash-lite
     provider: google
     model_id: gemini-3.5-flash-lite
+    enabled: false
+
+  # Juízes locais (llama.cpp) — novos
+  - id: prometheus-7b-v2.0
+    provider: prometheus
+    model_id: prometheus-7b-v2.0
     enabled: true
 
-# python src\mcp_pipeline\pipeline\run_step3.py --judges gemini-3.5-flash-lite --limit 1
+  - id: llama-uncensored
+    provider: llama
+    model_id: llama-uncensored
+    enabled: true
+
+# Testes:
+# python -m mcp_pipeline.pipeline.run_step3 --judges prometheus-7b-v2.0 --limit 5
+# python -m mcp_pipeline.pipeline.run_step3 --judges llama-uncensored --limit 5
+# python -m mcp_pipeline.pipeline.run_step3 --judges prometheus-7b-v2.0,llama-uncensored --limit 20

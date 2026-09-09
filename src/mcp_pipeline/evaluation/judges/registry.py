@@ -8,15 +8,19 @@ from mcp_pipeline.config import CONFIG_DIR
 from mcp_pipeline.evaluation.judges.anthropic_judge import AnthropicJudge
 from mcp_pipeline.evaluation.judges.base import Judge
 from mcp_pipeline.evaluation.judges.gemini_judge import GeminiJudge
+from mcp_pipeline.evaluation.judges.llama_judge import LlamaJudge
 from mcp_pipeline.evaluation.judges.openai_judge import OpenAIJudge
+from mcp_pipeline.evaluation.judges.prometheus_judge import PrometheusJudge
 
 # Same "registry dict keyed by a short label" idiom as extraction/tool_detector.py's
-# LANGUAGE_ADAPTERS -- adding a 4th provider is one new *_judge.py class + one entry here +
-# one block in judges.yaml; nothing else in this file or in run_step3.py changes.
+# LANGUAGE_ADAPTERS -- adding a provider é um novo *_judge.py class + uma entrada aqui +
+# um bloco em judges.yaml; nada mais muda neste arquivo ou em run_step3.py.
 PROVIDER_CLASSES: dict[str, type] = {
     "anthropic": AnthropicJudge,
     "openai": OpenAIJudge,
     "google": GeminiJudge,
+    "prometheus": PrometheusJudge,
+    "llama": LlamaJudge,
 }
 
 

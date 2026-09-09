@@ -55,12 +55,12 @@ para o desenho detalhado, decisões e riscos conhecidos.
     do `ghidra-mcp`, os 4 esquemas diferentes de C# encontrados), builder
     oficial do Java (nenhum repositório real da amostra o usa), e escanear
     mais de uma linguagem por repositório.
-- ✅ **Etapa 3** (classificação via LLM-as-a-Judge): implementada e testada
-  — júri multi-provedor em tier econômico (Claude Haiku 4.5, OpenAI
-  gpt-4.1-mini, Google Gemini 2.5 Flash-Lite), rubrica de 6 componentes,
-  execução resumível e concorrente por juiz. **Ainda não executada contra a
-  API real** — requer preencher as chaves de API em `.env` (ver
-  `.env.example`).
+- ✅ **Etapa 3** (classificação via LLM-as-a-Judge): implementada, testada e expandida
+  — júri multi-provedor com suporte a juízes cloud (Claude Haiku 4.5, OpenAI
+  gpt-4.1-mini, Google Gemini 2.5 Flash-Lite) e juízes locais (Prometheus 7B V2.0,
+  Llama via llama.cpp). Rubrica de 6 componentes, execução resumível e concorrente
+  por juiz. Pronto para execução local e remota — requer configuração de `.env` com
+  chaves de API (cloud) ou endpoints locais (llama-server).
 
 ## Setup
 
@@ -118,18 +118,63 @@ SOURCE_CODE}`, usado pela avaliação via LLM-as-a-Judge da Etapa 3), ver
 
 ## Rodando a Etapa 3
 
-Pré-requisito: `data/dataset.jsonl` já montado (seção anterior), e as
-variáveis `ANTHROPIC_API_KEY`/`OPENAI_API_KEY`/`GOOGLE_API_KEY` preenchidas
-em `.env` (só é necessário preencher a chave dos juízes habilitados em
-`config/judges.yaml`).
+Pré-requisito: `data/dataset.jsonl` já montado (seção anterior).
+
+### Com juízes cloud (Claude, OpenAI, Google Gemini)
+
+Preencha `ANTHROPIC_API_KEY`/`OPENAI_API_KEY`/`GOOGLE_API_KEY` em `.env` (só é necessário
+preencher a chave dos juízes habilitados em `config/judges.yaml`).
 
 ```bash
-# Roda todos os juízes habilitados contra todas as tools, nos 2 cenários
-# (com e sem SOURCE_CODE). Resumível por (tool, cenário, juiz) — uma falha
-# técnica individual não aborta o lote; recusas de segurança do modelo são
-# gravadas como resultado próprio (status "refused"), não como erro.
 uv run python -m mcp_pipeline.pipeline.run_step3 [--limit N] [--judges id1,id2] [--scenarios description_only,with_source] [--retry-failed]
 ```
+
+### Com juízes locais (Prometheus 7B + Llama via llama.cpp)
+
+**Setup inicial:**
+
+1. Configure `.env` com os endpoints e tokens dos servidores locais:
+
+```bash
+cp .env.example .env
+# Edite .env com:
+# - PROMETHEUS_LLM_BASE_URL=http://192.168.15.15:8091/v1
+# - PROMETHEUS_LLM_BEARER_TOKEN=seu_token_aqui
+# - LOCAL_LLM_BASE_URL=http://192.168.15.15:8090/v1
+# - LOCAL_LLM_BEARER_TOKEN=seu_token_aqui
+```
+
+2. Valide conectividade com os servidores (ambos devem estar rodando via llama-server):
+
+```bash
+uv run python scripts/check_local_llm_servers.py
+```
+
+3. Teste com um subset pequeno (20 tools):
+
+```bash
+uv run python scripts/test_local_judges.py --sample-size 20 --judge both
+```
+
+4. Se o teste passar, execute a Etapa 3 contra o dataset completo ou um limite:
+
+```bash
+# Apenas Prometheus:
+uv run python -m mcp_pipeline.pipeline.run_step3 --judges prometheus-7b-v2.0 --limit 100
+
+# Apenas Llama:
+uv run python -m mcp_pipeline.pipeline.run_step3 --judges llama-uncensored --limit 100
+
+# Ambos (leva mais tempo):
+uv run python -m mcp_pipeline.pipeline.run_step3 --judges prometheus-7b-v2.0,llama-uncensored --limit 100
+
+# Sem limite (dataset completo):
+uv run python -m mcp_pipeline.pipeline.run_step3
+```
+
+**Resumibilidade:** A execução é resumível por (tool, cenário, juiz) — uma falha
+técnica individual não aborta o lote; recusas de segurança do modelo são
+gravadas como resultado próprio (status "refused"), não como erro.
 
 Saída: `data/evaluations/{judge_id}.jsonl`, um registro por (tool, cenário,
 juiz) com os 6 componentes da rubrica pontuados em escala Likert de 5 pontos.
