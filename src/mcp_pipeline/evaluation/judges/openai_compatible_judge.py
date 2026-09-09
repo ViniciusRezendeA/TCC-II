@@ -57,7 +57,6 @@ class OpenAICompatibleJudge:
                 {"role": "user", "content": build_user_message(payload)},
             ],
             "max_tokens": self._max_tokens,
-            "response_format": {"type": "json_object"},
         }
 
         try:
