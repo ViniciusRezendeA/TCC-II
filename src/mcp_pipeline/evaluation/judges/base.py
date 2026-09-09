@@ -60,7 +60,7 @@ class JudgeRefusal(JudgeError):
 
 
 class Judge(Protocol):
-    judge_id: str  # stable key, e.g. "claude-haiku-4-5" -- used in filenames/checkpoint keys
+    judge_id: str  # stable key, e.g. "qwen2.5-14b-instruct" -- used in filenames/checkpoint keys
     provider: str
     model_id: str
 

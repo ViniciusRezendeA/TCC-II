@@ -2,7 +2,10 @@
 
 ## Análise de Capacidade e Custos
 
-Este documento compara as 3 estratégias de juízes (Local, Cloud, Misto) com foco nas limitações do Gemini free tier.
+Este documento compara as estratégias de juízes (Local, Misto) com foco nas
+limitações do Gemini free tier. Claude e GPT não são usados neste projeto —
+o único juiz cloud disponível é o Gemini free tier, e ele próprio é inadequado
+para o dataset completo (ver análise abaixo).
 
 ### Dataset
 
@@ -14,7 +17,7 @@ Este documento compara as 3 estratégias de juízes (Local, Cloud, Misto) com fo
 
 ---
 
-## Estratégia 1: 100% Local (Recomendado para Free Tier)
+## Estratégia 1: 100% Local (Recomendado)
 
 ### Juízes
 - Qwen2.5-14B-Instruct (llama-server, endereço em QWEN_LLM_BASE_URL)
@@ -26,21 +29,18 @@ Este documento compara as 3 estratégias de juízes (Local, Cloud, Misto) com fo
 | Custo API | $0 |
 | Juízes ativos | 2 |
 | Requisições/min | Ilimitado (seu hardware) |
-| Avaliações/dia com 2 juízes em paralelo | ~1.440 (720 tools × 2 cenários) |
-| Dias para dataset completo | ~17 dias |
-| Latência/ferramenta | ~30-60s (depende do hardware) |
+| Latência/ferramenta | Depende do hardware -- meça com o teste piloto antes de projetar o lote completo |
 
 ### Vantagens
-✅ Nenhum custo de API  
-✅ Nenhum limite de rate  
-✅ Dados permanecem locais  
-✅ Controle total sobre modelos  
-✅ Resumível indefinidamente  
+✅ Nenhum custo de API
+✅ Nenhum limite de rate
+✅ Dados permanecem locais
+✅ Controle total sobre modelos
+✅ Resumível indefinidamente
 
 ### Desvantagens
-❌ Depende do hardware local  
-❌ Latência mais alta  
-❌ Nenhuma redundância se servidor cair  
+❌ Depende do hardware local
+❌ Nenhuma redundância se servidor cair
 
 ### Recomendação
 **IDEAL para dataset completo**. Configure assim:
@@ -62,86 +62,17 @@ judges:
 Execução:
 ```bash
 uv run python -m mcp_pipeline.pipeline.run_step3
-# ~17 dias para dataset completo
+# meça a duração com o teste de 10-100 tools antes de projetar o dataset completo
 ```
 
 ---
 
-## Estratégia 2: 100% Cloud (NÃO RECOMENDADO para Free Tier)
-
-### Juízes
-- Claude Haiku 4.5 (Anthropic)
-- GPT-4.1-mini (OpenAI)
-- Gemini 2.5 Flash-Lite (Google)
-
-### Capacidade Diária (Free Tier)
-
-#### Claude Haiku 4.5
-- Sem limite de rate público (tier pay-as-you-go)
-- Custo: ~$0.08/1M input tokens
-- Avaliações/dia: Ilimitado (com custo)
-- **Viável**: Sim, mas com custo
-
-#### OpenAI gpt-4.1-mini
-- Limite de rate: padrão por tier
-- Custo: ~$0.15/1M input tokens
-- Avaliações/dia: Ilimitado (com custo)
-- **Viável**: Sim, mas com custo
-
-#### Google Gemini (FREE TIER - PROBLEMA!)
-| Métrica | Limite |
-|---------|--------|
-| Rate limit | 15 req/min = 21.6k/dia |
-| Quota tokens | 1M/dia (TOTAL, compartilhado) |
-| Avaliações/dia com 3k tokens cada | ~333 (sem margem) |
-| Dias para dataset completo | ~73 dias |
-| **Bloqueador** | Muito lento, provavelmente vai bater limite |
-
-### Custo Estimado (Sem Gemini)
-```
-73M tokens ÷ 2 juízes = 36.5M tokens cada
-
-Claude:    36.5M × $0.08/1M = $2.92
-OpenAI:    36.5M × $0.15/1M = $5.48
----
-Total:     ~$8.40 para dataset completo
-```
-
-### Vantagens
-✅ Modelos mais capazes (flagship)  
-✅ Menor latência (~5-15s/ferramenta)  
-✅ Redundância (3 juízes)  
-✅ Sem dependência de hardware local  
-
-### Desvantagens
-❌ **Gemini free tier é inadequado** (~73 dias ou vai bater rate limit)  
-❌ Custo de API (se não usar Gemini)  
-❌ Dados enviados para cloud  
-❌ Dependência de conectividade  
-❌ Possíveis delays de API  
-
-### Recomendação
-**NÃO use para dataset completo no free tier**. Se usar:
-
-1. Desabilite Gemini
-2. Use apenas Claude + OpenAI (com custo)
-3. OU: Use Gemini apenas para pequeno subset (10-20 tools)
-
-```yaml
-# NÃO faça isso:
-judges:
-  - id: gemini-2.5-flash-lite
-    provider: google
-    enabled: true  # ❌ Vai falhar ou levar 73 dias
-```
-
----
-
-## Estratégia 3: Misto (Local + Cloud Selective)
+## Estratégia 2: Misto (Local + Gemini para validação seletiva)
 
 ### Recomendação Otimizada
 
-Use **Qwen + Llama locais** como primários + **Gemini para validação pequena**.
+Use **Qwen + Llama locais** como primários + **Gemini para validação pequena**
+(nunca para o dataset completo -- ver limitações abaixo).
 
 ```yaml
 # config/judges.yaml - RECOMENDADO
@@ -155,7 +86,7 @@ judges:
     provider: llama
     enabled: true
 
-  # Secundário (validation apenas) - desabilitado por padrão
+  # Secundário (validação apenas) - desabilitado por padrão
   - id: gemini-2.5-flash-lite
     provider: google
     enabled: false  # ← Ativar apenas para testes pequenos
@@ -184,9 +115,8 @@ uv run python -m mcp_pipeline.pipeline.run_step3 \
 | Métrica | Valor |
 |---------|-------|
 | Custo total | $0 |
-| Tempo para completo | ~17 dias |
 | Juízes primários | 2 locais |
-| Juízes validação | 1 cloud (optional) |
+| Juízes validação | 1 cloud (opcional) |
 | Capacidade Gemini usada | <1% |
 
 ---
@@ -227,7 +157,7 @@ Avaliações/dia: 21.600 (com ~47 tokens cada = impossível)
 
 **Status**: ❌ **Inadequado para dataset completo no free tier**
 
-**Uso recomendado**: 
+**Uso recomendado**:
 - ✅ Testes pequenos (5-10 tools)
 - ✅ Validação seletiva (10-20 tools)
 - ❌ NÃO para 12.171 tools
@@ -238,35 +168,32 @@ Avaliações/dia: 21.600 (com ~47 tokens cada = impossível)
 
 | Caso de Uso | Recomendação | Alternativa |
 |-------------|--------------|------------|
-| Dataset completo (24k tools) | Local (Qwen + Llama) | Cloud (com custo $8-15) |
+| Dataset completo (24k tools) | Local (Qwen + Llama) | Não há alternativa cloud viável sem custo |
 | Testes/desenvolvimento | Local (--limit 10-20) | Gemini (--limit 5) |
-| Validação seletiva | Local, depois Gemini | Cloud (Claude + OpenAI) |
-| Produção/reprodutibilidade | Local | Claude (pago) |
-| Zero custo | Local ✅ | Não existe |
-| Máxima qualidade | Claude (pago) | Gemini (free, inadequado) |
+| Validação seletiva | Local, depois Gemini (~20 tools) | — |
+| Produção/reprodutibilidade | Local | — |
+| Zero custo | Local ✅ | Não existe alternativa cloud gratuita adequada |
 
 ---
 
 ## Plano de Implementação Recomendado
 
-### Passo 1: Setup Local (Dia 1)
+### Passo 1: Setup Local
 ```bash
-# 1h de setup
 uv run python scripts/check_local_llm_servers.py
 uv run python scripts/test_local_judges.py --sample-size 20
 ```
 
-### Passo 2: Execução Primária (Semana 1-3)
+### Passo 2: Execução Primária
 ```bash
 # Roda com Qwen + Llama
 uv run python -m mcp_pipeline.pipeline.run_step3
 
 # Monitorar:
 tail -f logs/step3.log
-# ~17 dias para 24.342 avaliações
 ```
 
-### Passo 3: Validação Opcional (Semana 3)
+### Passo 3: Validação Opcional
 ```bash
 # Se quiser testar Gemini em subset pequeno
 uv run python scripts/check_gemini_free_tier.py  # Avisos sobre limitações
@@ -294,7 +221,6 @@ uv run python -m scripts.analysis_report
 1. **Use Local (Qwen + Llama)** como primário
    - ✅ 0% de custo
    - ✅ Nenhuma limitação de rate
-   - ✅ ~17 dias de tempo total
    - ✅ Resumível indefinidamente
 
 2. **Mantenha Gemini desabilitado** em config/judges.yaml
@@ -304,7 +230,6 @@ uv run python -m scripts.analysis_report
 
 3. **Se precisar de validação adicional**
    - ✅ Use Gemini para subset ~20 tools (<1% quota)
-   - ✅ Ou upgrade para plan pago
-   - ✅ Ou use Claude/OpenAI (com custo ~$8-15)
+   - ✅ Ou upgrade para plano pago do Gemini
 
 Veja `MIGRATION_LOCAL_JUDGES.md` para instruções de execução.

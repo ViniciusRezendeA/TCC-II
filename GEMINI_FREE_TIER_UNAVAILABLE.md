@@ -66,22 +66,6 @@ Para usar Gemini com plano pago:
 
 ---
 
-### 💳 OUTRA ALTERNATIVA: Claude ou OpenAI (Pago)
-
-Se preferir Cloud para redundância:
-
-```bash
-# Usar Claude + OpenAI em paralelo com local
-# Custo: ~$8-15 para dataset completo
-uv run python -m mcp_pipeline.pipeline.run_step3 \
-  --judges qwen2.5-14b-instruct,llama-uncensored,claude-haiku-4-5,gpt-4.1-mini
-```
-
-**Custo estimado**:
-- Claude: ~$2.92 (36.5M tokens × $0.08/1M)
-- OpenAI: ~$5.48 (36.5M tokens × $0.15/1M)
-- **Total**: ~$8.40 para dataset completo
-
 ---
 
 ## Configuração Recomendada
@@ -106,37 +90,23 @@ judges:
     provider: google
     model_id: gemini-2.5-flash-lite
     enabled: false  # Não funciona
-
-  # 💳 OPCIONAL (PAGO, se quiser redundância)
-  # - id: claude-haiku-4-5
-  #   provider: anthropic
-  #   enabled: false
-
-  # - id: gpt-4.1-mini
-  #   provider: openai
-  #   enabled: false
 ```
 
 **Execução:**
 ```bash
 # Apenas local (0% custo)
 uv run python -m mcp_pipeline.pipeline.run_step3
-
-# Com cloud adicional (custo, se habilitado)
-uv run python -m mcp_pipeline.pipeline.run_step3 \
-  --judges qwen2.5-14b-instruct,llama-uncensored,claude-haiku-4-5
 ```
 
 ---
 
 ## Conclusão
 
-| Opção | Disponível | Custo | Tempo | Recomendação |
-|-------|-----------|-------|-------|--------------|
-| **Local (Qwen + Llama)** | ✅ Sim | $0 | tempo depende do hardware | ✅ USE ISTO |
-| **Gemini free tier** | ❌ Não (404) | $0 | N/A | ❌ Não funciona |
-| **Gemini pago** | ❓ Provável | $$ | ? | ⚠️ Se precisar Cloud |
-| **Claude + OpenAI** | ✅ Sim | $8-15 | 1-2 dias | ✅ Se quiser rápido |
+| Opção | Disponível | Custo | Recomendação |
+|-------|-----------|-------|--------------|
+| **Local (Qwen + Llama)** | ✅ Sim | $0 | ✅ USE ISTO |
+| **Gemini free tier** | ❌ Não (404) | $0 | ❌ Não funciona |
+| **Gemini pago** | ❓ Provável | $$ | ⚠️ Se precisar Cloud |
 
 ---
 
@@ -147,11 +117,9 @@ uv run python -m mcp_pipeline.pipeline.run_step3 \
    uv run python -m mcp_pipeline.pipeline.run_step3
    ```
 
-2. **Se precisar de redundância**, adicione Claude ou OpenAI (com custo)
+2. **NÃO tente usar Gemini free tier** (indisponível)
 
-3. **NÃO tente usar Gemini free tier** (indisponível)
-
-4. Consulte [MIGRATION_LOCAL_JUDGES.md](MIGRATION_LOCAL_JUDGES.md) para instruções de setup
+3. Consulte [MIGRATION_LOCAL_JUDGES.md](MIGRATION_LOCAL_JUDGES.md) para instruções de setup
 
 ---
 

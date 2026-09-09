@@ -227,14 +227,13 @@ Use local (Qwen + Llama) para dataset completo, sem custos.
 
 Veja: `uv run python scripts/check_gemini_free_tier.py` para análise de capacidade.
 
-## Regressão: Voltar para Cloud Judges
+## Regressão: Voltar para o Juiz Cloud (Gemini)
 
-Se precisar voltar aos juízes originais (Claude, OpenAI, Gemini):
+Se precisar rodar só com o juiz cloud (Claude e GPT não são usados neste projeto):
 
 ```bash
 # Editar config/judges.yaml e marcar como enabled:
-# - claude-haiku-4-5: enabled: true
-# - gpt-4.1-mini: enabled: true
+# - gemini-2.5-flash-lite: enabled: true
 # - qwen2.5-14b-instruct: enabled: false
 # - llama-uncensored: enabled: false
 

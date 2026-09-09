@@ -4,7 +4,7 @@ Implementa as **Etapas 1, 2 e 3** da metodologia do TCC: coleta de
 repositórios de servidores MCP no GitHub (via GraphQL), extração das
 ferramentas (tools) e seus call graphs de 3 níveis a partir do código-fonte,
 e classificação da qualidade das descrições via um júri multi-provedor de
-LLMs (Claude, OpenAI, Google Gemini).
+LLMs (Google Gemini, Qwen e Llama locais via llama.cpp).
 
 Ver o plano completo de implementação em
 `~/.claude/plans/section-materiais-e-m-todos-label-sec-m-ticklish-panda.md`
@@ -56,11 +56,11 @@ para o desenho detalhado, decisões e riscos conhecidos.
     oficial do Java (nenhum repositório real da amostra o usa), e escanear
     mais de uma linguagem por repositório.
 - ✅ **Etapa 3** (classificação via LLM-as-a-Judge): implementada, testada e expandida
-  — júri multi-provedor com suporte a juízes cloud (Claude Haiku 4.5, OpenAI
-  gpt-4.1-mini, Google Gemini 2.5 Flash-Lite) e juízes locais (Qwen2.5-14B-Instruct,
-  Llama via llama.cpp). Rubrica de 6 componentes, execução resumível e concorrente
-  por juiz. Pronto para execução local e remota — requer configuração de `.env` com
-  chaves de API (cloud) ou endpoints locais (llama-server).
+  — júri multi-provedor com suporte a um juiz cloud (Google Gemini 2.5 Flash-Lite)
+  e juízes locais (Qwen2.5-14B-Instruct, Llama via llama.cpp). Rubrica de 6
+  componentes, execução resumível e concorrente por juiz. Pronto para execução
+  local e remota — requer configuração de `.env` com a chave do Gemini (cloud)
+  ou endpoints locais (llama-server).
 
 ## Setup
 
@@ -120,10 +120,10 @@ SOURCE_CODE}`, usado pela avaliação via LLM-as-a-Judge da Etapa 3), ver
 
 Pré-requisito: `data/dataset.jsonl` já montado (seção anterior).
 
-### Com juízes cloud (Claude, OpenAI, Google Gemini)
+### Com juiz cloud (Google Gemini)
 
-Preencha `ANTHROPIC_API_KEY`/`OPENAI_API_KEY`/`GOOGLE_API_KEY` em `.env` (só é necessário
-preencher a chave dos juízes habilitados em `config/judges.yaml`).
+Preencha `GOOGLE_API_KEY` em `.env` (só é necessário se o juiz Gemini estiver
+habilitado em `config/judges.yaml`).
 
 ```bash
 uv run python -m mcp_pipeline.pipeline.run_step3 [--limit N] [--judges id1,id2] [--scenarios description_only,with_source] [--retry-failed]

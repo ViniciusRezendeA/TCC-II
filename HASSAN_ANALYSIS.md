@@ -49,7 +49,7 @@ Um JSON por linha, com estrutura:
   },
   "scenario": "description_only | with_source",
   "judge": {
-    "id": "prometheus-7b-v2.0",
+    "id": "qwen2.5-14b-instruct",
     "model_id": "gemini-3.1-flash-live-preview"
   },
   "status": "ok | refused | error",
@@ -89,8 +89,8 @@ Saída:
 ### Análise de Um Juiz Específico
 
 ```bash
-# Apenas Prometheus
-uv run python scripts/analyze_judges_results.py --judge prometheus-7b-v2.0
+# Apenas Qwen
+uv run python scripts/analyze_judges_results.py --judge qwen2.5-14b-instruct
 
 # Apenas Llama
 uv run python scripts/analyze_judges_results.py --judge llama-uncensored
@@ -105,8 +105,8 @@ uv run python scripts/analyze_judges_results.py --judge gemini-3.1-flash-live-pr
 # Processar apenas primeiras 100 avaliações
 uv run python scripts/analyze_judges_results.py --limit 100
 
-# Prometheus + primeiras 50 avaliações
-uv run python scripts/analyze_judges_results.py --judge prometheus-7b-v2.0 --limit 50
+# Qwen + primeiras 50 avaliações
+uv run python scripts/analyze_judges_results.py --judge qwen2.5-14b-instruct --limit 50
 ```
 
 ---
@@ -224,7 +224,7 @@ Padrão: linguagens mais populares tendem ter descrições melhores.
 ### Análise por Juiz
 
 Se juízes discordam sistematicamente:
-- **Prometheus vs Llama média diferente**: Modelos têm critérios diferentes
+- **Qwen vs Llama média diferente**: Modelos têm critérios diferentes
 - **Alta variância em um juiz**: Juiz é menos confiável
 
 ---
@@ -241,12 +241,12 @@ uv run python -m mcp_pipeline.schema.assemble_dataset
 
 ### Etapa 2: Avaliação (Etapa 3)
 ```bash
-# Com juízes locais (Prometheus + Llama)
+# Com juízes locais (Qwen + Llama)
 uv run python -m mcp_pipeline.pipeline.run_step3
 
-# Ou com cloud (claude + openai + gemini, pago)
+# Ou incluindo o juiz cloud (Gemini free tier -- ver GEMINI_FREE_TIER_UNAVAILABLE.md)
 uv run python -m mcp_pipeline.pipeline.run_step3 \
-  --judges claude-haiku-4-5,gpt-4.1-mini,gemini-3.1-flash-live-preview
+  --judges qwen2.5-14b-instruct,llama-uncensored,gemini-2.5-flash-lite
 ```
 
 ### Etapa 3: Análise (ESTE SCRIPT)
@@ -255,7 +255,7 @@ uv run python -m mcp_pipeline.pipeline.run_step3 \
 uv run python scripts/analyze_judges_results.py
 
 # Análise por juiz
-uv run python scripts/analyze_judges_results.py --judge prometheus-7b-v2.0
+uv run python scripts/analyze_judges_results.py --judge qwen2.5-14b-instruct
 uv run python scripts/analyze_judges_results.py --judge llama-uncensored
 
 # Gerar gráficos e tabelas adicionais
@@ -268,13 +268,13 @@ uv run python -m scripts.analysis_report
 
 | Aspecto | Hassan et al. | Este Projeto |
 |---------|--------------|-------------|
-| Modelos avaliadores | GPT-4.1-mini, Claude 3.5 Haiku, Qwen-3-30B | Prometheus 7B, Llama 70B, Gemini 3.1 Flash |
+| Modelos avaliadores | GPT-4.1-mini, Claude 3.5 Haiku, Qwen-3-30B | Qwen2.5-14B, Llama, Gemini 2.5 Flash-Lite |
 | Rubrica | 6 componentes | 6 componentes (idêntica) |
 | Escala Likert | 5 pontos | 5 pontos (idêntica) |
 | Cenários | 2 (description_only, with_source) | 2 (idêntica) |
 | Tamanho dataset | ~3000 tools | 12.171 tools |
 | Juízes em paralelo | Não | Sim (>2x mais rápido) |
-| Modelo local | Não | Sim (Prometheus + Llama) |
+| Modelo local | Não | Sim (Qwen + Llama) |
 | Open source | Parcial | Total |
 
 ---

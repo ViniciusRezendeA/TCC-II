@@ -71,8 +71,8 @@ def _render_components() -> str:
 
 # Identical across both evaluation scenarios (with/without SOURCE_CODE) -- the scenario is
 # driven entirely by whether the payload's SOURCE_CODE key is present, not by prompt
-# variants. Keeping one prompt text per judge maximizes prompt-cache hit rate (Claude) /
-# cached-content reuse (OpenAI, Gemini) across both scenarios.
+# variants. Keeping one prompt text per judge maximizes cached-content reuse (Gemini)
+# across both scenarios.
 RUBRIC_SYSTEM_PROMPT = f"""You are an expert evaluator of Model Context Protocol (MCP) tool descriptions, participating in a research study on tool-description quality.
 
 You will be given a JSON object describing one MCP tool, with the following fields:

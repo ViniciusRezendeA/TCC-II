@@ -103,7 +103,7 @@ def test_tool_uid_for_is_stable_and_includes_source_location():
 def test_checkpoint_key_embeds_prompt_version():
     from mcp_pipeline.evaluation.prompts import PROMPT_VERSION
 
-    key = checkpoint_key("acme/x::t::f.py:1", "description_only", "claude-haiku-4-5")
+    key = checkpoint_key("acme/x::t::f.py:1", "description_only", "qwen2.5-14b-instruct")
 
     assert key.endswith(f"::{PROMPT_VERSION}")
 
