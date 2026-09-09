@@ -24,14 +24,14 @@ judges:
     model_id: gpt-4.1-mini
     enabled: false
 
+  - id: gemini-2.5-flash
+    provider: google
+    model_id: gemini-2.5-flash
+    enabled: false
+
   - id: gemini-2.5-flash-lite
     provider: google
     model_id: gemini-2.5-flash-lite
-    enabled: false
-
-  - id: gemini-3.5-flash-lite
-    provider: google
-    model_id: gemini-3.5-flash-lite
     enabled: false
 
   # Juízes locais (llama.cpp) — novos

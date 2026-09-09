@@ -31,6 +31,16 @@ class GeminiJudge:
     directly against the installed google-genai SDK source (`response.parsed`, config's
     `response_mime_type`/`response_schema`/`system_instruction`, `usage_metadata` fields,
     `FinishReason` enum, and the retry-options behavior noted above).
+
+    ⚠️  FREE TIER LIMITATIONS (IMPORTANTE):
+    - Rate limit: 15 req/min (900/hora, ~21.6k/dia)
+    - Quota: 1M tokens/dia (total, não por usuário)
+    - Estruturado: 1M input tokens/dia apenas
+    - Cada ferramenta ~3k tokens (prompt + resposta)
+    - Dataset completo (12.171 tools × 2 cenários): ~73M tokens → ~73 dias a 1M/dia
+
+    Recomendação: Use como SECUNDÁRIO para validação (10-20 tools), não para dataset completo.
+    Veja scripts/check_gemini_free_tier.py para análise de capacidade diária.
     """
 
     def __init__(self, judge_id: str, model_id: str, max_output_tokens: int = 16_000):

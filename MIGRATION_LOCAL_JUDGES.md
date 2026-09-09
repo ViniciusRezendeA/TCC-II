@@ -36,8 +36,12 @@ LOCAL_LLM_BEARER_TOKEN=seu_token_llama_aqui
 ## Passo 2: Validar Conectividade
 
 ```bash
-# Health check dos servidores:
+# Health check dos servidores locais:
 uv run python scripts/check_local_llm_servers.py
+
+# (Opcional) Health check do Gemini free tier:
+# Recomendado para entender limitações e capacidade diária
+uv run python scripts/check_gemini_free_tier.py
 ```
 
 **Resultado esperado:**
@@ -181,6 +185,19 @@ uv run python -m mcp_pipeline.pipeline.run_step3 --judges prometheus-7b-v2.0 --r
 3. ✅ Execute Etapa 3: `python -m mcp_pipeline.pipeline.run_step3 --limit 100`
 4. ✅ Análise: `python -m scripts.analysis_report` (quando Etapa 3 terminar)
 
+## ⚠️ Sobre Gemini Free Tier
+
+**Importante**: Se está considerando usar Gemini (Google), veja [JUDGES_STRATEGY.md](JUDGES_STRATEGY.md) para análise completa.
+
+**Resumo**: Free tier de Gemini é inadequado para dataset completo (12.171 tools):
+- Quota: 1M tokens/dia (levaria ~73 dias)
+- Rate limit: 15 req/min (muito lento)
+- Recomendação: **Mantenha desabilitado em config/judges.yaml**
+
+Use local (Prometheus + Llama) para dataset completo, sem custos.
+
+Veja: `uv run python scripts/check_gemini_free_tier.py` para análise de capacidade.
+
 ## Regressão: Voltar para Cloud Judges
 
 Se precisar voltar aos juízes originais (Claude, OpenAI, Gemini):
@@ -195,6 +212,8 @@ Se precisar voltar aos juízes originais (Claude, OpenAI, Gemini):
 # Então rodar:
 uv run python -m mcp_pipeline.pipeline.run_step3
 ```
+
+**Aviso**: Veja [JUDGES_STRATEGY.md](JUDGES_STRATEGY.md) sobre custos e limitações de cada estratégia.
 
 ## Questões Frequentes
 
