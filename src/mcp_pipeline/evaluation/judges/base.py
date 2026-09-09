@@ -67,6 +67,17 @@ class JudgeRefusal(JudgeError):
         super().__init__(f"judge refused (category={category})")
 
 
+class JudgeQuotaExhausted(JudgeError):
+    """The provider's account-level DAILY quota is exhausted (e.g. Gemini free tier's
+    GenerateRequestsPerDay cap) -- unlike a per-minute rate-limit blip (already handled by
+    GeminiJudge's own _RateLimiter), every subsequent call today will fail identically until
+    the quota resets, so burning through the rest of a --limit batch just produces hundreds
+    of duplicate 429s. Subclasses JudgeError so a caller that only catches JudgeError still
+    catches this, but run_step3.py catches it first to cancel the judge's remaining pending
+    work instead of recording it all as individual errors (see pipeline/run_step3.py).
+    """
+
+
 class Judge(Protocol):
     judge_id: str  # stable key, e.g. "qwen2.5-14b-instruct" -- used in filenames/checkpoint keys
     provider: str

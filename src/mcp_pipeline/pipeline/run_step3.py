@@ -10,7 +10,7 @@ from pathlib import Path
 
 from mcp_pipeline.collection.checkpoint import Checkpoint
 from mcp_pipeline.config import DATA_DIR, LOGS_DIR, STATE_DIR, ensure_dirs
-from mcp_pipeline.evaluation.judges.base import Judge, JudgeRefusal
+from mcp_pipeline.evaluation.judges.base import Judge, JudgeQuotaExhausted, JudgeRefusal
 from mcp_pipeline.evaluation.judges.registry import load_judges
 from mcp_pipeline.evaluation.payload import build_payload, repo_src_root_for
 from mcp_pipeline.evaluation.prompts import PROMPT_VERSION
@@ -151,9 +151,15 @@ def run_judge(
 
     logger.info("[%s] %s avaliações pendentes", judge.judge_id, len(pending))
     done = 0
+    quota_exhausted = False
     with ThreadPoolExecutor(max_workers=concurrency) as pool, open(out_path, "a", encoding="utf-8") as out:
         futures = {pool.submit(judge.evaluate, payload): (record, key) for record, payload, key in pending}
         for future in as_completed(futures):
+            if future.cancelled():
+                # Never actually ran (cancelled below before the pool got to it) -- no
+                # record, no checkpoint entry, so a plain re-run picks it up normally.
+                continue
+
             record, key = futures[future]
             try:
                 result = future.result()
@@ -170,6 +176,29 @@ def run_judge(
             except JudgeRefusal as e:
                 record["status"] = "refused"
                 record["error_detail"] = f"category={e.category}"
+            except JudgeQuotaExhausted as e:
+                # Every not-yet-started call would fail identically until the provider's
+                # daily quota resets -- record this one (it did happen) but cancel the rest
+                # of the batch instead of burning through it generating hundreds of
+                # duplicate 429s. A task already running when this fires can't be
+                # cancelled (ThreadPoolExecutor only cancels queued work); it keeps running
+                # and gets recorded normally, like any other result, when its turn in this
+                # loop comes up -- only truly-cancelled tasks get skipped (see the
+                # `future.cancelled()` check above).
+                record["status"] = "error"
+                record["error_detail"] = str(e)
+                if not quota_exhausted:
+                    quota_exhausted = True
+                    cancelled = sum(1 for f in futures if f.cancel())
+                    logger.error(
+                        "[%s] cota diária do provedor esgotada -- cancelando o restante desta "
+                        "rodada (%s tarefa(s) ainda não iniciadas canceladas -- essas nem "
+                        "chegam a entrar no checkpoint, um re-run normal já as pega; tarefas "
+                        "já em andamento ainda vão terminar e aparecer no jsonl como erro). "
+                        "As que ficaram marcadas como erro nesta rodada precisam de "
+                        "--retry-failed depois que a cota resetar (~meia-noite Pacific Time).",
+                        judge.judge_id, cancelled,
+                    )
             except Exception as e:  # noqa: BLE001 -- one bad (tool, scenario) must not abort
                 # the whole batch, matching clone_all/run_step2's resilience contract.
                 record["status"] = "error"
@@ -191,6 +220,7 @@ def run_judge(
             done += 1
             if done % 20 == 0 or done == len(pending):
                 logger.info("[%s] %s/%s", judge.judge_id, done, len(pending))
+                break
 
     logger.info("[%s] concluído: %s avaliações nesta rodada", judge.judge_id, done)
 

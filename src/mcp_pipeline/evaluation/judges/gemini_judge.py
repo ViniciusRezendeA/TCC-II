@@ -10,6 +10,7 @@ from google.genai import types as genai_types
 from mcp_pipeline.evaluation.judges.base import (
     JudgeError,
     JudgeEvaluation,
+    JudgeQuotaExhausted,
     JudgeRefusal,
     RubricScores,
 )
@@ -19,6 +20,26 @@ from mcp_pipeline.evaluation.prompts import RUBRIC_SYSTEM_PROMPT, build_user_mes
 # to a normal stop (STOP) or a length cutoff (MAX_TOKENS) -- verified against
 # google.genai.types.FinishReason.
 _REFUSAL_FINISH_REASONS = {"SAFETY", "PROHIBITED_CONTENT", "BLOCKLIST", "SPII", "RECITATION"}
+
+
+def _is_daily_quota_exhausted(e: genai_errors.APIError) -> bool:
+    """True only for a 429 caused by the account's DAILY request quota, never a per-minute
+    one -- distinguished via the structured QuotaFailure Google returns (`e.details`, the
+    raw response JSON APIError already parses), not by regex-matching `e.message`, which
+    isn't a documented/stable format. Confirmed live: the daily-cap violation's `quotaId`
+    is "GenerateRequestsPerDayPerProjectPerModel-FreeTier" (contains "PerDay"); the
+    per-minute one _RateLimiter is meant to prevent is a distinct "PerMinute" quotaId.
+    """
+    if e.code != 429:
+        return False
+    error_details = ((e.details or {}).get("error") or {}).get("details") or []
+    for detail in error_details:
+        if not str(detail.get("@type", "")).endswith("QuotaFailure"):
+            continue
+        for violation in detail.get("violations", []):
+            if "PerDay" in violation.get("quotaId", ""):
+                return True
+    return False
 
 # google-genai does NOT retry 429/5xx by default -- verified directly from
 # google.genai._api_client.retry_args(): "If None, the 'never retry' stop strategy will be
@@ -109,6 +130,8 @@ class GeminiJudge:
                 ),
             )
         except genai_errors.APIError as e:
+            if _is_daily_quota_exhausted(e):
+                raise JudgeQuotaExhausted(f"gemini daily quota exhausted: {e.message}") from e
             raise JudgeError(f"gemini API error {e.code}: {e.message}") from e
 
         finish_reason = None

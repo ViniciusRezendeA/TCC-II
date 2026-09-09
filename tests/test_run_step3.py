@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import json
+import time
 
 from mcp_pipeline.collection.checkpoint import Checkpoint
 from mcp_pipeline.evaluation.judges.base import (
     JudgeError,
     JudgeEvaluation,
+    JudgeQuotaExhausted,
     RubricScores,
 )
 from mcp_pipeline.pipeline.run_step3 import (
@@ -188,3 +190,55 @@ def test_run_judge_error_is_retried_only_with_retry_failed_flag(tmp_path, monkey
     assert len(recovering.calls) == 1
     records = [json.loads(line) for line in out_path.read_text().splitlines()]
     assert records[-1]["status"] == "ok"
+
+
+class QuotaExhaustedJudge:
+    """Every call fails with the provider's DAILY quota exhausted -- distinct from
+    FakeJudge's plain JudgeError, which run_judge must keep dispatching one-per-tool.
+    The sleep mirrors real network latency: without it, a single-worker executor could
+    race through several queued tasks before run_judge's cancel loop gets a turn.
+    """
+
+    def __init__(self):
+        self.judge_id = "quota-judge"
+        self.provider = "fake"
+        self.model_id = "fake-model"
+        self.calls: list[str] = []
+
+    def evaluate(self, payload: dict) -> JudgeEvaluation:
+        self.calls.append(payload["name"])
+        time.sleep(0.02)
+        raise JudgeQuotaExhausted("gemini daily quota exhausted: simulated")
+
+
+def test_run_judge_stops_batch_early_on_daily_quota_exhaustion(tmp_path, monkeypatch):
+    """A JudgeQuotaExhausted mid-batch must not crash run_judge (unlike a plain JudgeError,
+    it signals every remaining call would fail identically) -- it should cancel whatever
+    is still queued instead of dispatching the rest of a --limit batch just to collect
+    more copies of the same 429. concurrency=1 makes the guarantee deterministic: only the
+    task already running when the quota error lands can possibly get an extra one racing
+    in behind it, and the other three of five are still queued and so definitely
+    cancellable within a single worker.
+    """
+    data_dir = _isolate_data_dirs(tmp_path, monkeypatch)
+    rows = [_make_row(name=f"tool_{i}") for i in range(5)]
+    checkpoint = Checkpoint(tmp_path / "state.json")
+    judge = QuotaExhaustedJudge()
+
+    run_judge(judge, rows, ("description_only",), checkpoint, concurrency=1, retry_failed=False)
+
+    assert len(judge.calls) <= 2  # at most the triggering call plus one already-dequeued race
+    assert len(judge.calls) < len(rows)  # the rest were cancelled, not just slow
+
+    out_path = data_dir / "evaluations" / "quota-judge.jsonl"
+    records = [json.loads(line) for line in out_path.read_text().splitlines()]
+    assert len(records) == len(judge.calls)  # every attempted call got exactly one record
+    assert all(r["status"] == "error" for r in records)
+    assert all("quota exhausted" in r["error_detail"] for r in records)
+
+    # Cancelled tasks never ran -- they must be absent from checkpoint (a plain re-run, no
+    # --retry-failed, will pick them up automatically), not recorded as "error".
+    for i in range(len(rows)):
+        key = checkpoint_key(tool_uid_for(_make_row(name=f"tool_{i}")), "description_only", "quota-judge")
+        attempted = f"tool_{i}" in judge.calls
+        assert (checkpoint.get(key) is not None) == attempted

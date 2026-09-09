@@ -4,9 +4,31 @@ from types import SimpleNamespace
 from unittest.mock import MagicMock
 
 import pytest
+from google.genai import errors as genai_errors
 
-from mcp_pipeline.evaluation.judges.base import JudgeError, JudgeRefusal, RubricScores
-from mcp_pipeline.evaluation.judges.gemini_judge import GeminiJudge, _RateLimiter
+from mcp_pipeline.evaluation.judges.base import JudgeError, JudgeQuotaExhausted, JudgeRefusal, RubricScores
+from mcp_pipeline.evaluation.judges.gemini_judge import GeminiJudge, _is_daily_quota_exhausted, _RateLimiter
+
+
+def _make_quota_error(quota_id: str) -> genai_errors.ClientError:
+    """Mirrors the real structured 429 body Google returns (captured live against the
+    free-tier API) -- not a hand-wavy string, so _is_daily_quota_exhausted's parsing is
+    tested against the actual shape it has to handle.
+    """
+    response_json = {
+        "error": {
+            "code": 429,
+            "message": f"Quota exceeded for metric: ...\n* quotaId: {quota_id}",
+            "status": "RESOURCE_EXHAUSTED",
+            "details": [
+                {
+                    "@type": "type.googleapis.com/google.rpc.QuotaFailure",
+                    "violations": [{"quotaId": quota_id, "quotaValue": "500"}],
+                }
+            ],
+        }
+    }
+    return genai_errors.ClientError(429, response_json, None)
 
 
 def _make_judge(monkeypatch, **kwargs) -> GeminiJudge:
@@ -120,3 +142,37 @@ def test_evaluate_waits_on_rate_limiter_before_calling_the_api(monkeypatch):
     judge.evaluate({"name": "get_weather", "server_name": "acme/weather-mcp", "description": "..."})
 
     wait_mock.assert_called_once()
+
+
+def test_is_daily_quota_exhausted_true_for_per_day_quota_id():
+    error = _make_quota_error("GenerateRequestsPerDayPerProjectPerModel-FreeTier")
+    assert _is_daily_quota_exhausted(error) is True
+
+
+def test_is_daily_quota_exhausted_false_for_per_minute_quota_id():
+    """The per-minute quota is what GeminiJudge's own _RateLimiter is meant to prevent --
+    it's transient (the request would likely succeed a few seconds later), unlike the daily
+    cap. Must not be misidentified as the daily case, or a real per-minute blip would abort
+    the whole batch instead of just failing that one call.
+    """
+    error = _make_quota_error("GenerateRequestsPerMinutePerProjectPerModel-FreeTier")
+    assert _is_daily_quota_exhausted(error) is False
+
+
+def test_evaluate_raises_judge_quota_exhausted_on_daily_quota_error(monkeypatch):
+    judge = _make_judge(monkeypatch)
+    error = _make_quota_error("GenerateRequestsPerDayPerProjectPerModel-FreeTier")
+    monkeypatch.setattr(judge._client.models, "generate_content", MagicMock(side_effect=error))
+
+    with pytest.raises(JudgeQuotaExhausted):
+        judge.evaluate({"name": "get_weather", "server_name": "acme/weather-mcp", "description": "..."})
+
+
+def test_evaluate_raises_plain_judge_error_on_per_minute_quota_error(monkeypatch):
+    judge = _make_judge(monkeypatch)
+    error = _make_quota_error("GenerateRequestsPerMinutePerProjectPerModel-FreeTier")
+    monkeypatch.setattr(judge._client.models, "generate_content", MagicMock(side_effect=error))
+
+    with pytest.raises(JudgeError) as exc_info:
+        judge.evaluate({"name": "get_weather", "server_name": "acme/weather-mcp", "description": "..."})
+    assert not isinstance(exc_info.value, JudgeQuotaExhausted)
