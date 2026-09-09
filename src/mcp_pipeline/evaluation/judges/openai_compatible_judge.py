@@ -16,6 +16,12 @@ from mcp_pipeline.evaluation.judges.base import (
 )
 from mcp_pipeline.evaluation.prompts import RUBRIC_SYSTEM_PROMPT, build_user_message
 
+# Grammar-constrains the local llama.cpp server's output to this exact shape (all 6
+# components present, each with a 1-5 score and reasoning string) instead of relying on
+# generic "valid JSON" mode -- small local judges (Prometheus, Llama) otherwise drift from
+# the schema even when the prose instructions describe it correctly.
+_RUBRIC_JSON_SCHEMA = RubricScores.model_json_schema()
+
 
 class OpenAICompatibleJudge:
     """Judge para servidores llama.cpp (llama-server) com API compatível com OpenAI.
@@ -58,6 +64,10 @@ class OpenAICompatibleJudge:
                 {"role": "user", "content": build_user_message(payload)},
             ],
             "max_tokens": self._max_tokens,
+            "response_format": {
+                "type": "json_schema",
+                "json_schema": {"name": "rubric_scores", "schema": _RUBRIC_JSON_SCHEMA},
+            },
         }
 
         try:
