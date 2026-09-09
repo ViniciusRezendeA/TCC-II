@@ -6,7 +6,10 @@ __pycache__/
 
 .env
 
-data/
+data/*
+!data/evaluations/
+!data/selected_repos.jsonl
+
 state/
 logs/
 
