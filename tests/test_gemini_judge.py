@@ -6,12 +6,12 @@ from unittest.mock import MagicMock
 import pytest
 
 from mcp_pipeline.evaluation.judges.base import JudgeError, JudgeRefusal, RubricScores
-from mcp_pipeline.evaluation.judges.gemini_judge import GeminiJudge
+from mcp_pipeline.evaluation.judges.gemini_judge import GeminiJudge, _RateLimiter
 
 
-def _make_judge(monkeypatch) -> GeminiJudge:
+def _make_judge(monkeypatch, **kwargs) -> GeminiJudge:
     monkeypatch.setenv("GOOGLE_API_KEY", "fake-key-for-tests")
-    return GeminiJudge(judge_id="gemini-2.5-flash-lite", model_id="gemini-2.5-flash-lite")
+    return GeminiJudge(judge_id="gemini-2.5-flash-lite", model_id="gemini-2.5-flash-lite", **kwargs)
 
 
 def _rubric_scores() -> RubricScores:
@@ -85,3 +85,38 @@ def test_evaluate_raises_judge_error_on_non_safety_empty_parse(monkeypatch):
 
     with pytest.raises(JudgeError):
         judge.evaluate({"name": "get_weather", "server_name": "acme/weather-mcp", "description": "..."})
+
+
+def test_rate_limiter_paces_calls_evenly_regardless_of_wall_clock(monkeypatch):
+    """--concurrency alone can burst well past a model's RPM if responses come back fast
+    (observed live: 429s on gemini-3.5-flash-lite even at --concurrency 3). _RateLimiter
+    must space calls by 60/N seconds apart, not just let N through per wall-clock minute.
+    """
+    fake_now = 1000.0
+    monkeypatch.setattr("mcp_pipeline.evaluation.judges.gemini_judge.time.monotonic", lambda: fake_now)
+    sleeps: list[float] = []
+    monkeypatch.setattr("mcp_pipeline.evaluation.judges.gemini_judge.time.sleep", sleeps.append)
+
+    limiter = _RateLimiter(requests_per_minute=60)  # 1 call/second
+    limiter.wait()  # first call: clock is free, no wait
+    limiter.wait()  # second call: must wait for the 1s slot after the first
+    limiter.wait()  # third call: must wait for the 2s slot, cumulative
+
+    assert sleeps == [1.0, 2.0]
+
+
+def test_evaluate_waits_on_rate_limiter_before_calling_the_api(monkeypatch):
+    judge = _make_judge(monkeypatch, requests_per_minute=30)
+    wait_mock = MagicMock()
+    monkeypatch.setattr(judge._rate_limiter, "wait", wait_mock)
+    fake_response = SimpleNamespace(
+        parsed=_rubric_scores(),
+        candidates=[SimpleNamespace(finish_reason="STOP")],
+        model_version="gemini-2.5-flash-lite-001",
+        usage_metadata=SimpleNamespace(prompt_token_count=1, candidates_token_count=1, cached_content_token_count=0),
+    )
+    monkeypatch.setattr(judge._client.models, "generate_content", MagicMock(return_value=fake_response))
+
+    judge.evaluate({"name": "get_weather", "server_name": "acme/weather-mcp", "description": "..."})
+
+    wait_mock.assert_called_once()

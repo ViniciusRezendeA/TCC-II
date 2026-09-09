@@ -91,3 +91,25 @@ judges:
 
     assert judge.provider == "google"
     assert judge.model_id == "gemini-2.5-flash-lite"
+
+
+def test_load_judges_passes_extra_config_keys_as_kwargs(tmp_path, monkeypatch):
+    """requests_per_minute (GeminiJudge's rate limiter) is set per judge_id in judges.yaml,
+    not hardcoded, since the real free-tier RPM varies by model and by account.
+    """
+    monkeypatch.setenv("GOOGLE_API_KEY", "fake")
+    config = _write_config(
+        tmp_path,
+        """
+judges:
+  - id: gemini-2.5-flash-lite
+    provider: google
+    model_id: gemini-2.5-flash-lite
+    enabled: true
+    requests_per_minute: 12
+""",
+    )
+
+    (judge,) = load_judges(config_path=config)
+
+    assert judge._rate_limiter._interval == pytest.approx(60 / 12)

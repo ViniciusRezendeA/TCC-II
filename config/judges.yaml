@@ -10,22 +10,30 @@
 # users" e recomenda estes substitutos diretos, confirmados em client.models.list()
 # em 2026-09-09: gemini-3.6-flash (era gemini-2.5-flash) e gemini-3.5-flash-lite
 # (era gemini-2.5-flash-lite).
+# requests_per_minute: paces GeminiJudge's own calls (see gemini_judge.py::_RateLimiter) so
+# --concurrency alone never bursts past the free-tier RPM -- values below are the real
+# per-account limits from https://aistudio.google.com/rate-limit on 2026-09-09, minus a
+# safety margin (limits aren't guaranteed and can shift). Confirmed necessary: even
+# --concurrency 3 produced 429s on gemini-3.5-flash-lite (nominal 15 RPM) because fast
+# responses let several requests land in the same 60s window.
 judges:
   - id: gemini-3.6-flash
     provider: google
     model_id: gemini-3.6-flash
     enabled: false
+    requests_per_minute: 4  # nominal 5 RPM
 
   - id: gemini-3.5-flash-lite
     provider: google
     model_id: gemini-3.5-flash-lite
-    enabled: false
+    enabled: true
+    requests_per_minute: 12  # nominal 15 RPM
 
   # Juízes locais (llama.cpp)
   - id: llama-uncensored
     provider: llama
     model_id: llama-uncensored
-    enabled: true
+    enabled: false
 
   - id: qwen2.5-14b-instruct
     provider: qwen

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import threading
 import time
 
 from google import genai
@@ -26,6 +27,33 @@ _REFUSAL_FINISH_REASONS = {"SAFETY", "PROHIBITED_CONTENT", "BLOCKLIST", "SPII", 
 _DEFAULT_RETRY_OPTIONS = genai_types.HttpRetryOptions(attempts=3)
 
 
+class _RateLimiter:
+    """Paces calls to at most `requests_per_minute`, spaced evenly (60/N seconds apart)
+    rather than allowed to burst up to the limit -- run_step3.py calls judge.evaluate()
+    from several ThreadPoolExecutor workers at once (--concurrency), and that parallelism
+    is otherwise the only throttle in the whole pipeline: nothing paces actual request
+    *rate*, only how many are in flight simultaneously. A burst of `concurrency` requests
+    fired the instant workers free up blew through Gemini's free-tier RPM (429s observed
+    even with --concurrency 3, well under the nominal per-account limit) because fast
+    responses meant several bursts happened within one 60s window. Even pacing avoids that
+    regardless of --concurrency, at the cost of evaluate() blocking the calling thread.
+    """
+
+    def __init__(self, requests_per_minute: int):
+        self._interval = 60.0 / requests_per_minute
+        self._lock = threading.Lock()
+        self._next_allowed = 0.0
+
+    def wait(self) -> None:
+        with self._lock:
+            now = time.monotonic()
+            start = max(now, self._next_allowed)
+            self._next_allowed = start + self._interval
+        sleep_for = start - now
+        if sleep_for > 0:
+            time.sleep(sleep_for)
+
+
 class GeminiJudge:
     """Google Gemini judge via `models.generate_content()` structured output -- verified
     directly against the installed google-genai SDK source (`response.parsed`, config's
@@ -33,11 +61,13 @@ class GeminiJudge:
     `FinishReason` enum, and the retry-options behavior noted above).
 
     ⚠️  FREE TIER LIMITATIONS (IMPORTANTE):
-    - Rate limit: 15 req/min (900/hora, ~21.6k/dia)
-    - Quota: 1M tokens/dia (total, não por usuário)
-    - Estruturado: 1M input tokens/dia apenas
-    - Cada ferramenta ~3k tokens (prompt + resposta)
-    - Dataset completo (12.171 tools × 2 cenários): ~73M tokens → ~73 dias a 1M/dia
+    - RPM varia por modelo e por conta -- não é fixo em 15 (ver requests_per_minute em
+      config/judges.yaml, ajustado aos valores reais observados em aistudio.google.com).
+    - Quota diária (RPD) também varia por modelo; costuma ser a restrição real para o
+      dataset completo, não o RPM (ex.: 500 RPD ÷ 2 cenários = 250 tools/dia).
+    - Dataset completo (12.171 tools × 2 cenários = 24.342 chamadas): mesmo no modelo com
+      RPD mais alto observado, dezenas de dias -- use Gemini para validação de subset, não
+      como juiz do dataset completo.
 
     Modelo recomendado: gemini-3.6-flash ou gemini-3.5-flash-lite (ver config/judges.yaml).
     NÃO usar variantes "-live-preview": só suportam bidiGenerateContent via WebSocket, não
@@ -46,15 +76,26 @@ class GeminiJudge:
     Veja scripts/check_gemini_free_tier.py para análise de capacidade diária.
     """
 
-    def __init__(self, judge_id: str, model_id: str, max_output_tokens: int = 16_000):
+    def __init__(
+        self,
+        judge_id: str,
+        model_id: str,
+        max_output_tokens: int = 16_000,
+        requests_per_minute: int = 5,
+    ):
         self.judge_id = judge_id
         self.provider = "google"
         self.model_id = model_id
         self._max_output_tokens = max_output_tokens
+        # Conservative default (5) matches the lowest RPM observed live across free-tier
+        # Gemini models (see config/judges.yaml) -- override per judge_id there, since the
+        # real per-account limit varies by model and isn't queryable from the API itself.
+        self._rate_limiter = _RateLimiter(requests_per_minute)
         # reads GOOGLE_API_KEY (falling back to GEMINI_API_KEY) from env
         self._client = genai.Client(http_options=genai_types.HttpOptions(retry_options=_DEFAULT_RETRY_OPTIONS))
 
     def evaluate(self, payload: dict) -> JudgeEvaluation:
+        self._rate_limiter.wait()
         started = time.monotonic()
         try:
             response = self._client.models.generate_content(

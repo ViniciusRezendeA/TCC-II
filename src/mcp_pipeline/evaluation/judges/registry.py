@@ -19,6 +19,11 @@ PROVIDER_CLASSES: dict[str, type] = {
     "qwen": QwenJudge,
 }
 
+# Any judges.yaml key beyond these is passed straight through as a kwarg to the provider's
+# constructor (e.g. `requests_per_minute` for GeminiJudge) -- keeps per-model tuning in the
+# config file instead of code, same as model_id.
+_ENTRY_KEYS = {"id", "provider", "model_id", "enabled"}
+
 
 def load_judges(config_path: Path | None = None, only: set[str] | None = None) -> list[Judge]:
     """Reads config/judges.yaml, instantiates every entry with enabled: true (or, if `only`
@@ -42,6 +47,7 @@ def load_judges(config_path: Path | None = None, only: set[str] | None = None) -
             raise ValueError(f"provedor desconhecido {provider!r} para o juiz {entry['id']!r}")
 
         judge_cls = PROVIDER_CLASSES[provider]
-        judges.append(judge_cls(judge_id=entry["id"], model_id=entry["model_id"]))
+        extra_kwargs = {k: v for k, v in entry.items() if k not in _ENTRY_KEYS}
+        judges.append(judge_cls(judge_id=entry["id"], model_id=entry["model_id"], **extra_kwargs))
 
     return judges
