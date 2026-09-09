@@ -1,9 +1,12 @@
 #!/usr/bin/env python
-"""Health check para Gemini API 3.1 Flash (free tier).
+"""Health check para Gemini API (free tier).
 
 Valida conectividade, autenticação e avisos sobre limitações da API gratuita.
 
-Modelo testado: gemini-3.1-flash-live-preview (mais recente)
+Modelo testado: gemini-3.6-flash. NÃO usar variantes "-live-preview": elas só suportam
+bidiGenerateContent via WebSocket, não generate_content() (usado aqui e em gemini_judge.py) --
+retornam 400 INVALID_ARGUMENT nesse método, o que este script antes confundia com chave
+de API inválida.
 
 Limitações conhecidas do Gemini free tier:
 - Rate limit: 15 requisições por minuto
@@ -61,7 +64,7 @@ def calculate_daily_capacity() -> dict:
     }
 
 
-def check_connectivity(api_key: str, model_id: str = "gemini-3.1-flash-live-preview") -> tuple[bool, str, dict]:
+def check_connectivity(api_key: str, model_id: str = "gemini-3.6-flash") -> tuple[bool, str, dict]:
     """Testa conectividade com Gemini."""
     print(f"\n{'='*70}")
     print(f"Testando conectividade com {model_id}...")
@@ -81,19 +84,26 @@ def check_connectivity(api_key: str, model_id: str = "gemini-3.1-flash-live-prev
         print(f"    Modelos: {', '.join(sorted(set(model_names))[:5])}...")
 
         # Verifica se modelo solicitado está disponível
+        # Exclui variantes que não aceitam generate_content: "-live"/"-preview" (streaming
+        # via WebSocket ou instável), "-image"/"-tts"/"-audio"/"-transcribe" (outras
+        # modalidades), "embedding" -- ver bug do modelo -live-preview identificado acima.
+        _NON_TEXT_MARKERS = ("-live", "-preview", "-image", "-tts", "-audio", "-transcribe", "embedding")
+        text_model_names = [m for m in model_names if not any(marker in m for marker in _NON_TEXT_MARKERS)]
+
         if model_id not in model_names:
             print(f"  ⚠ Aviso: {model_id} não está disponível")
-            # Encontra alternativa (preferência: 2.5-flash > 2.5-flash-lite > 2.0-flash > 1.5-flash)
-            for pattern in ["2.5-flash", "2.0-flash", "1.5-flash"]:
-                alternatives = [m for m in model_names if pattern in m]
+            # Encontra alternativa (preferência: famílias mais recentes primeiro -- 2.5-flash e
+            # anteriores retornam 404 "no longer available to new users" para chaves novas)
+            for pattern in ["3.6-flash", "3.5-flash", "3.1-flash-lite", "2.5-flash"]:
+                alternatives = [m for m in text_model_names if pattern in m]
                 if alternatives:
                     model_id = alternatives[0]
                     print(f"    Usando alternativa: {model_id}")
                     break
             else:
-                # Se nenhuma flash disponível, tenta qualquer gemini
-                if model_names:
-                    model_id = next((m for m in model_names if "flash" in m or "pro" in m), model_names[0])
+                # Se nenhuma flash disponível, tenta qualquer gemini de texto
+                if text_model_names:
+                    model_id = next((m for m in text_model_names if "flash" in m or "pro" in m), text_model_names[0])
                     print(f"    Usando: {model_id}")
                 else:
                     return False, f"Nenhum modelo Gemini disponível", {}
@@ -126,9 +136,15 @@ def check_connectivity(api_key: str, model_id: str = "gemini-3.1-flash-live-prev
 
     except genai_errors.ClientError as e:
         # ClientError captura 400, 401, etc. (Authentication, Permission, Invalid)
+        # NB: "INVALID_ARGUMENT" por si só NÃO indica chave inválida -- é o status HTTP 400
+        # genérico do Google, usado para qualquer erro de validação da requisição (ex.: pedir
+        # generate_content de um modelo -live-preview, que só aceita bidiGenerateContent via
+        # WebSocket). Só a mensagem "API key not valid" identifica esse problema de fato.
         error_msg = str(e)
-        if "API key not valid" in error_msg or "INVALID_ARGUMENT" in error_msg:
+        if "API key not valid" in error_msg:
             return False, f"Autenticação falhou: Chave de API inválida ou expirada", {}
+        elif "404" in error_msg or "NOT_FOUND" in error_msg or "no longer available" in error_msg:
+            return False, f"Modelo indisponível: {error_msg[:150]}", {}
         elif "permission" in error_msg.lower():
             return False, f"Permissão negada: {error_msg[:100]}", {}
         else:
@@ -147,7 +163,7 @@ def check_connectivity(api_key: str, model_id: str = "gemini-3.1-flash-live-prev
         return False, f"Erro inesperado: {type(e).__name__}: {str(e)[:150]}", {}
 
 
-def check_rubric_compatibility(api_key: str, model_id: str = "gemini-3.1-flash-live-preview") -> tuple[bool, str]:
+def check_rubric_compatibility(api_key: str, model_id: str = "gemini-3.6-flash") -> tuple[bool, str]:
     """Testa se o modelo consegue fazer parsing da rubrica com JSON schema."""
     print(f"\n{'='*70}")
     print("Testando compatibilidade com rubrica (JSON schema)...")

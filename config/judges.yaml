@@ -5,17 +5,20 @@
 # Apenas juízes locais (llama.cpp) + Gemini (cloud, free tier) -- Claude e GPT
 # não são usados neste projeto.
 #
-# model_id do Google foi confirmado na Fase 0 (2026-08-19) direto na documentação
-# oficial (ai.google.dev/gemini-api/docs/pricing) -- não é um palpite.
+# model_id do Google: gemini-2.5-flash/-lite (confirmados na Fase 0, 2026-08-19) foram
+# descontinuados para chaves novas -- a API responde 404 "no longer available to new
+# users" e recomenda estes substitutos diretos, confirmados em client.models.list()
+# em 2026-09-09: gemini-3.6-flash (era gemini-2.5-flash) e gemini-3.5-flash-lite
+# (era gemini-2.5-flash-lite).
 judges:
-  - id: gemini-2.5-flash
+  - id: gemini-3.6-flash
     provider: google
-    model_id: gemini-2.5-flash
+    model_id: gemini-3.6-flash
     enabled: false
 
-  - id: gemini-2.5-flash-lite
+  - id: gemini-3.5-flash-lite
     provider: google
-    model_id: gemini-2.5-flash-lite
+    model_id: gemini-3.5-flash-lite
     enabled: false
 
   # Juízes locais (llama.cpp)

@@ -1,11 +1,19 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Literal, Protocol
+from typing import Annotated, Protocol
 
 from pydantic import BaseModel, Field
 
-Likert = Literal[1, 2, 3, 4, 5]
+# int + ge/le (-> JSON schema "minimum"/"maximum") instead of Literal[1, 2, 3, 4, 5]
+# (-> "enum": [1, 2, 3, 4, 5]): Gemini's response_schema conversion only accepts STRING
+# enums (google.genai._transformers.process_schema has no branch converting an INTEGER
+# enum list), so an int Literal here made GeminiJudge.evaluate() raise a pydantic
+# ValidationError on the SDK's own schema validation before any request was sent.
+# minimum/maximum is still enough to constrain llama.cpp's grammar-sampled local judges
+# to a single digit 1-5, and RubricScores.model_validate() still enforces the range on
+# whatever a judge returns.
+Likert = Annotated[int, Field(ge=1, le=5)]
 
 
 class ComponentScore(BaseModel):
