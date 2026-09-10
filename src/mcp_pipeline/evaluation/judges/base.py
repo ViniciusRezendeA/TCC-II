@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import threading
+import time
 from dataclasses import dataclass
 from typing import Annotated, Protocol
 
@@ -76,6 +78,37 @@ class JudgeQuotaExhausted(JudgeError):
     catches this, but run_step3.py catches it first to cancel the judge's remaining pending
     work instead of recording it all as individual errors (see pipeline/run_step3.py).
     """
+
+
+class RateLimiter:
+    """Paces calls to at most `requests_per_minute`, spaced evenly (60/N seconds apart)
+    rather than allowed to burst up to the limit -- run_step3.py calls judge.evaluate()
+    from several ThreadPoolExecutor workers at once (--concurrency), and that parallelism
+    is otherwise the only throttle in the whole pipeline: nothing paces actual request
+    *rate*, only how many are in flight simultaneously. A burst of `concurrency` requests
+    fired the instant workers free up blew through Gemini's free-tier RPM (429s observed
+    even with --concurrency 3, well under the nominal per-account limit) because fast
+    responses meant several bursts happened within one 60s window -- then the same thing
+    happened to GroqJudge at --concurrency 1 with no limiter at all. Even pacing avoids
+    that regardless of --concurrency, at the cost of evaluate() blocking the calling
+    thread. Shared across judges (originally Gemini-only) since every free-tier cloud
+    provider surveyed for this project turned out to have a tight RPM (Gemini 4-15,
+    Cerebras 5, Groq 30).
+    """
+
+    def __init__(self, requests_per_minute: int):
+        self._interval = 60.0 / requests_per_minute
+        self._lock = threading.Lock()
+        self._next_allowed = 0.0
+
+    def wait(self) -> None:
+        with self._lock:
+            now = time.monotonic()
+            start = max(now, self._next_allowed)
+            self._next_allowed = start + self._interval
+        sleep_for = start - now
+        if sleep_for > 0:
+            time.sleep(sleep_for)
 
 
 class Judge(Protocol):

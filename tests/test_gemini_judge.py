@@ -6,8 +6,8 @@ from unittest.mock import MagicMock
 import pytest
 from google.genai import errors as genai_errors
 
-from mcp_pipeline.evaluation.judges.base import JudgeError, JudgeQuotaExhausted, JudgeRefusal, RubricScores
-from mcp_pipeline.evaluation.judges.gemini_judge import GeminiJudge, _is_daily_quota_exhausted, _RateLimiter
+from mcp_pipeline.evaluation.judges.base import JudgeError, JudgeQuotaExhausted, JudgeRefusal, RateLimiter, RubricScores
+from mcp_pipeline.evaluation.judges.gemini_judge import GeminiJudge, _is_daily_quota_exhausted
 
 
 def _make_quota_error(quota_id: str) -> genai_errors.ClientError:
@@ -111,15 +111,15 @@ def test_evaluate_raises_judge_error_on_non_safety_empty_parse(monkeypatch):
 
 def test_rate_limiter_paces_calls_evenly_regardless_of_wall_clock(monkeypatch):
     """--concurrency alone can burst well past a model's RPM if responses come back fast
-    (observed live: 429s on gemini-3.5-flash-lite even at --concurrency 3). _RateLimiter
+    (observed live: 429s on gemini-3.5-flash-lite even at --concurrency 3). RateLimiter
     must space calls by 60/N seconds apart, not just let N through per wall-clock minute.
     """
     fake_now = 1000.0
-    monkeypatch.setattr("mcp_pipeline.evaluation.judges.gemini_judge.time.monotonic", lambda: fake_now)
+    monkeypatch.setattr("mcp_pipeline.evaluation.judges.base.time.monotonic", lambda: fake_now)
     sleeps: list[float] = []
-    monkeypatch.setattr("mcp_pipeline.evaluation.judges.gemini_judge.time.sleep", sleeps.append)
+    monkeypatch.setattr("mcp_pipeline.evaluation.judges.base.time.sleep", sleeps.append)
 
-    limiter = _RateLimiter(requests_per_minute=60)  # 1 call/second
+    limiter = RateLimiter(requests_per_minute=60)  # 1 call/second
     limiter.wait()  # first call: clock is free, no wait
     limiter.wait()  # second call: must wait for the 1s slot after the first
     limiter.wait()  # third call: must wait for the 2s slot, cumulative
@@ -150,7 +150,7 @@ def test_is_daily_quota_exhausted_true_for_per_day_quota_id():
 
 
 def test_is_daily_quota_exhausted_false_for_per_minute_quota_id():
-    """The per-minute quota is what GeminiJudge's own _RateLimiter is meant to prevent --
+    """The per-minute quota is what GeminiJudge's own RateLimiter is meant to prevent --
     it's transient (the request would likely succeed a few seconds later), unlike the daily
     cap. Must not be misidentified as the daily case, or a real per-minute blip would abort
     the whole batch instead of just failing that one call.

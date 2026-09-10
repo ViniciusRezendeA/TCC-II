@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import threading
 import time
 
 from google import genai
@@ -12,6 +11,7 @@ from mcp_pipeline.evaluation.judges.base import (
     JudgeEvaluation,
     JudgeQuotaExhausted,
     JudgeRefusal,
+    RateLimiter,
     RubricScores,
 )
 from mcp_pipeline.evaluation.prompts import RUBRIC_SYSTEM_PROMPT, build_user_message
@@ -46,33 +46,6 @@ def _is_daily_quota_exhausted(e: genai_errors.APIError) -> bool:
 # used." Unlike the anthropic/openai SDKs (both default to max_retries=2), retries here are
 # opt-in via HttpOptions.retry_options, configured natively instead of via a tenacity wrapper.
 _DEFAULT_RETRY_OPTIONS = genai_types.HttpRetryOptions(attempts=3)
-
-
-class _RateLimiter:
-    """Paces calls to at most `requests_per_minute`, spaced evenly (60/N seconds apart)
-    rather than allowed to burst up to the limit -- run_step3.py calls judge.evaluate()
-    from several ThreadPoolExecutor workers at once (--concurrency), and that parallelism
-    is otherwise the only throttle in the whole pipeline: nothing paces actual request
-    *rate*, only how many are in flight simultaneously. A burst of `concurrency` requests
-    fired the instant workers free up blew through Gemini's free-tier RPM (429s observed
-    even with --concurrency 3, well under the nominal per-account limit) because fast
-    responses meant several bursts happened within one 60s window. Even pacing avoids that
-    regardless of --concurrency, at the cost of evaluate() blocking the calling thread.
-    """
-
-    def __init__(self, requests_per_minute: int):
-        self._interval = 60.0 / requests_per_minute
-        self._lock = threading.Lock()
-        self._next_allowed = 0.0
-
-    def wait(self) -> None:
-        with self._lock:
-            now = time.monotonic()
-            start = max(now, self._next_allowed)
-            self._next_allowed = start + self._interval
-        sleep_for = start - now
-        if sleep_for > 0:
-            time.sleep(sleep_for)
 
 
 class GeminiJudge:
@@ -111,7 +84,7 @@ class GeminiJudge:
         # Conservative default (5) matches the lowest RPM observed live across free-tier
         # Gemini models (see config/judges.yaml) -- override per judge_id there, since the
         # real per-account limit varies by model and isn't queryable from the API itself.
-        self._rate_limiter = _RateLimiter(requests_per_minute)
+        self._rate_limiter = RateLimiter(requests_per_minute)
         # reads GOOGLE_API_KEY (falling back to GEMINI_API_KEY) from env
         self._client = genai.Client(http_options=genai_types.HttpOptions(retry_options=_DEFAULT_RETRY_OPTIONS))
 
