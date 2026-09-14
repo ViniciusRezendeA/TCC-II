@@ -19,7 +19,7 @@ import json
 #     explicit rule covering all 6: SOURCE_CODE may only ever lower a score (a found
 #     contradiction/omission), never raise one -- and requires the reasoning to name the
 #     specific issue whenever a score is lowered, so a spot-check can audit compliance.
-PROMPT_VERSION = "v3"
+PROMPT_VERSION = "v4"
 
 RUBRIC_COMPONENTS: list[tuple[str, str, str]] = [
     (
@@ -100,20 +100,11 @@ Likert scale (apply uniformly to all 6 components):
 {LIKERT_SCALE}
 
 Handling "SOURCE_CODE":
-- If "SOURCE_CODE" is absent, judge the description strictly on its own terms. Do not penalize it for omitting information that only the source code would reveal.
-- If "SOURCE_CODE" is present, first judge each component exactly as you would from the description alone. SOURCE_CODE's only function is to check the description for a CONTRADICTION or OMISSION relative to the real implementation -- it is never a source of extra credit.
-
-  THE RULE, for all 6 components without exception: SOURCE_CODE may only LOWER a component's score below what the description text alone would earn. It must NEVER raise a score -- more context available to you, the judge, is not the same as a better description. If you find no contradiction or omission for a component, its score must equal what the description alone would have earned; do not nudge it up because the code happened to clarify or confirm things.
-
-  Component-specific application:
-  * "limitations" / "parameter_explanation" (primary intended use of SOURCE_CODE): check whether the code reveals constraints, failure modes, parameter semantics, or edge cases the description does NOT mention. If so, penalize accordingly.
-  * "purpose": only lower the score if the code shows the tool does something materially different from what the description claims -- a real contradiction, not just "the code has more detail."
-  * "guidelines" / "examples": the code revealing usage patterns or activation criteria the description never mentions is grounds to check for a contradiction (e.g. the description recommends a use the code doesn't support), never grounds to raise the score for detail the description itself lacks.
-  * "length_completeness": judged purely on the description's own length and substantiveness. SOURCE_CODE is irrelevant to this component and must not change its score in either direction.
-
-  A vague or terse description remains vague or terse even when the code clarifies or fully justifies the implementation.
-
-For each of the 6 components, return a Likert score (1-5) and a brief (1-3 sentence) reasoning that cites specific evidence from the description (and from SOURCE_CODE, when present and relevant). When SOURCE_CODE is present and you score below what the description alone would earn, your reasoning MUST name the specific contradiction or omission that justifies it; otherwise state that SOURCE_CODE confirmed the description with no issue found."""
+When source code snippets are provided, the tool should first be evaluated independently,
+without considering the source code. After this initial evaluation, the source code should
+be taken into account to identify any inconsistencies between the tool's description and
+its actual implementation. Based on these findings, the initial score may be adjusted accordingly.
+"""
 
 
 def build_user_message(payload: dict) -> str:

@@ -1,0 +1,158 @@
+[
+    {
+        "nome": "Externalization in LLM Agents: A Unified Review of Memory, Skills, Protocols and Harness Engineering",
+        "url": "https://arxiv.org/abs/2604.08224",
+        "ano": 2026,
+        "revisado": false
+    },
+    {
+        "nome": "From Component Manipulation to System Compromise: Understanding and Detecting Malicious MCP Servers",
+        "url": "https://arxiv.org/abs/2604.01905",
+        "ano": 2026,
+        "revisado": false
+    },
+    {
+        "nome": "From REST to MCP: An Empirical Study of API Wrapping and Automated Server Generation for LLM Agents",
+        "url": "https://arxiv.org/abs/2507.16044",
+        "ano": 2026,
+        "revisado": false
+    },
+    {
+        "nome": "Harness-IF: Evaluating Instruction Following Across Instruction Surfaces in Coding Agents",
+        "url": "https://arxiv.org/abs/2608.11727",
+        "ano": 2026,
+        "revisado": false
+    },
+    {
+        "nome": "EduMSRA: A Multi-Source Educational Research Agent Integrating Retrieval-Augmented Generation and Model Context Protocol for Adaptive Intelligent Tutoring Systems",
+        "url": "https://www.mdpi.com/2076-3417/16/9/4400",
+        "ano": 2026,
+        "revisado": true
+    },
+    {
+        "nome": "SkillsInjector: Dynamic Skill Context Construction for LLM Agents",
+        "url": "https://arxiv.org/abs/2605.29794",
+        "ano": 2026,
+        "revisado": false
+    },
+    {
+        "nome": "An LLM-agent interface for end-to-end probabilistic seismic hazard and risk analysis",
+        "url": "https://www.nature.com/articles/s44304-026-00262-z",
+        "ano": 2026,
+        "revisado": true
+    },
+    {
+        "nome": "Don't Blame the Large Language Model: How Agent Harness Evolution Shapes Coding Agent Quality",
+        "url": "https://arxiv.org/abs/2607.03691",
+        "ano": 2026,
+        "revisado": false
+    },
+    {
+        "nome": "Tangent: An Empirical Study of Testing Practices for LLM-Based Agent Applications",
+        "url": "https://arxiv.org/abs/2608.08413",
+        "ano": 2026,
+        "revisado": false
+    },
+    {
+        "nome": "Decoupling Search from Reasoning: A Vendor-Agnostic Grounding Architecture for LLM Agents",
+        "url": "https://arxiv.org/abs/2606.18947",
+        "ano": 2026,
+        "revisado": false
+    },
+    {
+        "nome": "Towards Risk-free AI Agent Deployment",
+        "url": "https://arxiv.org/abs/2608.16411",
+        "ano": 2026,
+        "revisado": false
+    },
+    {
+        "nome": "'What Happens Locally, Leaks Globally': Detecting Privacy Leakage Risks in MCP Servers",
+        "url": "https://arxiv.org/abs/2606.21338",
+        "ano": 2026,
+        "revisado": false
+    },
+    {
+        "nome": "DynamicMCPBench: A Trace-Grounded, Effect-Scored Benchmark for LLM Agents over Live MCP Servers",
+        "url": "https://arxiv.org/abs/2607.20531",
+        "ano": 2026,
+        "revisado": false
+    },
+    {
+        "nome": "SING: Synthetic Intention Graph for Scalable Active Tool Discovery in LLM Agents",
+        "url": "https://arxiv.org/abs/2606.16591",
+        "ano": 2026,
+        "revisado": false
+    },
+    {
+        "nome": "An Agentic Interface for End-to-End Probabilistic Seismic Hazard and Risk Analysi",
+        "url": "https://arxiv.org/abs/2607.16249",
+        "ano": 2026,
+        "revisado": false
+    },
+    {
+        "nome": "Where Facts Go Missing: A Layerwise Taxonomy and Per-Layer Attribution of Information Omission in Air-Gapped LLMAgent Pipelines",
+        "url": "https://arxiv.org/abs/2607.22448",
+        "ano": 2026,
+        "revisado": false
+    },
+    {
+        "nome": "Lean Service Catalogs for Agentic Systems: A Study of Schema Compression and Caching Economics",
+        "url": "https://ieeexplore.ieee.org/abstract/document/11670139/?casa_token=4PqBNYdCYeEAAAAA:lKb0j0zeXmY67jNAchsR1PKHFMPTuBL1iTvXM5q-DQln4m6a_VsC8e_xvFGycPL5tKcAHaAR1m0",
+        "ano": 2026,
+        "revisado": true
+    },
+    {
+        "nome": "When Does Restricting a Coding Agent to execute_code Help? A Regime × Agent-Design Ablation",
+        "url": "https://arxiv.org/abs/2607.10569",
+        "ano": 2026,
+        "revisado": false
+    },
+    {
+        "nome": "It's not the Language Model, it's the Tool: Deterministic Mediation for Scientific Workflows",
+        "url": "https://arxiv.org/abs/2605.13245",
+        "ano": 2026,
+        "revisado": false
+    },
+    {
+        "nome": "STEM Agent: A Self-Adapting, Tool-Enabled, Extensible Architecture for Multi-Protocol AI Agent Systems",
+        "url": "https://arxiv.org/abs/2603.22359",
+        "ano": 2026,
+        "revisado": false
+    },
+    {
+        "nome": "Indexing the Unreadable: LLM-Native Recursive Construction and Search of Service Taxonomies",
+        "url": "https://arxiv.org/abs/2605.29270",
+        "ano": 2026,
+        "revisado": false
+    },
+    {
+        "nome": "Governing AI Coding Agents: From Repository Artifacts to Organizational Capability",
+        "url": "https://papers.ssrn.com/sol3/papers.cfm?abstract_id=7318619",
+        "ano": 2026,
+        "revisado": false
+    },
+    {
+        "nome": "MCP in the Wild: Cross-Domain Knowledge Discovery through Multi-Server Orchestration",
+        "url": "https://papers.ssrn.com/sol3/papers.cfm?abstract_id=6374760",
+        "ano": 2026,
+        "revisado": false
+    },
+    {
+        "nome": "When Does Restricting a Coding Agent to `execute_code` Help? A Regime × Agent-Design Ablation",
+        "url": "https://openreview.net/forum?id=kbkm1Y4BtY",
+        "ano": 2026,
+        "revisado": false
+    },
+    {
+        "nome": "Formula 1 Model Context Protocol Platform for LLMs Using Cloud Computing",
+        "url": "https://www.taylorfrancis.com/chapters/edit/10.1201/9781003791522-16/formula-1-model-context-protocol-platform-llms-using-cloud-computing-furkan-sina-sahaplioglu-sukhpal-singh-gill",
+        "ano": 2026,
+        "revisado": false
+    },
+    {
+        "nome": "Modelling of Software and Service Products with Asset Administration Shells",
+        "url": "https://wwwlehre.dhbw-stuttgart.de/~rentschler/Publications/IN4PL_2026__Modelling_of_Software_and_Services_with_AAS_long.pdf",
+        "ano": 2026,
+        "revisado": false
+    }
+]

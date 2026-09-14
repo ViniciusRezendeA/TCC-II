@@ -1,0 +1,77 @@
+[
+  {
+    "page": 1,
+    "text": "smells em ferramentas MCP",
+    "comment": "“smells ou avaliação subjetiva das descrições? isso muda um pouco as análises futuras”"
+  },
+  {
+    "page": 2,
+    "text": "[Mehedi Hasan et al. 2026]",
+    "comment": "“citar mais um ou dois, visto que o parágrafo começa com ‘estudos recentes’. Apenas incluir citação.”"
+  },
+  {
+    "page": 2,
+    "text": "senti falta das questões de pesquisa (RQs). Vocês citam a lacuna mas não explicitam as RQs",
+    "comment": "“senti falta das questões de pesquisa (RQs). Vocês citam a lacuna mas não explicitam as RQs”"
+  },
+  {
+    "page": 2,
+    "text": "seria bom retomar um pouco isso nos resultados e conclusões. Apenas ao final.",
+    "comment": "“seria bom retomar um pouco isso nos resultados e conclusões. Apenas ao final.”"
+  },
+  {
+    "page": 2,
+    "text": "que tipo de anomalia?",
+    "comment": "“que tipo de anomalia?”"
+  },
+  {
+    "page": 2,
+    "text": "me parece repetitivo com a frase anterior. Talvez possam juntar as duas.",
+    "comment": "“me parece repetitivo com a frase anterior. Talvez possam juntar as duas.”"
+  },
+  {
+    "page": 3,
+    "text": "Qualidade de Sofware",
+    "comment": "“Está um pouco confuso se o trabalho foca em qualidade de software ou qualidade de documentação.”"
+  },
+  {
+    "page": 4,
+    "text": "adequação funcional, confiabilidade, usabilidade e manutenibilidade, permitindo que a qualidade seja avaliada de forma sistematica e objetiva",
+    "comment": "“onde estes conceitos se relacionam com o trabalho de vocês?”"
+  },
+  {
+    "page": 4,
+    "text": "A documentação só é citada agora, dando a impressão de foco em qualidade de software e que a qualidade de documentação é apenas “um fator”. Acredito que o trabalho de vocês esteja focando em qualidade de documentação. Então seria ideal focar em qualidade de documentação e citar que ela também o influencia na qualidade de software. Uma pequena inversão que, cientificamente, faz muita diferença.",
+    "comment": "“a documentação só é citada agora, dando a impressão de foco em qualidade de software e que a qualidade de documentação é apenas ‘um fator’. Acredito que o trabalho de vocês esteja focando em qualidade de documentação. Então seria ideal focar em qualidade de documentação e citar que ela também o influencia na qualidade de software. Uma pequena inversão que, cientificamente, faz muita diferença.”"
+  },
+  {
+    "page": 4,
+    "text": "Essa frase é muito importante, pois mostra que a qualidade de descrição (documentação) influencia diretamente no comportamento de agentes de IA. Aqui é onde fica claro que qualidade de documentação também é qualidade de software. Porém acho que toda a construção do texto não está dando a devida importância a este ponto.",
+    "comment": "“essa frase é muito importante, pois mostra que a qualidade de descrição (documentação) influencia diretamente no comportamento de agentes de IA. Aqui é onde fica claro que qualidade de documentação também é qualidade de software. Porém acho que toda a construção do texto não está dando a devida importância a este ponto.”"
+  },
+  {
+    "page": 4,
+    "text": "O conceito de smell refere-se a caracteristicas estruturais que sugerem problemas de qualidade em um artefato, ainda que nao configurem defeitos funcionais, dificultando sua compreensao e manutenção",
+    "comment": "“não está tão claro ao longo de todo o texto que vocês estão se baseando em smells e nem como estes smells serão medidos. Isso precisa ficar claro desde a introdução e objetivos”"
+  },
+  {
+    "page": 9,
+    "text": "diferentes modelos de IA",
+    "comment": "“incluir essa informação na figura 1 — 3. ‘Classificação das tools por diferentes modelos de IA’”"
+  },
+  {
+    "page": 9,
+    "text": "seis componentes",
+    "comment": "“esses componentes só aparecem aqui. Necessário que o trabalho traga esta informação desde o início.”"
+  },
+  {
+    "page": 9,
+    "text": "LLMas-a-Judge",
+    "comment": "“idem ao de cima. É a primeira vez que esta informação aparece. O leitor não pode entender isso apenas aqui.”"
+  },
+  {
+    "page": 9,
+    "text": "árvores e chamadas correspondentes",
+    "comment": "“acho que ainda não está tão claro como as árvores e chamadas são utilizadas no processo”"
+  }
+]
