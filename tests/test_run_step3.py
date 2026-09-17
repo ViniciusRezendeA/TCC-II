@@ -13,6 +13,7 @@ from mcp_pipeline.evaluation.judges.base import (
 from mcp_pipeline.pipeline.run_step3 import (
     checkpoint_key,
     run_judge,
+    shard_for,
     should_skip,
     tool_uid_for,
 )
@@ -110,6 +111,36 @@ def test_checkpoint_key_embeds_prompt_version():
     assert key.endswith(f"::{PROMPT_VERSION}")
 
 
+def test_shard_for_is_deterministic():
+    uid = "acme/weather-mcp::get_weather::server.py:1"
+
+    assert shard_for(uid, 4) == shard_for(uid, 4)
+
+
+def test_shard_for_stays_in_range():
+    uids = [f"acme/x::tool_{i}::f.py:{i}" for i in range(200)]
+
+    for num_keys in (1, 2, 3, 7):
+        for uid in uids:
+            assert 0 <= shard_for(uid, num_keys) < num_keys
+
+
+def test_shard_for_partitions_are_disjoint_and_exhaustive():
+    """Every tool_uid lands in exactly one of the num_keys partitions -- run_parallel_step3.py
+    relies on this so the N processes it spawns cover the whole dataset with no overlap and
+    no gaps, without needing to persist a partition file anywhere.
+    """
+    uids = [f"acme/x::tool_{i}::f.py:{i}" for i in range(200)]
+    num_keys = 5
+
+    partitions = [{uid for uid in uids if shard_for(uid, num_keys) == i} for i in range(num_keys)]
+
+    assert set().union(*partitions) == set(uids)
+    for i in range(num_keys):
+        for j in range(i + 1, num_keys):
+            assert partitions[i].isdisjoint(partitions[j])
+
+
 def test_should_skip_true_for_ok_status_regardless_of_retry_failed(tmp_path):
     cp = Checkpoint(tmp_path / "state.json")
     cp.set("k", {"status": "ok"})
@@ -166,7 +197,14 @@ def test_run_judge_writes_one_record_per_tool_scenario_and_is_resumable(tmp_path
     assert judge_2.calls == []
 
 
-def test_run_judge_error_is_retried_only_with_retry_failed_flag(tmp_path, monkeypatch):
+def test_run_judge_technical_error_is_retried_automatically_next_round(tmp_path, monkeypatch):
+    """A technical error (JSON malformed, timeout, etc.) writes no JSONL line and no
+    checkpoint entry -- it leaves zero trace, so a plain re-run (no --retry-failed) retries
+    it on its own next round. This matters for unattended/parallel runs
+    (scripts/run_parallel_step3.py) where nobody is around to pass --retry-failed once
+    whatever caused the error clears up. The failure is still visible in
+    step3_errors_{judge_id}.jsonl, for a human to notice a pair failing every round.
+    """
     data_dir = _isolate_data_dirs(tmp_path, monkeypatch)
     rows = [_make_row()]
     checkpoint = Checkpoint(tmp_path / "state.json")
@@ -174,20 +212,40 @@ def test_run_judge_error_is_retried_only_with_retry_failed_flag(tmp_path, monkey
     run_judge(FakeJudge(fail_on={"get_weather"}), rows, ("description_only",), checkpoint, concurrency=1, retry_failed=False)
 
     out_path = data_dir / "evaluations" / "fake-judge.jsonl"
-    records = [json.loads(line) for line in out_path.read_text().splitlines()]
-    assert records[-1]["status"] == "error"
+    assert not out_path.exists() or out_path.read_text() == ""
     errors_log = tmp_path / "logs" / "step3_errors_fake-judge.jsonl"
     assert errors_log.exists()
 
-    # A plain re-run (no --retry-failed) must not retry a logged technical error.
-    unretried = FakeJudge(fail_on={"get_weather"})
+    key = checkpoint_key(tool_uid_for(_make_row()), "description_only", "fake-judge")
+    assert checkpoint.get(key) is None  # not marked as processed
+
+    # A plain re-run (no --retry-failed) must retry it on its own now.
+    recovering = FakeJudge()
+    run_judge(recovering, rows, ("description_only",), checkpoint, concurrency=1, retry_failed=False)
+    assert len(recovering.calls) == 1
+    records = [json.loads(line) for line in out_path.read_text().splitlines()]
+    assert records[-1]["status"] == "ok"
+
+
+def test_run_judge_retry_failed_flag_still_unsticks_pre_existing_error_checkpoints(tmp_path, monkeypatch):
+    """--retry-failed is now only needed to unstick "error" checkpoint entries written by a
+    version of this script from before technical errors stopped being checkpointed at all --
+    should_skip() must still honor a status="error" entry already sitting in the checkpoint.
+    """
+    data_dir = _isolate_data_dirs(tmp_path, monkeypatch)
+    rows = [_make_row()]
+    checkpoint = Checkpoint(tmp_path / "state.json")
+    key = checkpoint_key(tool_uid_for(_make_row()), "description_only", "fake-judge")
+    checkpoint.set(key, {"status": "error"})
+
+    unretried = FakeJudge()
     run_judge(unretried, rows, ("description_only",), checkpoint, concurrency=1, retry_failed=False)
     assert unretried.calls == []
 
-    # --retry-failed must retry it -- and here it succeeds.
     recovering = FakeJudge()
     run_judge(recovering, rows, ("description_only",), checkpoint, concurrency=1, retry_failed=True)
     assert len(recovering.calls) == 1
+    out_path = data_dir / "evaluations" / "fake-judge.jsonl"
     records = [json.loads(line) for line in out_path.read_text().splitlines()]
     assert records[-1]["status"] == "ok"
 
@@ -230,15 +288,12 @@ def test_run_judge_stops_batch_early_on_daily_quota_exhaustion(tmp_path, monkeyp
     assert len(judge.calls) <= 2  # at most the triggering call plus one already-dequeued race
     assert len(judge.calls) < len(rows)  # the rest were cancelled, not just slow
 
+    # Neither the cancelled tasks nor the ones that were already in flight when the quota
+    # error landed leave any trace -- no JSONL line, no checkpoint entry -- so a plain
+    # re-run, no --retry-failed, retries every one of them once the quota resets.
     out_path = data_dir / "evaluations" / "quota-judge.jsonl"
-    records = [json.loads(line) for line in out_path.read_text().splitlines()]
-    assert len(records) == len(judge.calls)  # every attempted call got exactly one record
-    assert all(r["status"] == "error" for r in records)
-    assert all("quota exhausted" in r["error_detail"] for r in records)
+    assert not out_path.exists() or out_path.read_text() == ""
 
-    # Cancelled tasks never ran -- they must be absent from checkpoint (a plain re-run, no
-    # --retry-failed, will pick them up automatically), not recorded as "error".
     for i in range(len(rows)):
         key = checkpoint_key(tool_uid_for(_make_row(name=f"tool_{i}")), "description_only", "quota-judge")
-        attempted = f"tool_{i}" in judge.calls
-        assert (checkpoint.get(key) is not None) == attempted
+        assert checkpoint.get(key) is None

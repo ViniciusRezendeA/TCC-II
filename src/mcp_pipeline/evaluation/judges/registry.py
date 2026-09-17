@@ -51,3 +51,19 @@ def load_judges(config_path: Path | None = None, only: set[str] | None = None) -
         judges.append(judge_cls(judge_id=entry["id"], model_id=entry["model_id"], **extra_kwargs))
 
     return judges
+
+
+def provider_for(judge_id: str, config_path: Path | None = None) -> str:
+    """Looks up a single judge_id's `provider` field in judges.yaml, regardless of its
+    `enabled` flag -- used by scripts/run_parallel_step3.py to find which env var holds the
+    API keys to rotate across processes (e.g. "google" -> GOOGLE_API_KEY/GOOGLE_API_KEYS)
+    without duplicating judges.yaml's parsing there.
+    """
+    config_path = config_path or (CONFIG_DIR / "judges.yaml")
+    raw = yaml.safe_load(config_path.read_text(encoding="utf-8"))
+
+    for entry in raw["judges"]:
+        if entry["id"] == judge_id:
+            return entry["provider"]
+
+    raise ValueError(f"judge_id desconhecido {judge_id!r} em {config_path}")
