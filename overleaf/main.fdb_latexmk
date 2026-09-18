@@ -1,13 +1,13 @@
 # Fdb version 4
-["bibtex main"] 1789718529.44449 "main.aux" "main.bbl" "main" 1789718531.67488 0
+["bibtex main"] 1789719525.54555 "main.aux" "main.bbl" "main" 1789719527.90165 0
   "./sbc-template.bib" 1789702952.64004 10102 25dd02a4eb2398aebc55127f943f90ef ""
   "./sbc.bst" 1789702952.65464 21863 e2f961827e28074ef5a2bc27ccb7b310 ""
-  "main.aux" 1789718531.40327 8641 78cda960b9ecbaf97a2660e6a9e49495 "pdflatex"
+  "main.aux" 1789719527.62057 7884 b96a26d7eda56205f09b74ead391b99b "pdflatex"
   (generated)
   "main.bbl"
   "main.blg"
   (rewritten before read)
-["pdflatex"] 1789718529.54942 "main.tex" "main.pdf" "main" 1789718531.67502 0
+["pdflatex"] 1789719525.6734 "main.tex" "main.pdf" "main" 1789719527.9018 0
   "/usr/local/texlive/2026/texmf-dist/fonts/enc/dvips/base/8r.enc" 1165713224 4850 80dc9bab7f31fb78a000ccfed0e27cab ""
   "/usr/local/texlive/2026/texmf-dist/fonts/map/fontname/texfonts.map" 1577235249 3524 cb3e574dea2d1052e39280babc910dc8 ""
   "/usr/local/texlive/2026/texmf-dist/fonts/tfm/adobe/courier/pcrb7t.tfm" 1136768653 960 4ab65358b8406f30ef5496c8c096d22b ""
@@ -178,18 +178,18 @@
   "images/01_repos_por_linguagem.png" 1789702952.60288 49287 55c648257e36023b73d45536e32ab1ec ""
   "images/02_tools_por_linguagem.png" 1789702952.60381 45451 c6b201c9832a207ec7e894940f6b3c08 ""
   "images/08_distribuicao_loc.png" 1789702952.60671 40854 e39aaf8f16001977c7065e2df0d7aa85 ""
-  "images/arvoreFinal.png" 1789717091.68219 158732 8bb21d6a0f49f86e09e45dc406036cba ""
-  "images/fluxo_etapa1_detalhado.png" 1789717091.26987 149958 87b5de0dd7481dc0e38df5bf7c834690 ""
-  "images/fluxo_etapa2_detalhado.png" 1789717091.39139 176107 9e12e61c39109ad5fbc2268c1fd393bc ""
-  "images/fluxo_etapa3_detalhado.png" 1789717608.84456 209309 d9ff1eb069118826985f1952f719d147 ""
-  "images/metodologia_v7.png" 1789717091.17003 115096 77d268eb05d8834fac90bca922d3f9b0 ""
-  "main.aux" 1789718531.40327 8641 78cda960b9ecbaf97a2660e6a9e49495 "pdflatex"
-  "main.bbl" 1789718529.54662 4828 ab5e45da63057c64bcd20dee6af2f911 "bibtex main"
+  "images/arvoreFinal.png" 1789719417.64828 130462 8cda347417936086d644ba7f7f2d2cd8 ""
+  "images/fluxo_etapa1_detalhado.png" 1789719417.2468 150213 08ba8c09a6b953c0afd89e58a95b9c8a ""
+  "images/fluxo_etapa2_detalhado.png" 1789719417.35885 177301 9b1cdd3a951aef6a2e0690005d4ff9b1 ""
+  "images/fluxo_etapa3_detalhado.png" 1789719417.53351 209988 92bd36b475850a02af176d3337d67f1a ""
+  "images/metodologia_v7.png" 1789719417.14901 115096 77d268eb05d8834fac90bca922d3f9b0 ""
+  "main.aux" 1789719527.62057 7884 b96a26d7eda56205f09b74ead391b99b "pdflatex"
+  "main.bbl" 1789719525.67033 4828 ab5e45da63057c64bcd20dee6af2f911 "bibtex main"
   "main.tex" 1789718114.87004 5455 2bff5145f57d22d9725dc47a039211d8 ""
   "sbc-template.sty" 1789702952.65035 5280 0a277450ee6cfc82a68e4b0b0f92e15e ""
   "sectionsTCCII/01_Introducao.tex" 1789707592.80696 7461 74bae151fc028e496c98d1d982538823 ""
   "sectionsTCCII/04_Materiais_Metodos.tex" 1789718215.40585 24990 119153bf0380e2304b2099e6f401c972 ""
-  "sectionsTCCII/05_Resultados_Parciais.tex" 1789717909.71273 6180 d72836c142919c40e675746e45003a22 ""
+  "sectionsTCCII/05_Resultados_Parciais.tex" 1789719477.89857 2860 e101d4c130eb65b221832308a5992975 ""
   "sectionsTCCII/Apendice.tex" 1789718309.48317 9470 5ac2ad5391dbe81f71464a3a4d49d332 ""
   (generated)
   "main.aux"

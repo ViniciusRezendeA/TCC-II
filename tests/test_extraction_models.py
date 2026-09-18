@@ -51,9 +51,23 @@ def test_tool_record_from_dict_requires_loc_and_call_graph_depth():
     ).to_dict()
     del stale["loc"]
     del stale["call_graph_depth"]
-    del stale["cyclomatic_complexity"]
     with pytest.raises(KeyError):
         ToolRecord.from_dict(stale)
+
+
+def test_tool_record_from_dict_defaults_cyclomatic_complexity_for_pre_migration_rows():
+    stale = ToolRecord(
+        name="x",
+        description="",
+        description_is_literal=False,
+        sdk_pattern="x",
+        source_location=SourceLocation(file="f.py", start_line=1, end_line=1),
+        qualified_name="x",
+        loc=3,
+        call_graph_depth=1,
+    ).to_dict()
+    del stale["cyclomatic_complexity"]  # dataset.jsonl rows written before this field existed
+    assert ToolRecord.from_dict(stale).cyclomatic_complexity == 0
 
 
 def test_call_graph_node_round_trips_with_nested_children():

@@ -249,7 +249,7 @@ def gen_etapa1():
 
     xd = x3  # losango alinhado sob a caixa 3
     x4 = xd - dw / 2 - GAP - w / 2
-    x5 = x4 - w / 2 - GAP - w5 / 2
+    x5 = (x1 - w / 2) + w5 / 2  # borda esquerda alinhada com a caixa 1
     xdesc = xd + dw / 2 + GAP + wdesc / 2
 
     fig, ax = new_ax()
@@ -296,11 +296,11 @@ def gen_etapa2():
     xd = x3
 
     x_desq = xd - dw / 2 - GAP - wdesq / 2
-    x_bf = x1
+    x_bf = (x1 - w / 2) + wbf / 2  # borda esquerda alinhada com a caixa 1
 
     x4 = xd
     x5 = x4 - w - GAP
-    x6 = x5 - w / 2 - GAP - w6 / 2
+    x6 = (x1 - w / 2) + w6 / 2  # borda esquerda alinhada com a caixa 1 e o backfill
 
     fig, ax = new_ax()
     b1 = box(ax, x1, row1_y, w, h, "1. Clonagem\nrasa", fontsize=14.5, fill=fill, edge=edge)
@@ -332,31 +332,36 @@ def gen_etapa2():
 def gen_etapa3():
     """3 fileiras, de cima para baixo, com distancia minima `vgap` entre elas:
       fileira 1: Montagem -> Payload -> Envio -> Resposta (a cadeia principal)
-      fileira 2: Desfecho? (losango) com os 3 desfechos (ok/refused/error) em leque a direita
-      fileira 3: os 2 destinos (Registro nos resultados / Log de erros), abaixo da fileira 2
+      fileira 2: Desfecho? (losango) e os 2 destinos finais (Registro nos
+        resultados / Log de erros), lado a lado
+      fileira 3: os 3 desfechos possiveis (ok/refused/error), abaixo do
+        losango, que sobem ate os destinos da fileira 2
+    Isso evita a fileira 2/3 ficarem restritas ao canto direito (com toda a
+    area abaixo da fileira 1 vazia a esquerda): os destinos ficam fora do
+    conjunto dos 3 desfechos (um a esquerda, outro a direita), ocupando a
+    largura toda da figura.
     """
     fill, edge = STEP_CLASSIFICACAO
     w, h = 2.15, 1.25
     dw, dh = 1.9, 1.85
-    wr, hr = 2.1, 0.9
+    wr, hr = 2.0, 0.9
     wres, hres = 2.3, 1.35
     wlog, hlog = 2.1, 0.85
-    stub = 0.65
     vgap = 0.8
-    spread = 1.15  # espacamento vertical entre os 3 desfechos, dentro da fileira 2 (> hr, sem sobrepor)
 
     xs = layout_row(0, GAP, [w, w, w, w])
     row1_y = 0
     xd = xs[-1]  # losango alinhado sob a ultima caixa da fileira 1 (Resposta)
 
     row2_y = row1_y - h / 2 - vgap - dh / 2
-    ok_y, ref_y, err_y = row2_y + spread, row2_y, row2_y - spread
+    row3_y = row2_y - dh / 2 - vgap - hr / 2
 
-    row3_y = (err_y - hr / 2) - vgap - max(hres, hlog) / 2
+    ok_x = xd - (wr + GAP)
+    ref_x = xd
+    err_x = xd + (wr + GAP)
 
-    xr = xd + dw / 2 + stub + wr / 2
-    x_res = xr - 1.3
-    x_log = xr + 1.3
+    x_res = ok_x - wr / 2 - GAP - wres / 2
+    x_log = err_x + wr / 2 + GAP + wlog / 2
 
     fig, ax = new_ax()
     b1 = box(ax, xs[0], row1_y, w, h, "Montagem\ndos 2 cenários", fontsize=13, fill=fill, edge=edge)
@@ -370,127 +375,112 @@ def gen_etapa3():
     d1 = diamond(ax, xd, row2_y, dw, dh, "Desfecho?", fontsize=13.5, edge=edge)
     elbow(ax, edge_bottom(b4), edge_top(d1), bend="y", fontsize=13)
 
+    res = box(ax, x_res, row2_y, wres, hres, "Registro nos\nresultados\n(JSONL + checkpoint)", fontsize=10.5)
+    log = box(ax, x_log, row2_y, wlog, hlog, "Log de erros\n(sem checkpoint)", fill=GRAY_FILL, edge=GRAY_EDGE, fontsize=10.5)
+
     # "ok" e "refused" sao gravados no JSONL de resultados + checkpoint; so o
     # erro tecnico fica de fora do checkpoint, indo so para um log de erros
     # separado, sem registro nos resultados.
-    ok = box(ax, xr, ok_y, wr, hr, "Avaliação\nconcluída", fill=GREEN_FILL, edge=GREEN_EDGE, fontsize=13)
-    ref = box(ax, xr, ref_y, wr, hr, "Recusa de\nsegurança", fill=ORANGE_FILL, edge=ORANGE_EDGE, fontsize=12.5)
-    err = box(ax, xr, err_y, wr, hr, "Erro\ntécnico", fill=RED_FILL, edge=RED_EDGE, fontsize=13)
+    ok = box(ax, ok_x, row3_y, wr, hr, "Avaliação\nconcluída", fill=GREEN_FILL, edge=GREEN_EDGE, fontsize=12)
+    ref = box(ax, ref_x, row3_y, wr, hr, "Recusa de\nsegurança", fill=ORANGE_FILL, edge=ORANGE_EDGE, fontsize=11.5)
+    err = box(ax, err_x, row3_y, wr, hr, "Erro\ntécnico", fill=RED_FILL, edge=RED_EDGE, fontsize=12)
 
-    dr = edge_right(d1)
-    ax.add_line(Line2D([dr[0], xr - wr / 2 - 0.35], [dr[1], dr[1]], color="#333333", linewidth=LW))
-    bus_x = xr - wr / 2 - 0.35
-    ax.add_line(Line2D([bus_x, bus_x], [ok_y, err_y], color="#333333", linewidth=LW))
-    for target, ty in ((ok, ok_y), (ref, ref_y), (err, err_y)):
-        ax.add_line(Line2D([bus_x, edge_left(target)[0]], [ty, ty], color="#333333", linewidth=LW))
-        arr = FancyArrowPatch((bus_x, ty), edge_left(target), arrowstyle="-|>", mutation_scale=18, linewidth=LW, color="#333333")
-        ax.add_patch(arr)
-    ax.text(bus_x - 0.15, ok_y + 0.32, "ok", ha="right", va="center", fontsize=12, family=FONT, backgroundcolor="white")
-    ax.text(bus_x - 0.15, ref_y + 0.32, "refused", ha="right", va="center", fontsize=12, family=FONT, backgroundcolor="white")
-    ax.text(bus_x - 0.15, err_y + 0.32, "error", ha="right", va="center", fontsize=12, family=FONT, backgroundcolor="white")
+    # losango -> os 3 desfechos: desce ate um cotovelo comum (bus_y), logo
+    # abaixo do losango, e dali para cada caixa da fileira 3.
+    bus_y = row2_y - dh / 2 - 0.3
+    elbow(ax, edge_bottom(d1), edge_top(ok), bend="y", at=bus_y, label="ok",
+          label_dx=-0.25, label_dy=0.22, fontsize=11.5)
+    elbow(ax, edge_bottom(d1), edge_top(ref), bend="y", at=bus_y, label="refused",
+          label_dx=0, label_dy=0.22, fontsize=11.5)
+    elbow(ax, edge_bottom(d1), edge_top(err), bend="y", at=bus_y, label="error",
+          label_dx=0.25, label_dy=0.22, fontsize=11.5)
 
-    # "ok" e "refused" convergem para o mesmo destino (resultados), na fileira
-    # 3; "erro" desce sozinho para um destino separado (log), tambem na
-    # fileira 3. "ok"/"refused" saem pela direita das caixas antes de descer
-    # -- descer reto (pela mesma coluna x das 3 caixas) cruzaria por dentro
-    # de "Recusa de seguranca"/"Erro tecnico", que ficam abaixo na mesma
-    # coluna. So depois de sair da coluna e ja abaixo de todas as caixas
-    # (clear_y) e que a linha pode virar para a esquerda, ate a coluna de
-    # "erro" (que nao tem nada abaixo dela) pode descer reto.
-    res = box(ax, x_res, row3_y, wres, hres, "Registro nos\nresultados\n(JSONL + checkpoint)", fontsize=11)
-    log = box(ax, x_log, row3_y, wlog, hlog, "Log de erros\n(sem checkpoint)", fill=GRAY_FILL, edge=GRAY_EDGE, fontsize=11)
-
-    exit_x = xr + wr / 2 + 0.35
-    clear_y = err_y - hr / 2 - 0.3
-    for target, ty in ((ok, ok_y), (ref, ref_y)):
-        tr = edge_right(target)
-        ax.add_line(Line2D([tr[0], exit_x], [ty, ty], color="#333333", linewidth=LW))
-    ax.add_line(Line2D([exit_x, exit_x], [ok_y, clear_y], color="#333333", linewidth=LW))
-    ax.add_line(Line2D([exit_x, x_res], [clear_y, clear_y], color="#333333", linewidth=LW))
-    arr_res = FancyArrowPatch((x_res, clear_y), edge_top(res), arrowstyle="-|>", mutation_scale=18, linewidth=LW, color="#333333")
-    ax.add_patch(arr_res)
-
-    elbow(ax, edge_bottom(err), edge_top(log), bend="y", at=clear_y)
+    # os 3 desfechos -> os 2 destinos: sobem ate um cotovelo comum (exit_y),
+    # logo abaixo da fileira 3, fora da coluna de qualquer caixa vizinha, e
+    # dali sobem ate o destino correspondente (sem cruzar outras caixas).
+    exit_y = row3_y - hr / 2 - 0.3
+    elbow(ax, edge_bottom(ok), edge_bottom(res), bend="y", at=exit_y)
+    elbow(ax, edge_bottom(ref), edge_bottom(res), bend="y", at=exit_y)
+    elbow(ax, edge_bottom(err), edge_bottom(log), bend="y", at=exit_y)
 
     save(fig, "fluxo_etapa3_detalhado.png")
 
 
 # ---------------------------------------------------------------------------
-# 5. Exemplo de arvore de chamadas (arvoreFinal.png) - horizontal, raiz a esquerda
+# 5. Exemplo de arvore de chamadas (arvoreFinal.png) - niveis 1 a 4, mostrando
+# o teto de profundidade de 3 niveis (Secao "Extracao das Ferramentas"): o
+# mesmo layout do diagrama original (colunas numeradas 1-4, separadores
+# verticais pontilhados entre os niveis considerados, faixa destacada para o
+# nivel 4, que excede o teto), redesenhado no estilo visual do resto do
+# script -- caixas arredondadas na cor da Etapa 2 (roxo) para os niveis
+# considerados, e a cor semantica vermelha (externo/nao resolvido, mesma
+# usada nos outros diagramas) para o nivel 4.
 # ---------------------------------------------------------------------------
 def gen_arvore():
-    # Raiz com mais respiro entre texto e borda (era justa demais). Um dos
-    # tres galhos de nivel 2 termina sem resolucao (externo), deixando claro
-    # que uma chamada pode ficar sem resolver em QUALQUER nivel da arvore,
-    # nao so no nivel 3 -- os outros dois galhos seguem ate o nivel 3 normal.
-    root_w, root_h = 2.5, 1.4
-    l2_w, l2_h = 2.2, 0.95
-    l3_w, l3_h = 2.2, 0.7
-    col_gap = 1.0
-    bus_stub = 0.5
+    fill, edge = STEP_EXTRACAO
+    w, h = 2.3, 1.0
+    col_gap = 1.7
+    dy = 1.15
+    bus_stub = 0.55
 
-    root_x = 0
+    x1 = 0
+    x2 = x1 + w + col_gap
+    x3 = x2 + w + col_gap
+    x4 = x3 + w + col_gap
+
     fig, ax = new_ax()
-    root = box(ax, root_x, 0, root_w, root_h, "search_documents()\n(nível 1 — ferramenta)", fontsize=12.5)
 
-    l2_x = root_x + root_w / 2 + col_gap + l2_w / 2
-    l2_y = [1.9, 0, -1.9]
-    l2_defs = [
-        ("validate_query()", False),
-        ("run_vector_search()", False),
-        ("<externo: json.dumps>", True),
-    ]
-    l2_boxes = []
-    for y, (label, external) in zip(l2_y, l2_defs):
-        fill = GRAY_FILL if external else BLUE_FILL
-        edge = GRAY_EDGE if external else BLUE_EDGE
-        b = box(ax, l2_x, y, l2_w, l2_h, f"{label}\n(nível 2)", fill=fill, edge=edge,
-                fontsize=10.5, dashed=external)
-        l2_boxes.append(b)
+    # Faixa "nao sera considerado" atras da coluna 4, do mesmo jeito que a
+    # sombra vermelha do diagrama original.
+    band_pad = 0.55
+    band_bottom = -dy - h / 2 - 0.55
+    band_top = dy + h / 2 + 1.15
+    band = FancyBboxPatch(
+        (x4 - w / 2 - band_pad, band_bottom), w + 2 * band_pad, band_top - band_bottom,
+        boxstyle="round,pad=0.0,rounding_size=0.05", linewidth=0,
+        facecolor=RED_FILL, edgecolor="none", zorder=0,
+    )
+    ax.add_patch(band)
 
-    bus1_x = root_x + root_w / 2 + bus_stub
-    rr = edge_right(root)
-    ax.add_line(Line2D([rr[0], bus1_x], [rr[1], rr[1]], color="#333333", linewidth=LW))
-    ax.add_line(Line2D([bus1_x, bus1_x], [l2_y[0], l2_y[-1]], color="#333333", linewidth=LW))
-    for b in l2_boxes:
-        ax.add_line(Line2D([bus1_x, edge_left(b)[0]], [b[1], b[1]], color="#333333", linewidth=LW))
-        arr = FancyArrowPatch((bus1_x, b[1]), edge_left(b), arrowstyle="-|>", mutation_scale=18, linewidth=LW, color="#333333")
+    # Separadores pontilhados entre os niveis considerados (1|2 e 2|3).
+    sep_top = dy + h / 2 + 0.75
+    sep_bottom = -dy - h / 2 - 0.4
+    for sx in ((x1 + x2) / 2, (x2 + x3) / 2):
+        ax.add_line(Line2D([sx, sx], [sep_bottom, sep_top], color="#999999", linewidth=1.3, linestyle=":"))
+
+    header_y = dy + h / 2 + 0.95
+    num_y = dy + h / 2 + 0.45
+    ax.text((x1 + x3) / 2, header_y, "Será considerado", ha="center", va="center", fontsize=13.5, family=FONT)
+    ax.text(x4, header_y, "Não será considerado", ha="center", va="center", fontsize=12.5, family=FONT, color="#7a1f1f")
+    for i, x in enumerate((x1, x2, x3, x4), start=1):
+        ax.text(x, num_y, str(i), ha="center", va="center", fontsize=13, family=FONT, color="#555555")
+
+    n1 = box(ax, x1, 0, w, h, "Método da\nferramenta\n(nível 1)", fill=fill, edge=edge, fontsize=11)
+    n2 = box(ax, x2, 0, w, h, "Service\n(nível 2)", fill=fill, edge=edge, fontsize=12.5)
+    n3a = box(ax, x3, dy, w, h, "Service\n(nível 3)", fill=fill, edge=edge, fontsize=12.5)
+    n3b = box(ax, x3, -dy, w, h, "Repositorie\n(nível 3)", fill=fill, edge=edge, fontsize=11.5)
+    n4a = box(ax, x4, dy, w, h, "Utils\n(nível 4)", fill=RED_FILL, edge=RED_EDGE, fontsize=12.5, textcolor="#7a1f1f")
+    n4b = box(ax, x4, -dy, w, h, "Repositorie\n(nível 4)", fill=RED_FILL, edge=RED_EDGE, fontsize=11.5, textcolor="#7a1f1f")
+
+    straight(ax, edge_right(n1), edge_left(n2))
+
+    bus1_x = x2 + w / 2 + bus_stub
+    n2r = edge_right(n2)
+    ax.add_line(Line2D([n2r[0], bus1_x], [n2r[1], n2r[1]], color="#333333", linewidth=LW))
+    ax.add_line(Line2D([bus1_x, bus1_x], [dy, -dy], color="#333333", linewidth=LW))
+    for target in (n3a, n3b):
+        ax.add_line(Line2D([bus1_x, edge_left(target)[0]], [target[1], target[1]], color="#333333", linewidth=LW))
+        arr = FancyArrowPatch((bus1_x, target[1]), edge_left(target), arrowstyle="-|>", mutation_scale=18, linewidth=LW, color="#333333")
         ax.add_patch(arr)
 
-    l3_x = l2_x + l2_w / 2 + col_gap + l3_w / 2
-    # Sem entrada para o indice 2: o galho externo de nivel 2 nao tem filhos.
-    l3_defs = {
-        0: [("check_schema()", False), ("<externo: re.match>", True)],
-        1: [("embed_text()", False), ("query_index()", False)],
-    }
-    for i, b2 in enumerate(l2_boxes):
-        children = l3_defs.get(i)
-        if children is None:
-            continue
-        n = len(children)
-        bus2_x = l2_x + l2_w / 2 + bus_stub
-        cys = [b2[1] + (j - (n - 1) / 2) * 0.95 for j in range(n)]
-        b2r = edge_right(b2)
-        if n == 1:
-            straight(ax, b2r, (l3_x - l3_w / 2, cys[0]))
-        else:
-            ax.add_line(Line2D([b2r[0], bus2_x], [b2r[1], b2r[1]], color="#333333", linewidth=LW))
-            ax.add_line(Line2D([bus2_x, bus2_x], [cys[0], cys[-1]], color="#333333", linewidth=LW))
-            for cy in cys:
-                ax.add_line(Line2D([bus2_x, l3_x - l3_w / 2], [cy, cy], color="#333333", linewidth=LW))
-                arr = FancyArrowPatch((bus2_x, cy), (l3_x - l3_w / 2, cy), arrowstyle="-|>", mutation_scale=18, linewidth=LW, color="#333333")
-                ax.add_patch(arr)
-        for (label, external), cy in zip(children, cys):
-            fill = GRAY_FILL if external else GREEN_FILL
-            edge = GRAY_EDGE if external else GREEN_EDGE
-            box(ax, l3_x, cy, l3_w, l3_h, f"{label}\n(nível 3)", fill=fill, edge=edge,
-                fontsize=10.5, dashed=external)
-
-    legend_y = -3.0
-    box(ax, root_x + 1.1, legend_y, 0.45, 0.28, "", fill=GREEN_FILL, edge=GREEN_EDGE, fontsize=1)
-    ax.text(root_x + 1.45, legend_y, "resolvida no repositório", ha="left", va="center", fontsize=11, family=FONT)
-    box(ax, root_x + 5.1, legend_y, 0.45, 0.28, "", fill=GRAY_FILL, edge=GRAY_EDGE, fontsize=1, dashed=True)
-    ax.text(root_x + 5.45, legend_y, "externa / não resolvida", ha="left", va="center", fontsize=11, family=FONT)
+    bus2_x = x3 + w / 2 + bus_stub
+    n3ar = edge_right(n3a)
+    ax.add_line(Line2D([n3ar[0], bus2_x], [n3ar[1], n3ar[1]], color="#333333", linewidth=LW))
+    ax.add_line(Line2D([bus2_x, bus2_x], [dy, -dy], color="#333333", linewidth=LW))
+    for target in (n4a, n4b):
+        ax.add_line(Line2D([bus2_x, edge_left(target)[0]], [target[1], target[1]], color="#333333", linewidth=LW))
+        arr = FancyArrowPatch((bus2_x, target[1]), edge_left(target), arrowstyle="-|>", mutation_scale=18, linewidth=LW, color="#333333")
+        ax.add_patch(arr)
 
     save(fig, "arvoreFinal.png")
 

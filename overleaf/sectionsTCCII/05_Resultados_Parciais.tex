@@ -2,28 +2,11 @@
 \section{Resultados}
 \label{sec:resultados}
 
-\textcolor{green}{Esta seção apresenta os resultados da avaliação por rubrica descrita na Seção~\ref{sec:materiais}, obtidos até o momento da redação deste artigo: 9.706 avaliações concluídas, cobrindo 4.872 das 12.171 ferramentas do conjunto de dados, por dois modelos de linguagem atuando como avaliadores. Por se tratar de um processo contínuo, os mesmos números são atualizados automaticamente em um painel público\footnote{\url{https://viniciusrezendea.github.io/TCC-II/}}, gerado a partir da mesma base de avaliações usada nesta seção.}
-
-\subsection{\textcolor{green}{Confiabilidade Técnica das Avaliações}}
-
-\textcolor{green}{A Tabela~\ref{tab:confiabilidade-juizes} resume o volume de avaliações por juiz e o desfecho de cada chamada (Seção~\ref{sec:materiais}: concluída, recusada ou com erro técnico). Nesta amostra, todas as 9.706 avaliações foram concluídas com sucesso, sem recusas de segurança dos provedores nem erros técnicos, o que não elimina a possibilidade de ocorrerem em avaliações futuras, mas indica que, até aqui, o \textit{payload} enviado aos juízes (descrição da ferramenta e, no segundo cenário, o código correspondente) não acionou bloqueios de conteúdo nem falhas de processamento.}
-
-\begin{table}[H]
-\centering
-\caption{Confiabilidade técnica das avaliações, por juiz}
-\label{tab:confiabilidade-juizes}
-\begin{tabular}{|l|l|r|r|r|r|}
-\hline
-\textbf{Juiz} & \textbf{Provedor} & \textbf{Avaliações} & \textbf{Concluídas} & \textbf{Recusadas} & \textbf{Erro} \\ \hline
-DeepSeek-V4.1-Flash & DeepSeek & 8.648 & 8.648 (100,0\%) & 0 & 0 \\ \hline
-Gemini 3.5 Flash-Lite & Google & 1.058 & 1.058 (100,0\%) & 0 & 0 \\ \hline
-\textbf{Total} & \textbf{2 juízes} & \textbf{9.706} & \textbf{9.706 (100,0\%)} & \textbf{0} & \textbf{0} \\ \hline
-\end{tabular}
-\end{table}
+\textcolor{green}{Esta seção apresenta os resultados da avaliação por rubrica descrita na Seção~\ref{sec:materiais}, obtidos até o momento da redação deste artigo com o juiz DeepSeek-V4.1-Flash: 8.648 avaliações concluídas, das quais 4.304 ferramentas foram avaliadas nos dois cenários experimentais (\textit{description\_only} e \textit{with\_source}), permitindo o pareamento necessário para o Teste de Wilcoxon. A avaliação pelos demais juízes configurados no pipeline (Gemini 3.5 Flash-Lite e Qwen2.5-14B-Instruct, Seção~\ref{sec:materiais}) está em execução; a comparação entre avaliadores distintos é tratada como direção de trabalho futuro.}
 
 \subsection{\textcolor{green}{Comparação entre Cenários e Significância Estatística}}
 
-\textcolor{green}{As Tabelas~\ref{tab:comparacao-deepseek} e~\ref{tab:comparacao-gemini} apresentam, por juiz, o escore médio de cada componente da rubrica nos dois cenários (apenas descrição \textit{versus} descrição com código), a diferença entre eles ($\Delta$) e o resultado do Teste de Postos Sinalizados de Wilcoxon, com correção de Benjamini-Hochberg para comparações múltiplas entre as seis dimensões. O tamanho da amostra pareada varia por juiz (4.304 pares para DeepSeek-V4.1-Flash, 528 para Gemini 3.5 Flash-Lite) porque reflete apenas as ferramentas já avaliadas nos dois cenários por aquele juiz até o momento; a proporção de empates (pares em que os dois cenários recebem exatamente o mesmo escore) também varia por dimensão, de 61,8\% a 94,6\%.}
+\textcolor{green}{A Tabela~\ref{tab:comparacao-deepseek} apresenta, para o juiz DeepSeek-V4.1-Flash, o escore médio de cada componente da rubrica nos dois cenários (apenas descrição \textit{versus} descrição com código), a diferença entre eles ($\Delta$) e o resultado do Teste de Postos Sinalizados de Wilcoxon, com correção de Benjamini-Hochberg para comparações múltiplas entre as seis dimensões. A proporção de empates (pares em que os dois cenários recebem exatamente o mesmo escore) varia por dimensão, de 61,8\% a 94,6\%.}
 
 \begin{table}[H]
 \centering
@@ -41,22 +24,4 @@ Examples & 1,20 & 1,20 & -0,00 & 0,425 & Não \\ \hline
 \end{tabular}
 \end{table}
 
-\begin{table}[H]
-\centering
-\caption{Comparação entre cenários por componente da rubrica: Gemini 3.5 Flash-Lite (n pareado = 528)}
-\label{tab:comparacao-gemini}
-\begin{tabular}{|l|r|r|r|r|c|}
-\hline
-\textbf{Componente} & \textbf{Só descrição} & \textbf{Desc.+código} & \textbf{$\Delta$} & \textbf{p (BH)} & \textbf{Signif.} \\ \hline
-Purpose & 3,75 & 3,74 & -0,01 & 0,541 & Não \\ \hline
-Guidelines & 1,80 & 1,86 & +0,06 & 0,004 & Sim \\ \hline
-Limitations & 1,46 & 1,55 & +0,09 & $<$0,001 & Sim \\ \hline
-Parameter Explanation & 2,16 & 2,31 & +0,15 & $<$0,001 & Sim \\ \hline
-Length and Completeness & 2,26 & 2,43 & +0,17 & $<$0,001 & Sim \\ \hline
-Examples & 1,25 & 1,31 & +0,05 & 0,002 & Sim \\ \hline
-\end{tabular}
-\end{table}
-
-\textcolor{green}{Os dois juízes divergem quanto à direção do efeito. Para o DeepSeek-V4.1-Flash, a inclusão do código reduz o escore médio em todas as seis dimensões, com diferença estatisticamente significativa em cinco delas (todas exceto \textit{Examples}); a maior queda ocorre em \textit{Purpose} ($\Delta = -0,13$). Para o Gemini 3.5 Flash-Lite, o efeito é oposto: o código eleva o escore médio em cinco das seis dimensões, também com significância estatística nessas cinco, e a única exceção é justamente \textit{Purpose} ($\Delta = -0,01$, não significativo), que é ao mesmo tempo a dimensão mais afetada para o outro juiz. As maiores diferenças absolutas para o Gemini 3.5 Flash-Lite concentram-se em \textit{Length and Completeness} ($\Delta = +0,17$) e \textit{Parameter Explanation} ($\Delta = +0,15$).}
-
-\textcolor{green}{Essa divergência de direção entre avaliadores é, em si, um resultado relevante para os objetivos deste trabalho: a inclusão do código altera os escores atribuídos às descrições (objetivo específico (i), Seção~\ref{sec:introducao}) e o faz de forma estatisticamente significativa na maior parte das dimensões da rubrica (objetivo específico (iii)), mas não necessariamente na mesma direção entre modelos de IA distintos. Uma hipótese compatível com os dados é que o DeepSeek-V4.1-Flash pondera o código como evidência que expõe lacunas da descrição (reduzindo a nota quando confrontado com uma implementação mais completa do que o texto sugere), enquanto o Gemini 3.5 Flash-Lite tende a usar o código como contexto complementar que favorece a avaliação (elevando a nota quando a implementação corrobora ou detalha o que a descrição afirma). A confirmação dessa hipótese, e sua generalização para os demais juízes ainda em execução, depende da conclusão da coleta de avaliações e é tratada como direção de trabalho futuro.}
+\textcolor{green}{A inclusão do código reduz o escore médio nas seis dimensões da rubrica, com diferença estatisticamente significativa em cinco delas (todas exceto \textit{Examples}); a maior queda ocorre em \textit{Purpose} ($\Delta = -0,13$), seguida por \textit{Parameter Explanation} ($\Delta = -0,06$). Esse padrão é compatível com a hipótese de que o código expõe lacunas da descrição não percebidas quando apenas o texto é avaliado: ao confrontar a descrição com uma implementação mais completa do que o texto sugere, o avaliador atribui uma pontuação mais conservadora. A generalização desse resultado para outros juízes depende da conclusão da coleta de avaliações e é tratada como direção de trabalho futuro.}

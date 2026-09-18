@@ -66,7 +66,13 @@ class ToolRecord:
             qualified_name=d["qualified_name"],
             loc=d["loc"],
             call_graph_depth=d["call_graph_depth"],
-            cyclomatic_complexity=d["cyclomatic_complexity"],
+            # Unlike loc/call_graph_depth (hard-required, deliberately no
+            # fallback -- see the "requires" test), this tolerates
+            # dataset.jsonl rows written before this field existed: it
+            # doesn't gate Etapa 3 (evaluation only reads name/description),
+            # so a stale dataset shouldn't block re-running judges just
+            # because it predates a newer, unrelated extraction metric.
+            cyclomatic_complexity=d.get("cyclomatic_complexity", 0),
         )
 
 
