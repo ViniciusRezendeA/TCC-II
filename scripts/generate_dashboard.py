@@ -28,7 +28,13 @@ from statistics import mean
 from mcp_pipeline.config import DATA_DIR
 from mcp_pipeline.evaluation.prompts import PROMPT_VERSION, RUBRIC_COMPONENTS
 from mcp_pipeline.logging_setup import setup_logging
-from scripts.analysis_evaluation_report import scores_long, tool_key_for, wilcoxon_por_componente
+from scripts.analysis_evaluation_report import (
+    MUDANCA_MINIMA_QUARTIS,
+    migracao_quartil_por_tool,
+    scores_long,
+    tool_key_for,
+    wilcoxon_por_componente,
+)
 from scripts.analysis_report import (
     call_graph_resolucao,
     description_literal_rate,
@@ -251,34 +257,43 @@ def build_dashboard_data(records: list[dict], prompt_version: str | None = None)
             "prompt_version": PROMPT_VERSION,
             "active_prompt_version": active_version,
             "tools_evaluated": tools_evaluated,
-            "divergence_threshold": DIVERGENCE_THRESHOLD,
+            "divergence_method": f"Migração de pelo menos {MUDANCA_MINIMA_QUARTIS} faixas de quartil da nota entre cenários, por componente e juiz, após descarte de empates",
+            "divergence_min_quartile_change": MUDANCA_MINIMA_QUARTIS,
         },
         "overall": overall,
         "breakdowns": breakdowns,
         "judges": judges,
         "tools": build_tools_data(scoped),
         "divergences": build_divergences_data(scoped),
+        "divergences_matrix": build_quartile_matrix_data(scoped),
         "prompt_versions": version_summary,
     }
 
 
-# Escala Likert 1-5 -- diferença > 2 já é, no mínimo, "nota baixa" virando "nota alta" (ex:
-# 1 -> 4), grande o bastante para não ser ruído normal de julgamento entre dois envios.
-DIVERGENCE_THRESHOLD = 2.0
+def build_divergences_data(records: list[dict]) -> list[dict]:
+    """Pares (tool, componente, juiz) cuja nota migrou pelo menos MUDANCA_MINIMA_QUARTIS
+    faixas de quartil entre description_only e with_source (ver migracao_quartil_por_tool()
+    em analysis_evaluation_report.py: quartil calculado por rank percentual dentro da
+    distribuição de notas daquele componente/juiz/cenário, não pela nota bruta) -- os casos
+    mais úteis para inspeção manual: ou o código revelou uma omissão/contradição real que a
+    descrição escondia (o efeito que a rubrica pretende capturar), ou o juiz está reagindo à
+    mera presença/tamanho do código em vez de validar a descrição contra ele (halo effect --
+    ver changelog do PROMPT_VERSION em evaluation/prompts.py). O reasoning de cada cenário vem
+    lado a lado para permitir essa leitura sem reabrir o jsonl bruto.
 
-
-def build_divergences_data(records: list[dict], threshold: float = DIVERGENCE_THRESHOLD) -> list[dict]:
-    """Pares (tool, componente, juiz) onde a nota mudou por mais de `threshold` pontos entre
-    with_source e description_only -- os casos mais úteis para inspeção manual: ou o código
-    revelou uma omissão/contradição real que a descrição escondia (o efeito que a rubrica
-    pretende capturar), ou o juiz está reagindo à mera presença/tamanho do código em vez de
-    validar a descrição contra ele (halo effect -- ver changelog do PROMPT_VERSION em
-    evaluation/prompts.py). O reasoning de cada cenário vem lado a lado para permitir essa
-    leitura sem reabrir o jsonl bruto.
+    Pares empatados (mesma nota, logo mesmo quartil, nos dois cenários) nunca aparecem aqui --
+    não migraram por definição. Migrações de só 1 faixa (Q1->Q2) também ficam de fora: o
+    critério exige um salto maior para valer inspeção manual.
 
     Chave por (tool_key_for(r), judge_id, componente) -- mesma identidade corrigida usada no
     resto do dashboard (ver build_tools_data()), não a tool_uid bruta do registro.
     """
+    migracao = migracao_quartil_por_tool(scores_long(records))
+    migracao_por_chave = {
+        (row["juiz"], row["componente"], row["tool_uid"]): row
+        for row in migracao.to_dict("records")
+    }
+
     labels = {key: label for key, label, _ in RUBRIC_COMPONENTS}
     by_key: dict[tuple[str, str, str], dict] = {}
     for r in records:
@@ -305,13 +320,13 @@ def build_divergences_data(records: list[dict], threshold: float = DIVERGENCE_TH
             }
 
     rows = []
-    for entry in by_key.values():
+    for (tool_key, judge_id, componente_key), entry in by_key.items():
         desc = entry["scenarios"].get("description_only")
         src = entry["scenarios"].get("with_source")
         if desc is None or src is None:
             continue
-        diff = src["score"] - desc["score"]
-        if abs(diff) <= threshold:
+        migracao_tool = migracao_por_chave.get((judge_id, componente_key, tool_key))
+        if migracao_tool is None or not migracao_tool["diverge"]:
             continue
         rows.append({
             "tool_name": entry["tool_name"],
@@ -323,11 +338,45 @@ def build_divergences_data(records: list[dict], threshold: float = DIVERGENCE_TH
             "componente_label": entry["componente_label"],
             "description_only": desc,
             "with_source": src,
-            "diff": diff,
+            "diff": src["score"] - desc["score"],
+            "quartil_description_only": migracao_tool["quartil_description_only"],
+            "quartil_with_source": migracao_tool["quartil_with_source"],
+            "diff_quartil": migracao_tool["diff_quartil"],
         })
 
-    rows.sort(key=lambda row: abs(row["diff"]), reverse=True)
+    rows.sort(key=lambda row: (abs(row["diff_quartil"]), abs(row["diff"])), reverse=True)
     return rows
+
+
+def build_quartile_matrix_data(records: list[dict]) -> list[dict]:
+    """Matriz de transição (quartil em description_only x quartil em with_source, 4x4) por
+    componente da rubrica, somando os dois juízes -- panorama completo de para onde cada tool
+    migrou (inclui migrações de 1 faixa e tools que ficaram no mesmo quartil), diferente da
+    tabela de build_divergences_data() que já vem filtrada só nas migrações >= 2 faixas.
+    Pares empatados (mesma nota nos dois cenários) ficam de fora, mesmo critério do resto da
+    aba Divergências.
+    """
+    migracao = migracao_quartil_por_tool(scores_long(records))
+    nao_empatados = migracao[~migracao["empate"]]
+
+    labels = {key: label for key, label, _ in RUBRIC_COMPONENTS}
+    order = [key for key, _, _ in RUBRIC_COMPONENTS]
+    matrices: dict[str, list[list[int]]] = {}
+    for row in nao_empatados.to_dict("records"):
+        componente = row["componente"]
+        matrix = matrices.setdefault(componente, [[0] * 4 for _ in range(4)])
+        matrix[row["quartil_description_only"] - 1][row["quartil_with_source"] - 1] += 1
+
+    return [
+        {
+            "componente": componente,
+            "componente_label": labels.get(componente, componente),
+            "total": sum(sum(linha) for linha in matrices[componente]),
+            "matrix": matrices[componente],
+        }
+        for componente in order
+        if componente in matrices
+    ]
 
 
 def build_tools_data(records: list[dict]) -> list[dict]:
@@ -419,6 +468,11 @@ HTML_TEMPLATE = """<meta charset="UTF-8">
     --status-critical-soft: #fbe4e1;
     --status-warning: #b8790a;
     --shadow: 0 1px 2px rgba(23,22,15,.06), 0 8px 24px -12px rgba(23,22,15,.16);
+    /* Ramp sequencial (mesma família de --accent-1), claro->escuro = pouca->muita migração. */
+    --seq-1: #cde2fb; --seq-1-text: #17160f;
+    --seq-2: #86b6ef; --seq-2-text: #17160f;
+    --seq-3: #3987e5; --seq-3-text: #fcfcfb;
+    --seq-4: #184f95; --seq-4-text: #fcfcfb;
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
@@ -429,6 +483,12 @@ HTML_TEMPLATE = """<meta charset="UTF-8">
       --status-good: #29c229; --status-good-soft: #163318;
       --status-critical: #e66767; --status-critical-soft: #3a1c1c; --status-warning: #d99a2b;
       --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px -12px rgba(0,0,0,.5);
+      /* Ramp invertido: no fundo escuro, pouca migração recua (step escuro) e muita migração
+         se destaca (step claro) -- oposto do claro, onde o step escuro é que se destaca. */
+      --seq-1: #184f95; --seq-1-text: #f4f2ea;
+      --seq-2: #3987e5; --seq-2-text: #f4f2ea;
+      --seq-3: #86b6ef; --seq-3-text: #17160f;
+      --seq-4: #cde2fb; --seq-4-text: #17160f;
     }
   }
   :root[data-theme="dark"] {
@@ -439,6 +499,10 @@ HTML_TEMPLATE = """<meta charset="UTF-8">
     --status-good: #29c229; --status-good-soft: #163318;
     --status-critical: #e66767; --status-critical-soft: #3a1c1c; --status-warning: #d99a2b;
     --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px -12px rgba(0,0,0,.5);
+    --seq-1: #184f95; --seq-1-text: #f4f2ea;
+    --seq-2: #3987e5; --seq-2-text: #f4f2ea;
+    --seq-3: #86b6ef; --seq-3-text: #17160f;
+    --seq-4: #cde2fb; --seq-4-text: #17160f;
   }
   * { box-sizing: border-box; }
   html { -webkit-text-size-adjust: 100%; }
@@ -503,6 +567,21 @@ HTML_TEMPLATE = """<meta charset="UTF-8">
   .pill.error { background: var(--status-critical-soft); color: var(--status-critical); }
   .n-flag { font-size: 11.5px; color: var(--status-warning); font-family: "IBM Plex Mono", monospace; }
   .overflow-x { overflow-x: auto; }
+  .quartile-matrix-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; margin-bottom: 40px; }
+  .quartile-matrix h3 { font-size: 13.5px; font-weight: 500; margin: 0 0 2px; }
+  .quartile-matrix .matrix-total { font-family: "IBM Plex Mono", monospace; font-size: 11.5px; color: var(--text-muted); margin: 0 0 10px; }
+  .quartile-matrix table { font-size: 12px; }
+  .quartile-matrix th, .quartile-matrix td { text-align: center; padding: 6px; }
+  .quartile-matrix thead th { font-size: 10px; padding-bottom: 4px; border-bottom: none; color: var(--text-muted); }
+  .quartile-matrix tbody th { font-family: "IBM Plex Mono", monospace; font-size: 10px; font-weight: 500; color: var(--text-muted); text-align: right; padding-right: 8px; white-space: nowrap; }
+  .quartile-matrix td { border-radius: 6px; font-family: "IBM Plex Mono", monospace; font-variant-numeric: tabular-nums; }
+  .quartile-matrix .axis-label { font-size: 10px; color: var(--text-muted); text-align: center; }
+  .qcell-0 { background: var(--surface-2); color: var(--text-muted); }
+  .qcell-1 { background: var(--seq-1); color: var(--seq-1-text); }
+  .qcell-2 { background: var(--seq-2); color: var(--seq-2-text); }
+  .qcell-3 { background: var(--seq-3); color: var(--seq-3-text); }
+  .qcell-4 { background: var(--seq-4); color: var(--seq-4-text); }
+  td.qcell-0, td.qcell-1, td.qcell-2, td.qcell-3, td.qcell-4 { font-weight: 500; }
   footer { border-top: 1px solid var(--line); padding-top: 24px; font-size: 13px; color: var(--text-muted); }
   footer p { max-width: 68ch; margin: 0 0 10px; }
   footer code { font-family: "IBM Plex Mono", monospace; background: var(--surface-1); padding: 1px 5px; border-radius: 4px; font-size: 12px; color: var(--text-secondary); }
@@ -789,9 +868,15 @@ HTML_TEMPLATE = """<meta charset="UTF-8">
   </div>
 
   <div id="tab-divergences" role="tabpanel" aria-labelledby="tab-btn-divergences" hidden>
+    <section>
+      <h2>Migração de quartil entre cenários</h2>
+      <p class="section-note">Para cada componente da rubrica, o quartil (Q1 = 25% piores notas, Q4 = 25% melhores) de cada tool em <code>description_only</code> (linha) contra o quartil em <code>with_source</code> (coluna), somando os dois juízes. Pares empatados (mesma nota nos dois cenários) ficam de fora. Células fora da diagonal mostram migração; quanto mais escura, mais tools fizeram aquele percurso.</p>
+      <div class="quartile-matrix-grid" id="quartile-matrices"></div>
+    </section>
+
     <section style="margin-bottom: 0;">
       <h2>Maiores divergências entre cenários</h2>
-      <p class="section-note">Pares tool × componente × juiz em que a nota mudou por mais de <b id="divergence-threshold" class="tabular"></b> pontos (escala 1-5) entre <code>description_only</code> e <code>with_source</code> -- candidatos a inspeção manual: ou o código revelou algo que a descrição escondia, ou o juiz reagiu à presença do código em vez de validar a descrição contra ele. Clique numa linha para ver a justificativa dos dois cenários lado a lado.</p>
+      <p class="section-note">Pares tool × componente × juiz cuja nota migrou pelo menos <b id="divergence-min-change" class="tabular"></b> faixas de quartil entre <code>description_only</code> e <code>with_source</code> (ex: Q1 → Q3), após descartar empates -- candidatos a inspeção manual: ou o código revelou algo que a descrição escondia, ou o juiz reagiu à presença do código em vez de validar a descrição contra ele. Clique numa linha para ver a justificativa dos dois cenários lado a lado.</p>
       <p class="narrative-text" id="narrative-divergences"></p>
       <span class="tools-count" id="divergences-count"></span>
       <div class="overflow-x">
@@ -805,12 +890,13 @@ HTML_TEMPLATE = """<meta charset="UTF-8">
               <th class="num">description_only</th>
               <th class="num">with_source</th>
               <th class="num">Diferença</th>
+              <th class="num">Quartil</th>
             </tr>
           </thead>
           <tbody id="divergences-rows"></tbody>
         </table>
       </div>
-      <div class="empty-state" id="divergences-empty" hidden>Nenhum par passou do limiar configurado.</div>
+      <div class="empty-state" id="divergences-empty" hidden>Nenhuma tool migrou quartil o suficiente para aparecer aqui.</div>
     </section>
   </div>
 
@@ -1291,14 +1377,14 @@ HTML_TEMPLATE = """<meta charset="UTF-8">
   }
 
   function renderDivergencesTable() {
-    document.getElementById("divergence-threshold").textContent = DATA.meta.divergence_threshold;
+    document.getElementById("divergence-min-change").textContent = DATA.meta.divergence_min_quartile_change;
     const tbody = document.getElementById("divergences-rows");
     const emptyEl = document.getElementById("divergences-empty");
     const countEl = document.getElementById("divergences-count");
     tbody.innerHTML = "";
 
     const rows = DATA.divergences;
-    countEl.textContent = `${rows.length} par(es) acima do limiar`;
+    countEl.textContent = `${rows.length} tool(s) que migraram de quartil`;
     emptyEl.hidden = rows.length > 0;
 
     rows.forEach(d => {
@@ -1314,21 +1400,22 @@ HTML_TEMPLATE = """<meta charset="UTF-8">
         <td>${escapeHtml(d.judge_id)}</td>
         <td class="num score-cell tabular">${d.description_only.score}</td>
         <td class="num score-cell tabular">${d.with_source.score}</td>
-        <td class="num score-cell tabular ${diffClass}">${d.diff > 0 ? "+" : ""}${d.diff}</td>`;
+        <td class="num score-cell tabular ${diffClass}">${d.diff > 0 ? "+" : ""}${d.diff}</td>
+        <td class="num score-cell tabular">Q${d.quartil_description_only} → Q${d.quartil_with_source}</td>`;
 
       const detailTr = document.createElement("tr");
       detailTr.className = "tool-detail";
       detailTr.hidden = true;
       const detailCell = document.createElement("td");
-      detailCell.colSpan = 7;
+      detailCell.colSpan = 8;
       detailCell.innerHTML = `
         <div class="detail-grid">
           <div class="detail-scenario">
-            <h4>description_only (nota ${d.description_only.score})</h4>
+            <h4>description_only (nota ${d.description_only.score}, Q${d.quartil_description_only})</h4>
             <div class="comp-row" style="display:block; white-space:pre-wrap;">${escapeHtml(d.description_only.reasoning) || "<em>sem justificativa registrada</em>"}</div>
           </div>
           <div class="detail-scenario">
-            <h4>with_source (nota ${d.with_source.score})</h4>
+            <h4>with_source (nota ${d.with_source.score}, Q${d.quartil_with_source})</h4>
             <div class="comp-row" style="display:block; white-space:pre-wrap;">${escapeHtml(d.with_source.reasoning) || "<em>sem justificativa registrada</em>"}</div>
           </div>
         </div>`;
@@ -1349,6 +1436,34 @@ HTML_TEMPLATE = """<meta charset="UTF-8">
     });
   }
   renderDivergencesTable();
+
+  // ---- quartile transition matrices ----
+  function renderQuartileMatrices() {
+    const container = document.getElementById("quartile-matrices");
+    container.innerHTML = "";
+    DATA.divergences_matrix.forEach(m => {
+      const maxCell = Math.max(1, ...m.matrix.flat());
+      const bucket = (v) => v === 0 ? 0 : Math.min(4, Math.ceil((v / maxCell) * 4));
+
+      const wrap = document.createElement("div");
+      wrap.className = "quartile-matrix";
+      const rowsHtml = m.matrix.map((row, i) => `
+        <tr>
+          <th>Q${i + 1}</th>
+          ${row.map(v => `<td class="qcell-${bucket(v)}" title="${v} tool(s)">${v}</td>`).join("")}
+        </tr>`).join("");
+      wrap.innerHTML = `
+        <h3>${escapeHtml(m.componente_label)}</h3>
+        <p class="matrix-total">${m.total} tool(s) não-empatada(s)</p>
+        <table>
+          <thead><tr><th></th><th colspan="4" class="axis-label">with_source →</th></tr>
+          <tr><th></th><th class="axis-label">Q1</th><th class="axis-label">Q2</th><th class="axis-label">Q3</th><th class="axis-label">Q4</th></tr></thead>
+          <tbody>${rowsHtml}</tbody>
+        </table>`;
+      container.appendChild(wrap);
+    });
+  }
+  renderQuartileMatrices();
 
   // ---- versions tab ----
   function renderVersionsTable() {

@@ -55,8 +55,9 @@ logger = setup_logging("generate_narrative_analysis")
 DEFAULT_MODEL = "gemini-3.5-flash-lite"
 
 # Máximo de pares tool x componente x juiz enviados da aba Divergências -- já vem ordenado
-# por |diferença| decrescente (build_divergences_data), então truncar mantém os casos mais
-# extremos sem estourar o prompt com centenas de pares (dashboard atual: 150+).
+# por |migração de quartil| e depois |diferença de nota| decrescentes (build_divergences_data),
+# então truncar mantém os casos mais extremos sem estourar o prompt com centenas de pares
+# (dashboard atual: 1000+).
 MAX_DIVERGENCES_IN_PROMPT = 20
 
 
@@ -141,11 +142,13 @@ def build_payload(dashboard_data: dict) -> dict:
                 "nota_description_only": d["description_only"]["score"],
                 "nota_with_source": d["with_source"]["score"],
                 "diferenca": d["diff"],
+                "quartil_description_only": d["quartil_description_only"],
+                "quartil_with_source": d["quartil_with_source"],
             }
             for d in divergencias
         ],
-        "total_divergencias_acima_do_limiar": len(dashboard_data["divergences"]),
-        "limiar_divergencia": dashboard_data["meta"]["divergence_threshold"],
+        "total_divergencias": len(dashboard_data["divergences"]),
+        "metodo_divergencia": dashboard_data["meta"]["divergence_method"],
     }
     return _round_floats(payload)
 
@@ -209,7 +212,7 @@ def main() -> None:
     logger.info(
         "enviando resumo agregado (%s breakdowns: %s, %s de %s divergências) para o modelo %s",
         len(payload["breakdown_keys"]), payload["breakdown_keys"],
-        len(payload["maiores_divergencias"]), payload["total_divergencias_acima_do_limiar"], args.model,
+        len(payload["maiores_divergencias"]), payload["total_divergencias"], args.model,
     )
     narrative = call_gemini(payload, args.model)
 

@@ -453,7 +453,17 @@ def _histogram(
     """`xlabel`/`ylabel` always name the value axis (bins) and the count axis,
     respectively, regardless of orientation -- `horizontal` only swaps which
     physical axis (x or y) each ends up on, so call sites don't need to know
-    or care which orientation they'll render in."""
+    or care which orientation they'll render in.
+
+    `log_x` with an integer `bins` switches to log-spaced bin edges, not just
+    a log-scaled axis on top of linearly-spaced bins: for a heavy-tailed
+    series (loc/complexidade ciclomática/tools-por-repo all qualify), linear
+    bins dump almost every value into the first bin or two regardless of
+    what scale the axis is drawn in afterward, which is what made
+    07_distribuicao_tools_por_repo.png (and 08/13 before this) a single
+    giant bar with a log-scaled x-axis nobody could read anything off of."""
+    if log_x and isinstance(bins, int):
+        bins = np.logspace(np.log10(series.min()), np.log10(series.max()), bins + 1)
     fig, ax = plt.subplots(figsize=CHART_STYLE["figsize"])
     if horizontal:
         ax.hist(series, bins=bins, color="#3b6ea5", edgecolor="white", orientation="horizontal")
@@ -588,16 +598,16 @@ def generate_charts(
         )
         _histogram(
             _loc_series(dataset), bins=30,
-            title="Distribuição de LOC (linhas de código) por tool\n(tool completa: função implementadora + chamadas internas resolvidas)",
-            xlabel="LOC", ylabel="Nº de tools",
-            path=charts_dir / "08_distribuicao_loc.png", horizontal=True,
+            title="Distribuição de LOC (linhas de código) por tool\n(tool completa: função implementadora + chamadas internas resolvidas; escala log)",
+            xlabel="LOC (escala log)", ylabel="Nº de tools",
+            path=charts_dir / "08_distribuicao_loc.png", horizontal=True, log_x=True,
         )
     if "distribuicao_complexidade_ciclomatica" in tables and not tables["distribuicao_complexidade_ciclomatica"].empty:
         _histogram(
             _cc_series(dataset), bins=30,
-            title="Distribuição de complexidade ciclomática (McCabe) por tool\n(tool completa: função implementadora + chamadas internas resolvidas)",
-            xlabel="Complexidade ciclomática", ylabel="Nº de tools",
-            path=charts_dir / "13_distribuicao_complexidade_ciclomatica.png", horizontal=True,
+            title="Distribuição de complexidade ciclomática (McCabe) por tool\n(tool completa: função implementadora + chamadas internas resolvidas; escala log)",
+            xlabel="Complexidade ciclomática (escala log)", ylabel="Nº de tools",
+            path=charts_dir / "13_distribuicao_complexidade_ciclomatica.png", horizontal=True, log_x=True,
         )
         cc = _cc_series(dataset)
         loc_pareada = pd.Series([r["tool"]["loc"] for r in dataset if "cyclomatic_complexity" in r["tool"]])

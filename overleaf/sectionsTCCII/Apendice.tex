@@ -172,3 +172,128 @@ desempate entre múltiplos candidatos válidos permanece marcada como
 ambígua na estrutura de dados final, em vez de ser silenciosamente tratada
 como uma resolução certa, preservando essa incerteza para análises
 posteriores.
+
+\section{Algoritmo de Cálculo de LOC e Complexidade Ciclomática da Tool Completa}
+\label{apendice:secao-complexidade}
+
+\textcolor{green}{Este apêndice detalha o algoritmo usado para calcular as métricas de
+tamanho (LOC) e complexidade ciclomática de cada ferramenta, apresentadas na
+Seção~\ref{sec:materiais}. Ele reaproveita a heurística de resolução de
+chamadas por nome descrita no Apêndice~\ref{apendice:secao} (mesmos cinco
+passos, mesma estrutura de índices), mas resolve um problema diferente: em
+vez de uma árvore de profundidade fixa usada para compor o contexto de
+código enviado ao avaliador, aqui o objetivo é determinar o conjunto
+completo de funções que compõem a implementação de uma ferramenta, sem um
+teto de profundidade arbitrário.}
+
+\subsection*{Procedimento}
+
+\begin{enumerate}
+    \item \textbf{\textcolor{green}{Busca em largura sem teto de profundidade:}}
+    \textcolor{green}{partindo da função que implementa a ferramenta, cada chamada
+    encontrada em seu corpo é resolvida pela mesma heurística de nome do
+    Apêndice~\ref{apendice:secao}. Toda função resolvida e ainda não
+    visitada é adicionada ao conjunto de funções alcançáveis e também tem
+    seu próprio corpo percorrido em busca de novas chamadas, repetindo-se o
+    processo até não haver mais chamadas resolvidas e não visitadas. Um
+    conjunto de nomes qualificados já visitados evita tanto a recontagem de
+    uma mesma função alcançada por mais de um caminho (por exemplo, duas
+    funções distintas que chamam um mesmo utilitário) quanto um loop
+    infinito em caso de recursão direta ou mútua -- papel que, na árvore de
+    três níveis do Apêndice~\ref{apendice:secao}, é desempenhado pelo
+    próprio teto de profundidade.}
+
+    \item \textbf{\textcolor{green}{Restrição adicional para chamadas com receptor:}}
+    \textcolor{green}{diferentemente da árvore de três níveis, uma chamada da forma
+    \texttt{objeto.metodo(...)} cujo receptor não é resolvido por nenhuma
+    heurística baseada em contexto local (\texttt{self}/\texttt{this} ou
+    alias de \textit{import} conhecido) não avança para o último passo da
+    heurística (nome único em todo o repositório): ela é tratada como
+    externa, do mesmo modo que uma chamada cujo nome não é encontrado em
+    lugar nenhum. Chamadas sem receptor (\texttt{helper(...)}) continuam
+    elegíveis a esse último passo normalmente. Essa restrição existe porque,
+    sem teto de profundidade, um único acerto incorreto desse passo --
+    aceitável como uma curiosidade isolada e visível num nó da árvore de
+    três níveis -- se propagaria por todas as chamadas feitas a partir da
+    função incorretamente associada, e assim sucessivamente. Um caso real,
+    encontrado num repositório que empacota dezenas de servidores MCP não
+    relacionados sob uma única árvore de código-fonte, tornou esse risco
+    concreto: a chamada \texttt{client.p.submission.fetch(...)} (um método
+    de uma biblioteca cliente externa) foi ``resolvida'' para uma função
+    \texttt{fetch} de um servidor completamente não relacionado, pelo simples
+    fato de ser a única função com esse nome em todo o repositório. Chamadas
+    sem receptor continuam usando esse último passo porque é, na prática, a
+    única forma de a heurística acompanhar um padrão de importação comum em
+    JavaScript/TypeScript (\texttt{const \{ helper \} = require(...)}), não
+    capturado pelo índice de \textit{imports} construído na fase de
+    indexação estática.}
+
+    \item \textbf{\textcolor{green}{Contagem por função:}} \textcolor{green}{para cada
+    função do conjunto alcançável, LOC é a diferença entre sua linha final e
+    inicial mais um, e a complexidade ciclomática é a contagem de McCabe
+    \cite{mccabe1976complexity} (pontos de decisão mais um) sobre seu
+    próprio corpo, sem descer em funções ou \textit{lambdas} aninhadas
+    definidas dentro dele. Os pontos de decisão contados variam por
+    linguagem, mas seguem o mesmo princípio em todas: \texttt{if}
+    (e variantes de encadeamento, como \texttt{elif}/\texttt{else if}),
+    laços (\texttt{for}/\texttt{while}/\texttt{do-while}), captura de
+    exceção (\texttt{catch}/\texttt{except}/\texttt{rescue}), cada ramo de
+    um \texttt{switch}/\texttt{match}/\texttt{when} exceto o ramo
+    \textit{default}, e expressões ternárias -- nunca operadores lógicos de
+    curto-circuito (\texttt{\&\&}/\texttt{||}), o que caracteriza a
+    definição clássica de McCabe, e não a variante estendida usada por
+    algumas ferramentas de análise estática. Os totais de LOC e de
+    complexidade ciclomática da ferramenta são, então, a soma desses
+    valores sobre todas as funções do conjunto alcançável.}
+\end{enumerate}
+
+\subsection*{Pseudocódigo do Algoritmo}
+
+\begin{lstlisting}[language=Python, caption={Fecho transitivo de chamadas resolvidas, sem teto de profundidade}, label=code:reachable-closure]
+def collect_reachable_definitions(start_def):
+    visited = {start_def.qualified_name: start_def}
+    queue = [start_def]
+
+    while queue:
+        current = queue.pop()
+
+        for call_site in extract_calls(current.body):
+            # unico ponto de diferenca em relacao a resolve_call()
+            # do Apendice A: chamada com receptor nao reconhecido
+            # nao cai no passo 4 (nome unico no repositorio inteiro)
+            resolved_def, ambiguous = resolve_call(
+                call_site, current,
+                allow_repo_wide_fallback=(call_site.receiver is None))
+
+            if resolved_def is None or ambiguous:
+                continue  # externa/dinamica, ou resolucao incerta: nao conta
+            if resolved_def.qualified_name in visited:
+                continue  # ja alcancada por outro caminho, ou recursao
+
+            visited[resolved_def.qualified_name] = resolved_def
+            queue.append(resolved_def)
+
+    return list(visited.values())
+
+
+def loc_e_complexidade(reachable_defs):
+    loc_total, cc_total = 0, 0
+    for fn_def in reachable_defs:
+        loc_total += fn_def.end_line - fn_def.start_line + 1
+        cc_total += count_decision_points(fn_def.body) + 1  # McCabe
+    return loc_total, cc_total
+\end{lstlisting}
+
+\subsection*{Justificativa Técnica}
+
+\textcolor{green}{A ausência de um teto de profundidade aqui, em contraste direto com o
+Apêndice~\ref{apendice:secao}, é deliberada: o objetivo dessa métrica é
+estimar o tamanho e a complexidade reais de uma ferramenta, e um teto fixo
+sub-representaria sistematicamente ferramentas cuja lógica está distribuída
+por mais de três níveis de chamadas internas. A restrição adicional sobre
+chamadas com receptor no passo de resolução (item 2 acima) é o
+\textit{trade-off} inverso: sem teto de profundidade, a mesma heurística
+best-effort baseada em nome que é inofensiva numa árvore de três níveis
+passa a poder inflar uma métrica agregada por um fator arbitrariamente
+grande a partir de um único acerto equivocado, o que a tornaria não
+confiável para qualquer análise comparativa entre ferramentas.}

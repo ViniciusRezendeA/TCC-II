@@ -274,6 +274,92 @@ def wilcoxon_por_componente(long_df: pd.DataFrame) -> pd.DataFrame:
     return df.sort_values(["juiz", "componente"]).reset_index(drop=True)
 
 
+# Migrações de só 1 faixa (ex: Q1->Q2) não contam como divergência -- só a partir de 2
+# faixas (Q1->Q3, Q2->Q4, ...). Valor escolhido com o usuário depois de comparar volumes:
+# qualquer mudança gera ~5000 linhas só no deepseek-flash (ruído), >=2 faixas gera ~1300.
+MUDANCA_MINIMA_QUARTIS = 2
+
+
+def quartil_notas(long_df: pd.DataFrame) -> pd.DataFrame:
+    """Classifica cada avaliação (uma linha de long_df) no quartil (1-4) da distribuição de
+    notas do seu próprio (juiz, componente, cenário) -- rank percentual médio
+    (`Series.rank(method="average", pct=True)`) em vez de comparar a nota contra os cortes
+    brutos Q1/Q2/Q3 (`Series.quantile()`): a escala Likert 1-5 é discreta e MUITO concentrada
+    em poucos valores (ex: 88% das notas de "examples"/deepseek-flash valem 1), o que faz
+    Q1/Q2/Q3 colidirem no mesmo valor e a comparação direta falhar (não dá pra saber se uma
+    nota "no limite" é Q1, Q2 ou Q3). Notas empatadas recebem o mesmo rank médio e caem,
+    por construção, no mesmo quartil.
+    """
+    df = long_df.copy()
+    rank_percentual = df.groupby(["juiz", "componente", "cenario"])["nota"].rank(method="average", pct=True)
+    df["quartil"] = pd.cut(rank_percentual, [0, 0.25, 0.5, 0.75, 1.0], labels=[1, 2, 3, 4], include_lowest=True).astype(int)
+    return df
+
+
+def migracao_quartil_por_tool(long_df: pd.DataFrame) -> pd.DataFrame:
+    """Uma linha por (juiz, componente, tool_uid): quartil da nota (ver quartil_notas()) em
+    cada cenário e se essa migração conta como divergência.
+
+    Pares empatados (mesma nota, logo mesmo quartil, em description_only e with_source) são
+    descartados -- não migraram por definição. Entre os que sobram, só migrações de pelo
+    menos MUDANCA_MINIMA_QUARTIS faixas contam como divergência (`diverge=True`); migrações
+    de 1 faixa só (Q1->Q2) ficam registradas em `diff_quartil` mas não marcadas.
+
+    Usa o mesmo pivot por (juiz, componente, tool_uid) de wilcoxon_por_componente() -- tool_uid
+    de long_df já vem corrigido por tool_key_for() via scores_long().
+    """
+    notas = quartil_notas(long_df)
+    nota_pivot = notas.pivot_table(index=["juiz", "componente", "tool_uid"], columns="cenario", values="nota")
+    quartil_pivot = notas.pivot_table(index=["juiz", "componente", "tool_uid"], columns="cenario", values="quartil")
+    combinado = nota_pivot.join(quartil_pivot, lsuffix="_nota", rsuffix="_quartil")
+
+    obrigatorias = ["description_only_nota", "with_source_nota", "description_only_quartil", "with_source_quartil"]
+    if not set(obrigatorias) <= set(combinado.columns):
+        return pd.DataFrame(
+            columns=[
+                "juiz", "componente", "tool_uid", "quartil_description_only", "quartil_with_source",
+                "diff_quartil", "empate", "diverge",
+            ]
+        )
+
+    combinado = combinado.dropna(subset=obrigatorias).reset_index()
+    combinado["quartil_description_only"] = combinado["description_only_quartil"].astype(int)
+    combinado["quartil_with_source"] = combinado["with_source_quartil"].astype(int)
+    combinado["diff_quartil"] = combinado["quartil_with_source"] - combinado["quartil_description_only"]
+    combinado["empate"] = combinado["description_only_nota"] == combinado["with_source_nota"]
+    combinado["diverge"] = (~combinado["empate"]) & (combinado["diff_quartil"].abs() >= MUDANCA_MINIMA_QUARTIS)
+
+    return combinado[
+        ["juiz", "componente", "tool_uid", "quartil_description_only", "quartil_with_source", "diff_quartil", "empate", "diverge"]
+    ]
+
+
+def migracao_quartil_por_componente(long_df: pd.DataFrame) -> pd.DataFrame:
+    """Resumo por juiz/componente da migração de quartil de nota entre cenários (ver
+    migracao_quartil_por_tool()): quantos pares empataram, quantos migraram só 1 faixa (não
+    contam como divergência) e quantos migraram >= MUDANCA_MINIMA_QUARTIS faixas (contam),
+    separado entre subiu (with_source melhor que description_only) e desceu.
+    """
+    df = migracao_quartil_por_tool(long_df)
+    rows = []
+    for (juiz, componente), group in df.groupby(["juiz", "componente"]):
+        nao_empatados = group[~group["empate"]]
+        n_migrou_1_faixa = int((nao_empatados["diff_quartil"].abs() == 1).sum())
+        rows.append(
+            {
+                "juiz": juiz,
+                "componente": componente,
+                "n_pares": len(group),
+                "n_empates": int(group["empate"].sum()),
+                "n_migrou_1_faixa": n_migrou_1_faixa,
+                "n_diverge": int(group["diverge"].sum()),
+                "n_diverge_subiu": int((group["diverge"] & (group["diff_quartil"] > 0)).sum()),
+                "n_diverge_desceu": int((group["diverge"] & (group["diff_quartil"] < 0)).sum()),
+            }
+        )
+    return pd.DataFrame(rows).sort_values(["componente", "juiz"]).reset_index(drop=True)
+
+
 def concordancia_entre_juizes(long_df: pd.DataFrame) -> pd.DataFrame:
     """Concordância par-a-par entre juízes: correlação de Pearson e diferença média
     absoluta das notas dadas ao mesmo (tool, cenário, componente) -- indica se o júri
@@ -484,6 +570,7 @@ def main() -> None:
         "notas_por_componente": notas_por_componente(long_df),
         "comparacao_cenarios": comparacao_cenarios(long_df),
         "wilcoxon_por_componente": wilcoxon_por_componente(long_df),
+        "migracao_quartil_por_componente": migracao_quartil_por_componente(long_df),
         "concordancia_entre_juizes": concordancia_entre_juizes(long_df),
         "custo_latencia_por_juiz": custo_latencia_por_juiz(records),
         "notas_por_linguagem": notas_por_linguagem(long_df),
