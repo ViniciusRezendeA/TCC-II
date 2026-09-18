@@ -30,6 +30,7 @@ import matplotlib
 
 matplotlib.use("Agg")  # sem display -- só salva PNG, roda igual em CI/terminal remoto
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 
 from mcp_pipeline.collection.dedupe_rank import dedupe as dedupe_candidates
@@ -304,13 +305,15 @@ def _loc_series(dataset: list[dict]) -> pd.Series:
 
 
 def distribuicao_loc(dataset: list[dict]) -> pd.DataFrame:
-    """Estatísticas de LOC da função que implementa cada tool -- computado em
-    tool_detector.py a partir do FunctionDef resolvido (start_def), não de
-    tool["source_location"] (que, nos padrões .tool()/.registerTool() de
-    JS/TS, é o call site de registro, não o corpo do handler). Nota: em
-    Java/C#, o nó do método inclui a linha de anotação/atributo
-    (@Tool/[McpServerTool]), o que infla o LOC em ~1 linha por tool
-    relativo a Python -- diferença de gramática, não de tamanho real."""
+    """Estatísticas de LOC da "tool completa" -- não mais só a função que a
+    implementa (nível 1 do call graph), mas o total de linhas somado sobre
+    ela e toda função que ela chama transitivamente dentro do repositório
+    (collect_reachable_definitions() em call_graph_builder.py), sem o teto
+    de 3 níveis usado só para a árvore de call graph serializada
+    (profundidade_call_graph() abaixo). Nota: em Java/C#, o nó de cada
+    método inclui a linha de anotação/atributo (@Tool/[McpServerTool]), o
+    que infla o LOC em ~1 linha por função somada relativo a Python --
+    diferença de gramática, não de tamanho real."""
     loc = _loc_series(dataset)
     return pd.DataFrame(
         {
@@ -323,14 +326,23 @@ def distribuicao_loc(dataset: list[dict]) -> pd.DataFrame:
     )
 
 
+def _cc_series(dataset: list[dict]) -> pd.Series:
+    """Uma linha por tool -- usada só para o histograma, mesmo padrão de
+    _loc_series(); ignora linhas sem o campo (dataset.jsonl anterior à
+    existência de `cyclomatic_complexity` em ToolRecord)."""
+    return pd.Series([r["tool"]["cyclomatic_complexity"] for r in dataset if "cyclomatic_complexity" in r["tool"]])
+
+
 def distribuicao_complexidade_ciclomatica(dataset: list[dict]) -> pd.DataFrame:
-    """Estatísticas de complexidade ciclomática (McCabe) da função que implementa cada tool
-    -- mesmo padrão de distribuicao_loc(), mas tolerante a dataset.jsonl gerado antes do
-    campo `cyclomatic_complexity` existir em ToolRecord (extraction/models.py): linhas sem o
+    """Estatísticas de complexidade ciclomática (McCabe clássico: pontos de decisão + 1,
+    ver extraction/complexity.py) da "tool completa" -- somada sobre a função que a
+    implementa e toda função transitivamente chamada, exatamente o mesmo conjunto usado
+    por distribuicao_loc() acima. Tolerante a dataset.jsonl gerado antes do campo
+    `cyclomatic_complexity` existir em ToolRecord (extraction/models.py): linhas sem o
     campo são ignoradas em vez de quebrar, e um dataset sem nenhuma linha com o campo ainda
     devolve uma tabela vazia (mas com as colunas certas), não erro -- o chamador decide se
     omite o gráfico nesse caso (ver generate_dashboard.py)."""
-    values = pd.Series([r["tool"]["cyclomatic_complexity"] for r in dataset if "cyclomatic_complexity" in r["tool"]])
+    values = _cc_series(dataset)
     if values.empty:
         return pd.DataFrame({"estatistica": [], "complexidade_ciclomatica": []})
     return pd.DataFrame(
@@ -339,6 +351,44 @@ def distribuicao_complexidade_ciclomatica(dataset: list[dict]) -> pd.DataFrame:
             "complexidade_ciclomatica": [
                 int(values.min()), int(values.quantile(0.25)), int(values.median()),
                 int(values.quantile(0.75)), int(values.max()), round(values.mean(), 1),
+            ],
+        }
+    )
+
+
+def correlacao_loc_complexidade(dataset: list[dict]) -> pd.DataFrame:
+    """Compara loc e cyclomatic_complexity por tool -- as duas métricas são somadas sobre
+    exatamente o mesmo conjunto de funções (a "tool completa", ver
+    distribuicao_loc()/distribuicao_complexidade_ciclomatica() acima). Reporta 4 valores,
+    não só a correlação bruta, porque ela sozinha é enganosa aqui: Pearson bruto fica alto
+    (~0,93) mas é puxado por um punhado de tools-outlier extremas em ambas as métricas (um
+    padrão router/dispatcher que chama dezenas de outras funções -- ver Apêndice); Spearman
+    bruto, que ignora escala e olha só a ordem relativa, cai para perto de zero, porque
+    ~1/3 das tools têm complexidade mínima (1, nenhum ponto de decisão) independente do
+    tamanho -- ou seja, o tamanho em linhas não é um bom preditor de quão "ramificada" é uma
+    tool. `pearson_log` (Pearson sobre log(loc)/log(complexidade)) fica entre os dois:
+    controla a escala sem descartar toda a informação de magnitude que o Spearman descarta
+    ao virar tudo em posto (rank). Linhas sem `cyclomatic_complexity` (dataset.jsonl
+    anterior ao campo) são descartadas do par, não só da série de CC."""
+    pares = pd.DataFrame(
+        [
+            {"loc": r["tool"]["loc"], "complexidade_ciclomatica": r["tool"]["cyclomatic_complexity"]}
+            for r in dataset
+            if "cyclomatic_complexity" in r["tool"]
+        ]
+    )
+    if pares.empty:
+        return pd.DataFrame({"metrica": [], "valor": []})
+    log_loc = np.log(pares["loc"])
+    log_cc = np.log(pares["complexidade_ciclomatica"])
+    return pd.DataFrame(
+        {
+            "metrica": ["pearson", "spearman", "pearson_log", "proporcao_cc_igual_a_1"],
+            "valor": [
+                round(pares["loc"].corr(pares["complexidade_ciclomatica"], method="pearson"), 3),
+                round(pares["loc"].corr(pares["complexidade_ciclomatica"], method="spearman"), 3),
+                round(log_loc.corr(log_cc, method="pearson"), 3),
+                round((pares["complexidade_ciclomatica"] == 1).mean(), 3),
             ],
         }
     )
@@ -420,6 +470,25 @@ def _histogram(
         ax.set_ylabel(ylabel)
         ax.grid(axis="y", linestyle="--", alpha=0.4)
     ax.set_title(title)
+    fig.tight_layout()
+    fig.savefig(path, dpi=CHART_STYLE["dpi"], bbox_inches="tight")
+    plt.close(fig)
+
+
+def _scatter_chart(
+    x: pd.Series, y: pd.Series, title: str, xlabel: str, ylabel: str, path: Path,
+    log_x: bool = False, log_y: bool = False,
+) -> None:
+    fig, ax = plt.subplots(figsize=CHART_STYLE["figsize"])
+    ax.scatter(x, y, color="#3b6ea5", alpha=0.35, s=14, edgecolors="none")
+    if log_x:
+        ax.set_xscale("log")
+    if log_y:
+        ax.set_yscale("log")
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
+    ax.set_title(title)
+    ax.grid(True, linestyle="--", alpha=0.4)
     fig.tight_layout()
     fig.savefig(path, dpi=CHART_STYLE["dpi"], bbox_inches="tight")
     plt.close(fig)
@@ -519,9 +588,24 @@ def generate_charts(
         )
         _histogram(
             _loc_series(dataset), bins=30,
-            title="Distribuição de LOC (linhas de código) por tool\n(função implementadora, nível 1 do call graph)",
+            title="Distribuição de LOC (linhas de código) por tool\n(tool completa: função implementadora + chamadas internas resolvidas)",
             xlabel="LOC", ylabel="Nº de tools",
             path=charts_dir / "08_distribuicao_loc.png", horizontal=True,
+        )
+    if "distribuicao_complexidade_ciclomatica" in tables and not tables["distribuicao_complexidade_ciclomatica"].empty:
+        _histogram(
+            _cc_series(dataset), bins=30,
+            title="Distribuição de complexidade ciclomática (McCabe) por tool\n(tool completa: função implementadora + chamadas internas resolvidas)",
+            xlabel="Complexidade ciclomática", ylabel="Nº de tools",
+            path=charts_dir / "13_distribuicao_complexidade_ciclomatica.png", horizontal=True,
+        )
+        cc = _cc_series(dataset)
+        loc_pareada = pd.Series([r["tool"]["loc"] for r in dataset if "cyclomatic_complexity" in r["tool"]])
+        _scatter_chart(
+            loc_pareada, cc,
+            title="LOC x complexidade ciclomática, por tool\n(mesma \"tool completa\"; escala log-log)",
+            xlabel="LOC (escala log)", ylabel="Complexidade ciclomática (escala log)",
+            path=charts_dir / "14_loc_vs_complexidade_ciclomatica.png", log_x=True, log_y=True,
         )
     if "profundidade_call_graph" in tables:
         _bar_chart(
@@ -652,6 +736,7 @@ def main() -> None:
                 "top_repos_por_tools": top_repos_por_tools(dataset),
                 "distribuicao_loc": distribuicao_loc(dataset),
                 "distribuicao_complexidade_ciclomatica": distribuicao_complexidade_ciclomatica(dataset),
+                "correlacao_loc_complexidade": correlacao_loc_complexidade(dataset),
                 "profundidade_call_graph": profundidade_call_graph(dataset),
             }
         )
