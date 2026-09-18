@@ -2,8 +2,8 @@
 # evaluation/judges/registry.py::load_judges() via PROVIDER_CLASSES -- adicionar,
 # remover ou trocar de modelo é editar este arquivo, sem tocar em código.
 #
-# Apenas juízes locais (llama.cpp) + Gemini (cloud, free tier) -- Claude e GPT
-# não são usados neste projeto.
+# Juízes locais (llama.cpp) + Gemini (cloud, free tier) + DeepSeek (cloud, PAGO -- ver
+# deepseek_judge.py) -- Claude e GPT não são usados neste projeto.
 #
 # model_id do Google: gemini-2.5-flash/-lite (confirmados na Fase 0, 2026-08-19) foram
 # descontinuados para chaves novas -- a API responde 404 "no longer available to new
@@ -29,6 +29,16 @@ judges:
     enabled: true
     requests_per_minute: 12  # nominal 15 RPM
 
+  # DeepSeek (cloud, PAGO -- sem free tier de API confirmado, ver deepseek_judge.py).
+  # Desabilitado por padrão de propósito: diferente dos outros juízes acima, cada chamada
+  # tem custo real (DeepSeek-V4.1-Flash: ~$0,15/$0,60 por 1M tokens off-peak, ~$0,30/$1,20
+  # peak -- ver api-docs.deepseek.com/quick_start/pricing). Habilitar via
+  # `--judges deepseek-flash` num lote pequeno primeiro, nunca `enabled: true` direto.
+  - id: deepseek-flash
+    provider: deepseek
+    model_id: deepseek-flash
+    enabled: false
+
   # Juízes locais (llama.cpp)
   - id: llama-uncensored
     provider: llama
@@ -44,3 +54,4 @@ judges:
 # python -m mcp_pipeline.pipeline.run_step3 --judges llama-uncensored --limit 5
 # python -m mcp_pipeline.pipeline.run_step3 --judges qwen2.5-14b-instruct --limit 5
 # python -m mcp_pipeline.pipeline.run_step3 --judges qwen2.5-14b-instruct,llama-uncensored --limit 20
+# python -m mcp_pipeline.pipeline.run_step3 --judges deepseek-flash --limit 5  # PAGO, lote pequeno primeiro

@@ -6,6 +6,7 @@ import yaml
 
 from mcp_pipeline.config import CONFIG_DIR
 from mcp_pipeline.evaluation.judges.base import Judge
+from mcp_pipeline.evaluation.judges.deepseek_judge import DeepSeekJudge
 from mcp_pipeline.evaluation.judges.gemini_judge import GeminiJudge
 from mcp_pipeline.evaluation.judges.llama_judge import LlamaJudge
 from mcp_pipeline.evaluation.judges.qwen_judge import QwenJudge
@@ -14,6 +15,7 @@ from mcp_pipeline.evaluation.judges.qwen_judge import QwenJudge
 # LANGUAGE_ADAPTERS -- adding a provider é um novo *_judge.py class + uma entrada aqui +
 # um bloco em judges.yaml; nada mais muda neste arquivo ou em run_step3.py.
 PROVIDER_CLASSES: dict[str, type] = {
+    "deepseek": DeepSeekJudge,
     "google": GeminiJudge,
     "llama": LlamaJudge,
     "qwen": QwenJudge,

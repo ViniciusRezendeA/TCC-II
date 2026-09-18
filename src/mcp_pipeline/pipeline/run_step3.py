@@ -10,7 +10,7 @@ from pathlib import Path
 
 from mcp_pipeline.collection.checkpoint import Checkpoint
 from mcp_pipeline.config import DATA_DIR, LOGS_DIR, STATE_DIR, ensure_dirs
-from mcp_pipeline.evaluation.judges.base import Judge, JudgeQuotaExhausted, JudgeRefusal
+from mcp_pipeline.evaluation.judges.base import Judge, JudgeBalanceExhausted, JudgeQuotaExhausted, JudgeRefusal
 from mcp_pipeline.evaluation.judges.registry import load_judges
 from mcp_pipeline.evaluation.payload import build_payload, repo_src_root_for
 from mcp_pipeline.evaluation.prompts import PROMPT_VERSION
@@ -175,8 +175,10 @@ def run_judge(
     processed = 0
     recorded = 0
     quota_skipped = 0
+    balance_skipped = 0
     generic_skipped = 0
     quota_exhausted = False
+    balance_exhausted = False
     with ThreadPoolExecutor(max_workers=concurrency) as pool, open(out_path, "a", encoding="utf-8") as out:
         futures = {pool.submit(judge.evaluate, payload): (record, key) for record, payload, key in pending}
         for future in as_completed(futures):
@@ -225,6 +227,24 @@ def run_judge(
                         "que a cota resetar (~meia-noite Pacific Time).",
                         judge.judge_id, cancelled,
                     )
+            except JudgeBalanceExhausted as e:
+                # Same cancel-the-rest treatment as JudgeQuotaExhausted above (prepaid
+                # balance hit $0 -- every remaining call would fail identically), but this
+                # does NOT reset on a schedule: it stays exhausted until a human adds credit,
+                # so the log message must say that instead of quoting a reset time.
+                write_result = False
+                balance_skipped += 1
+                if not balance_exhausted:
+                    balance_exhausted = True
+                    cancelled = sum(1 for f in futures if f.cancel())
+                    logger.error(
+                        "[%s] saldo do provedor esgotado -- cancelando o restante desta rodada "
+                        "(%s tarefa(s) ainda não iniciadas canceladas). Nenhuma tarefa desta "
+                        "rodada (cancelada ou já em andamento) fica marcada como processada -- "
+                        "um re-run normal, sem flag, tenta todas de novo depois que você "
+                        "adicionar crédito na conta (%s).",
+                        judge.judge_id, cancelled, e,
+                    )
             except Exception as e:  # noqa: BLE001 -- one bad (tool, scenario) must not abort
                 # the whole batch, matching clone_all/run_step2's resilience contract. Not
                 # written to JSONL/checkpoint either (see docstring) -- only step3_errors_
@@ -254,8 +274,9 @@ def run_judge(
 
     logger.info(
         "[%s] rodada concluída: %s processadas, %s registradas (ok/refused), %s vão para "
-        "retry automático na próxima rodada (%s por cota, %s por erro técnico)",
-        judge.judge_id, processed, recorded, quota_skipped + generic_skipped, quota_skipped, generic_skipped,
+        "retry automático na próxima rodada (%s por cota, %s por saldo, %s por erro técnico)",
+        judge.judge_id, processed, recorded,
+        quota_skipped + balance_skipped + generic_skipped, quota_skipped, balance_skipped, generic_skipped,
     )
 
 

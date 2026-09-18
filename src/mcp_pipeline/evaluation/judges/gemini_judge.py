@@ -41,6 +41,38 @@ def _is_daily_quota_exhausted(e: genai_errors.APIError) -> bool:
                 return True
     return False
 
+
+def _quota_diagnostics(e: genai_errors.APIError) -> str | None:
+    """Extracts the actual `quotaId` (e.g. "GenerateRequestsPerMinutePerProjectPerModel...")
+    and, when Google's response includes it, the `RetryInfo.retryDelay` for a 429 -- appended
+    to the raised error's message so it lands in step3_errors_{judge_id}.jsonl. Without this,
+    every 429 that _is_daily_quota_exhausted() doesn't recognize as the *daily* cap (e.g. a
+    per-minute or per-project burst/abuse-prevention limit) looks identical in the log to any
+    other technical error, with no way to tell "wait a few seconds" from "this key/project is
+    throttled for longer" apart from re-testing live against the API.
+    """
+    if e.code != 429:
+        return None
+    error_details = ((e.details or {}).get("error") or {}).get("details") or []
+    quota_ids = [
+        violation.get("quotaId", "")
+        for detail in error_details
+        if str(detail.get("@type", "")).endswith("QuotaFailure")
+        for violation in detail.get("violations", [])
+    ]
+    retry_delay = next(
+        (detail.get("retryDelay") for detail in error_details if str(detail.get("@type", "")).endswith("RetryInfo")),
+        None,
+    )
+    if not quota_ids and not retry_delay:
+        return None
+    parts = []
+    if quota_ids:
+        parts.append(f"quotaId={quota_ids}")
+    if retry_delay:
+        parts.append(f"retryDelay={retry_delay}")
+    return ", ".join(parts)
+
 # google-genai does NOT retry 429/5xx by default -- verified directly from
 # google.genai._api_client.retry_args(): "If None, the 'never retry' stop strategy will be
 # used." Unlike the anthropic/openai SDKs (both default to max_retries=2), retries here are
@@ -105,7 +137,9 @@ class GeminiJudge:
         except genai_errors.APIError as e:
             if _is_daily_quota_exhausted(e):
                 raise JudgeQuotaExhausted(f"gemini daily quota exhausted: {e.message}") from e
-            raise JudgeError(f"gemini API error {e.code}: {e.message}") from e
+            diagnostics = _quota_diagnostics(e)
+            suffix = f" [{diagnostics}]" if diagnostics else ""
+            raise JudgeError(f"gemini API error {e.code}: {e.message}{suffix}") from e
 
         finish_reason = None
         if response.candidates:

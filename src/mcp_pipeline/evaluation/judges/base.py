@@ -80,6 +80,16 @@ class JudgeQuotaExhausted(JudgeError):
     """
 
 
+class JudgeBalanceExhausted(JudgeError):
+    """A paid, prepaid-balance provider's account has hit $0 (e.g. DeepSeek's HTTP 402
+    "Insufficient Balance") -- same "every subsequent call fails identically" shape as
+    JudgeQuotaExhausted, so run_step3.py handles it the same way (cancel remaining pending
+    work, write nothing, so a plain re-run after topping up retries automatically), but it is
+    NOT a daily reset: it stays exhausted until a human adds credit, so the log message must
+    say that instead of quoting a reset time.
+    """
+
+
 class RateLimiter:
     """Paces calls to at most `requests_per_minute`, spaced evenly (60/N seconds apart)
     rather than allowed to burst up to the limit -- run_step3.py calls judge.evaluate()
