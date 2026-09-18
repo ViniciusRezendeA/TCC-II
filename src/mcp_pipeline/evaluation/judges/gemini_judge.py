@@ -10,6 +10,7 @@ from mcp_pipeline.evaluation.judges.base import (
     JudgeError,
     JudgeEvaluation,
     JudgeQuotaExhausted,
+    JudgeRateLimited,
     JudgeRefusal,
     RateLimiter,
     RubricScores,
@@ -73,6 +74,27 @@ def _quota_diagnostics(e: genai_errors.APIError) -> str | None:
         parts.append(f"retryDelay={retry_delay}")
     return ", ".join(parts)
 
+
+def _retry_after_seconds(e: genai_errors.APIError) -> float | None:
+    """Parses RetryInfo.retryDelay (e.g. "19s", "1.500s") into a float -- what
+    scripts/run_sequential_step3.py uses to decide whether it's worth waiting out a 429 on
+    the same key vs. just rotating to the next one immediately (rotating is always at least
+    as fast, but this is here in case a future caller wants the actual number instead).
+    """
+    if e.code != 429:
+        return None
+    error_details = ((e.details or {}).get("error") or {}).get("details") or []
+    retry_delay = next(
+        (detail.get("retryDelay") for detail in error_details if str(detail.get("@type", "")).endswith("RetryInfo")),
+        None,
+    )
+    if not retry_delay:
+        return None
+    try:
+        return float(str(retry_delay).rstrip("s"))
+    except ValueError:
+        return None
+
 # google-genai does NOT retry 429/5xx by default -- verified directly from
 # google.genai._api_client.retry_args(): "If None, the 'never retry' stop strategy will be
 # used." Unlike the anthropic/openai SDKs (both default to max_retries=2), retries here are
@@ -108,6 +130,7 @@ class GeminiJudge:
         model_id: str,
         max_output_tokens: int = 16_000,
         requests_per_minute: int = 5,
+        api_key: str | None = None,
     ):
         self.judge_id = judge_id
         self.provider = "google"
@@ -117,8 +140,16 @@ class GeminiJudge:
         # Gemini models (see config/judges.yaml) -- override per judge_id there, since the
         # real per-account limit varies by model and isn't queryable from the API itself.
         self._rate_limiter = RateLimiter(requests_per_minute)
-        # reads GOOGLE_API_KEY (falling back to GEMINI_API_KEY) from env
-        self._client = genai.Client(http_options=genai_types.HttpOptions(retry_options=_DEFAULT_RETRY_OPTIONS))
+        # api_key=None (default) makes the SDK read GOOGLE_API_KEY (falling back to
+        # GEMINI_API_KEY) from env, same as before this parameter existed -- passing it
+        # explicitly is what lets scripts/run_sequential_step3.py hold N live GeminiJudge
+        # instances at once, one per key in GOOGLE_API_KEYS, without each one stomping on a
+        # shared process-wide env var (which run_parallel_step3.py's one-process-per-key
+        # design sidesteps a different way, by never having two Judge instances in the same
+        # process at all).
+        self._client = genai.Client(
+            api_key=api_key, http_options=genai_types.HttpOptions(retry_options=_DEFAULT_RETRY_OPTIONS)
+        )
 
     def evaluate(self, payload: dict) -> JudgeEvaluation:
         self._rate_limiter.wait()
@@ -139,6 +170,15 @@ class GeminiJudge:
                 raise JudgeQuotaExhausted(f"gemini daily quota exhausted: {e.message}") from e
             diagnostics = _quota_diagnostics(e)
             suffix = f" [{diagnostics}]" if diagnostics else ""
+            if e.code == 429:
+                # Confirmed NOT the daily cap (that branch already returned above) -- e.g.
+                # GenerateRequestsPerMinutePerProjectPerModel. run_step3.py's normal
+                # single-key flow doesn't special-case JudgeRateLimited (falls through to
+                # its generic technical-error handling, same as before this type existed);
+                # scripts/run_sequential_step3.py does, to rotate keys instead of stalling.
+                raise JudgeRateLimited(
+                    f"gemini API error {e.code}: {e.message}{suffix}", retry_after_seconds=_retry_after_seconds(e)
+                ) from e
             raise JudgeError(f"gemini API error {e.code}: {e.message}{suffix}") from e
 
         finish_reason = None

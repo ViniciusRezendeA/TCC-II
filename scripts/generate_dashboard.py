@@ -9,10 +9,12 @@ geral, ranking por componente da rubrica, comparação de cenários e tabela por
 O HTML gerado não depende de nada externo além de fontes do Google Fonts -- pode ser aberto
 direto no navegador ou publicado como Artifact.
 
-Uso:
-  uv run python scripts/generate_dashboard.py
-  uv run python scripts/generate_dashboard.py --output caminho/custom.html
-  uv run python scripts/generate_dashboard.py --judge gemini-3.5-flash-lite
+Uso (via -m: importa de scripts.analysis_evaluation_report/scripts.dedupe_evaluations, então
+precisa da raiz do projeto no sys.path -- python scripts/generate_dashboard.py direto não
+resolve isso):
+  uv run python -m scripts.generate_dashboard
+  uv run python -m scripts.generate_dashboard --output caminho/custom.html
+  uv run python -m scripts.generate_dashboard --judge gemini-3.5-flash-lite
 """
 
 from __future__ import annotations
@@ -21,11 +23,12 @@ import argparse
 import datetime
 import json
 from pathlib import Path
-from statistics import mean, stdev
 
 from mcp_pipeline.config import DATA_DIR
 from mcp_pipeline.evaluation.prompts import PROMPT_VERSION, RUBRIC_COMPONENTS
 from mcp_pipeline.logging_setup import setup_logging
+from scripts.analysis_evaluation_report import scores_long, tool_key_for, wilcoxon_por_componente
+from scripts.dedupe_evaluations import dedupe_records
 
 logger = setup_logging("generate_dashboard")
 
@@ -50,70 +53,76 @@ def load_records(eval_dir: Path, judge_id: str | None) -> list[dict]:
     return records
 
 
-# Same tiering as scripts/dedupe_evaluations.py -- kept here as its own copy (each script in
-# this repo reads the raw jsonl directly rather than importing another script) rather than
-# assuming a prior dedupe pass ran: run_step3.py --retry-failed appends a new line without
-# removing the old "error" one, so a live pipeline run can reintroduce duplicates between
-# dashboard generations, which would otherwise silently inflate every count on this page.
-_STATUS_RANK = {"ok": 2, "refused": 2, "error": 1}
-
-
-def dedupe_records(records: list[dict]) -> list[dict]:
-    kept: dict[tuple[str, str, str, str], dict] = {}
-    order: list[tuple[str, str, str, str]] = []
-    for record in records:
-        key = (record["tool_uid"], record["scenario"], record["judge"]["id"], record.get("prompt_version", ""))
-        current = kept.get(key)
-        if current is None:
-            order.append(key)
-            kept[key] = record
-            continue
-        candidate_rank = _STATUS_RANK.get(record.get("status"), 0)
-        current_rank = _STATUS_RANK.get(current.get("status"), 0)
-        if candidate_rank > current_rank or (
-            candidate_rank == current_rank
-            and (record.get("evaluated_at") or "") >= (current.get("evaluated_at") or "")
-        ):
-            kept[key] = record
-    return [kept[key] for key in order]
-
-
-def component_stats(records: list[dict]) -> dict[str, dict]:
-    """Mean/stdev/n per rubric component, over `records` (already filtered to status=ok)."""
-    stats = {}
-    for key, label, _ in RUBRIC_COMPONENTS:
-        scores = [r["scores"][key]["score"] for r in records if r.get("scores", {}).get(key)]
-        if not scores:
-            continue
-        stats[key] = {
-            "label": label,
-            "mean": mean(scores),
-            "sd": stdev(scores) if len(scores) > 1 else 0.0,
-            "n": len(scores),
-        }
-    return stats
-
-
 def compute_breakdown(ok_records: list[dict]) -> dict:
-    """Rubric-component ranking + scenario comparison over one slice of ok records --
-    shared by the combined ("Todos") view and each per-judge tab, so they read identically.
+    """Rubric-component ranking, comparação de cenários e (só quando `ok_records` vem de um
+    único juiz) teste de Wilcoxon por componente -- sobre uma fatia de registros ok,
+    compartilhada pela visão combinada ("Todos") e por cada aba de juiz, para lerem de forma
+    idêntica.
+
+    Construído sobre scores_long()/wilcoxon_por_componente() de
+    scripts/analysis_evaluation_report.py -- mesma identidade de tool (tool_key_for, que já
+    corrige a colisão dos padrões de SDK "lowlevel") e mesmo teste de significância usados na
+    planilha resumo_etapa_3.xlsx, reaproveitados aqui em vez de reimplementados.
+
+    Wilcoxon não é computado na visão combinada ("Todos"): misturar juízes diferentes num só
+    teste pareado não tem o significado que a metodologia do TCC pede (o teste é aplicado
+    separadamente por modelo, ver Seção "Análise Comparativa dos Experimentos") -- só
+    devolvido quando `ok_records` já está restrito a um único judge_id.
     """
-    components = component_stats(ok_records)
-    ranked_keys = sorted(components, key=lambda k: components[k]["mean"], reverse=True)
+    labels = {key: label for key, label, _ in RUBRIC_COMPONENTS}
+    long_df = scores_long(ok_records)
+    if long_df.empty:
+        return {"rubric_components": [], "scenario_comparison": [], "scenario_keys": [], "wilcoxon": []}
+
+    overall = long_df.groupby("componente")["nota"].agg(["mean", "std", "count"])
+    ranked_keys = overall["mean"].sort_values(ascending=False).index.tolist()
     rubric_components = [
-        {"key": k, "label": components[k]["label"], "mean": components[k]["mean"],
-         "sd": components[k]["sd"], "n": components[k]["n"]}
+        {
+            "key": k,
+            "label": labels.get(k, k),
+            "mean": float(overall.loc[k, "mean"]),
+            "sd": float(overall.loc[k, "std"]) if overall.loc[k, "count"] > 1 and overall.loc[k, "std"] == overall.loc[k, "std"] else 0.0,
+            "n": int(overall.loc[k, "count"]),
+        }
         for k in ranked_keys
     ]
 
-    scenarios = sorted({r["scenario"] for r in ok_records})
-    by_scenario = {s: component_stats([r for r in ok_records if r["scenario"] == s]) for s in scenarios}
-    scenario_comparison = [
-        {"label": components[k]["label"], **{s: by_scenario[s].get(k, {}).get("mean") for s in scenarios}}
-        for k in ranked_keys
-    ]
+    scenarios = sorted(long_df["cenario"].unique().tolist())
+    scenario_comparison: list[dict] = []
+    wilcoxon: list[dict] = []
+    if len(scenarios) >= 2:
+        by_scenario_mean = long_df.groupby(["componente", "cenario"])["nota"].mean()
+        scenario_comparison = [
+            {
+                "label": labels.get(k, k),
+                **{s: (float(by_scenario_mean[(k, s)]) if (k, s) in by_scenario_mean.index else None) for s in scenarios},
+            }
+            for k in ranked_keys
+        ]
 
-    return {"rubric_components": rubric_components, "scenario_comparison": scenario_comparison, "scenario_keys": scenarios}
+        if long_df["juiz"].nunique() == 1:
+            def _or_none(value):  # NaN (teste não aplicável, ex: componente todo empatado) -> null no JSON
+                return None if value != value else float(value)
+
+            wilcoxon = [
+                {
+                    "key": row["componente"],
+                    "label": labels.get(row["componente"], row["componente"]),
+                    "n_pareado": row["n_pareado"],
+                    "proporcao_empates_percentual": _or_none(row["proporcao_empates_percentual"]),
+                    "p_valor": _or_none(row["p_valor"]),
+                    "p_valor_bh": _or_none(row["p_valor_bh"]),
+                    "significativo": bool(row["significativo_bh_0.05"]),
+                }
+                for row in wilcoxon_por_componente(long_df).sort_values("componente").to_dict("records")
+            ]
+
+    return {
+        "rubric_components": rubric_components,
+        "scenario_comparison": scenario_comparison,
+        "scenario_keys": scenarios,
+        "wilcoxon": wilcoxon,
+    }
 
 
 def build_version_summary(records: list[dict], active_version: str) -> dict:

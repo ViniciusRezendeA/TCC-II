@@ -90,6 +90,24 @@ class JudgeBalanceExhausted(JudgeError):
     """
 
 
+class JudgeRateLimited(JudgeError):
+    """A 429 that is NOT the daily quota (JudgeQuotaExhausted is raised for that instead) --
+    e.g. Gemini's `GenerateRequestsPerMinutePerProjectPerModel-FreeTier`. Unlike the daily
+    case, this key/project is expected to work again within seconds (see `retry_after` when
+    the provider supplies one), so run_step3.py's normal single-key flow deliberately does
+    NOT special-case this (it already falls through to the generic technical-error branch,
+    unchanged from before this class existed -- see gemini_judge.py). It exists as its own
+    type for scripts/run_sequential_step3.py, which rotates to the next key in
+    GOOGLE_API_KEYS the moment this is raised, instead of waiting out the limiter on the same
+    key -- distinguishing it from JudgeQuotaExhausted (whole account/key exhausted for the
+    day, no point retrying it at all today) matters there.
+    """
+
+    def __init__(self, message: str, retry_after_seconds: float | None = None):
+        self.retry_after_seconds = retry_after_seconds
+        super().__init__(message)
+
+
 class RateLimiter:
     """Paces calls to at most `requests_per_minute`, spaced evenly (60/N seconds apart)
     rather than allowed to burst up to the limit -- run_step3.py calls judge.evaluate()

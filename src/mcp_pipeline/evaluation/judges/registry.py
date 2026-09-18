@@ -55,17 +55,43 @@ def load_judges(config_path: Path | None = None, only: set[str] | None = None) -
     return judges
 
 
-def provider_for(judge_id: str, config_path: Path | None = None) -> str:
-    """Looks up a single judge_id's `provider` field in judges.yaml, regardless of its
-    `enabled` flag -- used by scripts/run_parallel_step3.py to find which env var holds the
-    API keys to rotate across processes (e.g. "google" -> GOOGLE_API_KEY/GOOGLE_API_KEYS)
-    without duplicating judges.yaml's parsing there.
+def judge_entry(judge_id: str, config_path: Path | None = None) -> dict:
+    """Returns the raw judges.yaml entry for judge_id (provider, model_id, and any
+    provider-specific kwargs like requests_per_minute) regardless of its `enabled` flag.
     """
     config_path = config_path or (CONFIG_DIR / "judges.yaml")
     raw = yaml.safe_load(config_path.read_text(encoding="utf-8"))
 
     for entry in raw["judges"]:
         if entry["id"] == judge_id:
-            return entry["provider"]
+            return entry
 
     raise ValueError(f"judge_id desconhecido {judge_id!r} em {config_path}")
+
+
+def provider_for(judge_id: str, config_path: Path | None = None) -> str:
+    """Looks up a single judge_id's `provider` field in judges.yaml, regardless of its
+    `enabled` flag -- used by scripts/run_parallel_step3.py to find which env var holds the
+    API keys to rotate across processes (e.g. "google" -> GOOGLE_API_KEY/GOOGLE_API_KEYS)
+    without duplicating judges.yaml's parsing there.
+    """
+    return judge_entry(judge_id, config_path)["provider"]
+
+
+def build_judge(judge_id: str, config_path: Path | None = None, **overrides: object) -> Judge:
+    """Instantiates a single judge_id from judges.yaml -- same provider-class lookup and
+    extra-kwargs passthrough as load_judges(), regardless of its `enabled` flag -- with
+    **overrides (e.g. api_key=...) merged on top of the entry's own kwargs. Used by
+    scripts/run_sequential_step3.py to build one GeminiJudge instance per key in
+    GOOGLE_API_KEYS, all sharing the same model_id/requests_per_minute from judges.yaml but
+    each with its own explicit api_key instead of reading the process-wide env var.
+    """
+    entry = judge_entry(judge_id, config_path)
+    provider = entry["provider"]
+    if provider not in PROVIDER_CLASSES:
+        raise ValueError(f"provedor desconhecido {provider!r} para o juiz {entry['id']!r}")
+
+    judge_cls = PROVIDER_CLASSES[provider]
+    kwargs = {k: v for k, v in entry.items() if k not in _ENTRY_KEYS}
+    kwargs.update(overrides)
+    return judge_cls(judge_id=entry["id"], model_id=entry["model_id"], **kwargs)

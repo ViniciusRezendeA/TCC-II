@@ -15,15 +15,18 @@ nenhuma chamada de API nem depende de mcp_pipeline.evaluation.judges.*. Não pre
 com data/dataset.jsonl: repo.primary_language já vem denormalizado em cada registro de
 avaliação (ver pipeline/run_step3.py::_base_record).
 
-**Ainda não rodado contra dados reais** -- a Etapa 3 (README) ainda não foi executada
-contra a API real dos 3 provedores. Testado só com um fixture sintético (ver
-scratchpad/local durante o desenvolvimento); rodar de verdade e conferir os números assim
-que `data/evaluations/*.jsonl` existir.
+Pareamento por tool feito via tool_key_for() (tool_uid + tool.name), não pelo tool_uid bruto
+do registro: para os padrões de SDK "lowlevel" (ver pipeline/run_step3.py::tool_uid_for),
+várias tools distintas compartilham um tool_uid porque herdam a localização do handler que
+as registra. tool_key_for() corrige isso a partir de dados já presentes em todo registro já
+coletado (tool.name), sem precisar reprocessar nenhuma avaliação.
 
-As tabelas aqui são descritivas (médias, medianas, contagens, correlação). O teste de
-significância pareado (Wilcoxon, tool a tool, cenário A vs B) é da Etapa 5 da metodologia
-do TCC, ainda não implementada -- ver o comentário sobre isso em
-pipeline/run_step3.py::tool_uid_for.
+A maioria das tabelas aqui é descritiva (médias, medianas, contagens, correlação).
+wilcoxon_por_componente() implementa o teste de significância pareado da Seção "Análise
+Comparativa dos Experimentos" do TCC: Teste de Postos Sinalizados de Wilcoxon, por
+componente da rubrica e por juiz, com correção de Benjamini-Hochberg (FDR) para as 6
+comparações simultâneas dentro de cada juiz, e relato da proporção de pares empatados
+(diferença zero) descartados por dimensão -- conforme especificado no texto.
 
 Uso:
     uv run python -m scripts.analysis_evaluation_report [--evaluations-dir PATH] [--output-dir PATH]
@@ -33,16 +36,21 @@ import argparse
 import sys
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
+from scipy.stats import wilcoxon
 
 from mcp_pipeline.config import DATA_DIR
 from mcp_pipeline.logging_setup import setup_logging
 from scripts.analysis_report import (
+    CHART_STYLE,
     _bar_chart,
     _grouped_bar_chart,
     export_tables,
     load_jsonl,
 )
+
+import matplotlib.pyplot as plt  # noqa: E402 -- depois de scripts.analysis_report para herdar seu matplotlib.use("Agg")
 
 logger = setup_logging("analysis_evaluation_report")
 
@@ -66,6 +74,26 @@ def load_evaluations(evaluations_dir: Path) -> list[dict]:
     return records
 
 
+def tool_key_for(record: dict) -> str:
+    """Chave de pareamento por tool, corrigida para colisões de tool_uid vindas dos padrões
+    "lowlevel" de SDK (python.list_tools_lowlevel, *.set_request_handler_lowlevel): nesses
+    padrões, várias tools distintas (nomes/descrições diferentes) compartilham o mesmo
+    tool_uid porque todas herdam a localização do handler que as registra, não uma
+    localização própria (ver tool_uid_for() em pipeline/run_step3.py). Sem essa correção,
+    pivot_table() agrega essas tools diferentes pela média em notas_por_componente(),
+    comparacao_cenarios() e concordancia_entre_juizes(), e o pareamento
+    description_only/with_source pode juntar a nota de uma tool com a de outra.
+
+    Aplicado incondicionalmente (não só nos padrões lowlevel): registros de avaliação já
+    coletados não guardam sdk_pattern, só tool.name -- e para os demais padrões, que já têm
+    localização própria por tool, tool.name é redundante com tool_uid mas nunca o contradiz,
+    então incluí-lo aqui não muda nenhum agrupamento que já estava correto. Não requer
+    reprocessar nenhuma avaliação: tool.name já é gravado em cada registro por
+    pipeline/run_step3.py::_base_record.
+    """
+    return f"{record['tool_uid']}::{record['tool']['name']}"
+
+
 def scores_long(records: list[dict]) -> pd.DataFrame:
     """Formato longo (uma linha por tool x cenário x juiz x componente), só para
     avaliações com status "ok" -- base compartilhada pela maioria das métricas abaixo, em
@@ -80,7 +108,7 @@ def scores_long(records: list[dict]) -> pd.DataFrame:
         for component in RUBRIC_COMPONENTS:
             rows.append(
                 {
-                    "tool_uid": r["tool_uid"],
+                    "tool_uid": tool_key_for(r),
                     "cenario": r["scenario"],
                     "juiz": r["judge"]["id"],
                     "linguagem": r["repo"].get("primary_language"),
@@ -146,6 +174,92 @@ def comparacao_cenarios(long_df: pd.DataFrame) -> pd.DataFrame:
             }
         )
     return pd.DataFrame(rows).sort_values(["componente", "juiz"]).reset_index(drop=True)
+
+
+def _benjamini_hochberg(pvalues: pd.Series) -> pd.Series:
+    """Correção de Benjamini-Hochberg (FDR), método step-up padrão -- implementada aqui em
+    vez de puxar statsmodels (não é dependência do projeto) só para uma fórmula que numpy já
+    resolve. NaN (ex: componente sem par suficiente para o teste) passa direto, sem entrar
+    na família de comparações nem herdar um valor de outra linha.
+    """
+    valid = pvalues.dropna()
+    result = pd.Series(np.nan, index=pvalues.index, dtype=float)
+    if valid.empty:
+        return result
+
+    m = len(valid)
+    order = valid.sort_values().index
+    ranked = valid.loc[order].to_numpy()
+    raw_adjusted = ranked * m / np.arange(1, m + 1)
+    # step-up: q(i) = min(q(i), q(i+1), ..., q(m)), acumulado do maior p-valor para o menor.
+    adjusted = np.minimum.accumulate(raw_adjusted[::-1])[::-1]
+    result.loc[order] = np.minimum(adjusted, 1.0)
+    return result
+
+
+def wilcoxon_por_componente(long_df: pd.DataFrame) -> pd.DataFrame:
+    """Teste de Postos Sinalizados de Wilcoxon (Seção "Análise Comparativa dos Experimentos"
+    do TCC), aplicado por componente da rubrica e separadamente por juiz -- não misturado
+    entre juízes, para poder verificar se o efeito da inclusão do código se mantém
+    consistente entre diferentes avaliadores.
+
+    H0: a distribuição das diferenças pareadas (with_source - description_only) é simétrica
+    em torno de zero, por componente e juiz. H1: a inclusão do código desloca essa
+    distribuição. Pares com diferença zero (mesma nota nos dois cenários) são descartados do
+    teste -- tratamento padrão de empates do Wilcoxon (scipy zero_method="wilcox", o
+    default) -- e sua proporção é reportada em `proporcao_empates_percentual` por
+    componente/juiz, como indicador de quanto a inclusão do código muda (ou não) a nota.
+
+    `p_valor_bh` corrige, dentro de cada juiz, os p-valores das 6 comparações simultâneas
+    (uma por componente) via Benjamini-Hochberg -- a família de testes repetidos que o texto
+    do TCC identifica como precisando de correção, não as 6 dimensões x N juízes juntas
+    (juízes são reportados separadamente por design, não como uma família de testes conjunta).
+
+    Usa o `tool_uid` de `long_df`, que já vem corrigido por tool_key_for() em scores_long()
+    -- nunca o tool_uid bruto do registro, que colide entre tools distintas para os padrões
+    de SDK "lowlevel" (ver tool_key_for()).
+    """
+    pivot = long_df.pivot_table(index=["juiz", "componente", "tool_uid"], columns="cenario", values="nota")
+    rows = []
+    for (juiz, componente), group in pivot.groupby(level=["juiz", "componente"]):
+        if {"description_only", "with_source"} <= set(group.columns):
+            paired = group.dropna(subset=["description_only", "with_source"])
+        else:
+            paired = group.iloc[0:0]
+        n_pareado = len(paired)
+        diffs = (paired["with_source"] - paired["description_only"]) if n_pareado else pd.Series(dtype=float)
+        n_empates = int((diffs == 0).sum())
+        n_efetivo = n_pareado - n_empates
+
+        estatistica_w, p_valor = float("nan"), float("nan")
+        if n_efetivo >= 1:
+            try:
+                estatistica_w, p_valor = wilcoxon(paired["with_source"], paired["description_only"], zero_method="wilcox")
+            except ValueError:
+                # todas as diferenças não-nulas se cancelam em soma de postos zero, ou outro
+                # caso degenerado que o scipy recusa -- reportado como sem teste, não como erro.
+                pass
+
+        rows.append(
+            {
+                "juiz": juiz,
+                "componente": componente,
+                "n_pareado": n_pareado,
+                "n_empates": n_empates,
+                "proporcao_empates_percentual": round(n_empates / n_pareado * 100, 1) if n_pareado else None,
+                "n_efetivo_teste": n_efetivo,
+                "mediana_diferenca": round(diffs.median(), 2) if n_pareado else None,
+                "estatistica_w": round(estatistica_w, 2) if estatistica_w == estatistica_w else None,
+                "p_valor": p_valor,
+            }
+        )
+
+    df = pd.DataFrame(rows)
+    df["p_valor_bh"] = df.groupby("juiz")["p_valor"].transform(_benjamini_hochberg)
+    df["significativo_bh_0.05"] = df["p_valor_bh"] < 0.05
+    df["p_valor"] = df["p_valor"].round(4)
+    df["p_valor_bh"] = df["p_valor_bh"].round(4)
+    return df.sort_values(["juiz", "componente"]).reset_index(drop=True)
 
 
 def concordancia_entre_juizes(long_df: pd.DataFrame) -> pd.DataFrame:
@@ -290,7 +404,38 @@ def generate_charts(tables: dict[str, pd.DataFrame], charts_dir: Path) -> None:
             charts_dir / "06_latencia_por_juiz.png",
         )
 
+    wilcoxon_df = tables["wilcoxon_por_componente"]
+    if not wilcoxon_df.empty:
+        _wilcoxon_pvalue_chart(wilcoxon_df, charts_dir / "07_wilcoxon_p_valor_bh.png")
+
     logger.info("Gráficos salvos em %s", charts_dir)
+
+
+def _wilcoxon_pvalue_chart(wilcoxon_df: pd.DataFrame, path: Path) -> None:
+    """Não usa _grouped_bar_chart (helper compartilhado com analysis_report.py) porque
+    precisa da linha de referência em alpha=0.05, que esse helper não expõe -- gráfico
+    dedicado em vez de mudar um helper usado também pelas Etapas 1-2."""
+    wide = wilcoxon_df.pivot_table(index="componente", columns="juiz", values="p_valor_bh")
+    juizes = list(wide.columns)
+
+    fig, ax = plt.subplots(figsize=CHART_STYLE["figsize"])
+    x = range(len(wide))
+    width = 0.8 / max(len(juizes), 1)
+    colors = ["#3b6ea5", "#e07b39", "#4a9e6f"]
+    for i, juiz in enumerate(juizes):
+        offset = (i - (len(juizes) - 1) / 2) * width
+        ax.bar([xi + offset for xi in x], wide[juiz], width=width, label=juiz, color=colors[i % len(colors)])
+    ax.axhline(0.05, color="#c0392b", linestyle="--", linewidth=1.2, label="α = 0,05")
+    ax.set_xticks(list(x))
+    ax.set_xticklabels(wide.index, rotation=35, ha="right")
+    ax.set_xlabel("Componente da rubrica")
+    ax.set_ylabel("p-valor (corrigido, Benjamini-Hochberg)")
+    ax.set_title("Teste de Wilcoxon: p-valor corrigido por componente e juiz\n(abaixo da linha = diferença estatisticamente significativa)")
+    ax.legend()
+    ax.grid(axis="y", linestyle="--", alpha=0.4)
+    fig.tight_layout()
+    fig.savefig(path, dpi=CHART_STYLE["dpi"], bbox_inches="tight")
+    plt.close(fig)
 
 
 # --- CLI -----------------------------------------------------------------------
@@ -326,6 +471,7 @@ def main() -> None:
         "status_por_juiz_cenario": status_por_juiz_cenario(records),
         "notas_por_componente": notas_por_componente(long_df),
         "comparacao_cenarios": comparacao_cenarios(long_df),
+        "wilcoxon_por_componente": wilcoxon_por_componente(long_df),
         "concordancia_entre_juizes": concordancia_entre_juizes(long_df),
         "custo_latencia_por_juiz": custo_latencia_por_juiz(records),
         "notas_por_linguagem": notas_por_linguagem(long_df),

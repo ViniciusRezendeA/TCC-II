@@ -14,10 +14,11 @@ Para cada grupo duplicado, mantém uma única linha, nesta prioridade:
 Faz backup do arquivo original (.jsonl.bak) antes de sobrescrever. Use --dry-run para
 só ver o relatório sem alterar nada.
 
-Uso:
-  uv run python scripts/dedupe_evaluations.py                # todos os juízes
-  uv run python scripts/dedupe_evaluations.py --judge gemini-3.5-flash-lite
-  uv run python scripts/dedupe_evaluations.py --dry-run
+Uso (via -m: importa tool_key_for de scripts.analysis_evaluation_report, então precisa da
+raiz do projeto no sys.path -- python scripts/dedupe_evaluations.py direto não resolve isso):
+  uv run python -m scripts.dedupe_evaluations                # todos os juízes
+  uv run python -m scripts.dedupe_evaluations --judge gemini-3.5-flash-lite
+  uv run python -m scripts.dedupe_evaluations --dry-run
 """
 
 from __future__ import annotations
@@ -30,6 +31,7 @@ from pathlib import Path
 
 from mcp_pipeline.config import DATA_DIR
 from mcp_pipeline.logging_setup import setup_logging
+from scripts.analysis_evaluation_report import tool_key_for
 
 logger = setup_logging("dedupe_evaluations")
 
@@ -37,7 +39,15 @@ _STATUS_RANK = {"ok": 2, "refused": 2, "error": 1}
 
 
 def _dedupe_key(record: dict) -> tuple[str, str, str]:
-    return (record["tool_uid"], record["scenario"], record.get("prompt_version", ""))
+    """tool_key_for() (não o tool_uid bruto do registro) porque tool_uid sozinho colide para
+    os padrões de SDK "lowlevel" (python.list_tools_lowlevel, *.set_request_handler_lowlevel):
+    várias tools distintas compartilham um tool_uid por herdarem a localização do handler que
+    as registra (ver pipeline/run_step3.py::tool_uid_for). Com o tool_uid bruto, este script
+    trataria essas tools diferentes como duplicatas umas das outras e apagaria todas menos
+    uma -- perda de dado real, não limpeza. Mesma chave usada por
+    scripts/generate_dashboard.py (via dedupe_records() abaixo), para as duas ferramentas
+    nunca divergirem sobre o que conta como "a mesma avaliação"."""
+    return (tool_key_for(record), record["scenario"], record.get("prompt_version", ""))
 
 
 def _better(candidate: dict, current: dict) -> bool:
@@ -50,38 +60,46 @@ def _better(candidate: dict, current: dict) -> bool:
     return (candidate.get("evaluated_at") or "") >= (current.get("evaluated_at") or "")
 
 
+def dedupe_records(records: list[dict]) -> list[dict]:
+    """Dedupe em memória, sem tocar em arquivo -- a mesma seleção de "qual linha vence"
+    (ver _better()) usada por dedupe_file() (CLI deste script, reescreve o jsonl) e por
+    scripts/generate_dashboard.py (só para montar o dashboard, nunca grava nada). Preserva a
+    ordem de primeira aparição de cada chave.
+    """
+    order: list[tuple[str, str, str]] = []
+    kept: dict[tuple[str, str, str], dict] = {}
+    for record in records:
+        key = _dedupe_key(record)
+        if key not in kept:
+            order.append(key)
+            kept[key] = record
+        elif _better(record, kept[key]):
+            kept[key] = record
+    return [kept[key] for key in order]
+
+
 def dedupe_file(path: Path, dry_run: bool) -> None:
     if not path.exists():
         logger.warning("%s não existe, pulando", path)
         return
 
-    order: list[tuple[str, str, str]] = []  # first-seen order of keys, for stable output
-    kept: dict[tuple[str, str, str], dict] = {}
-    total_lines = 0
-
+    records: list[dict] = []
     with open(path, encoding="utf-8") as f:
         for line in f:
             line = line.strip()
-            if not line:
-                continue
-            total_lines += 1
-            record = json.loads(line)
-            key = _dedupe_key(record)
-            if key not in kept:
-                order.append(key)
-                kept[key] = record
-            elif _better(record, kept[key]):
-                kept[key] = record
+            if line:
+                records.append(json.loads(line))
         size_at_read = f.tell()
 
-    duplicates_removed = total_lines - len(kept)
-    still_error = sum(1 for r in kept.values() if r.get("status") == "error")
+    deduped = dedupe_records(records)
+    duplicates_removed = len(records) - len(deduped)
+    still_error = sum(1 for r in deduped if r.get("status") == "error")
 
     logger.info(
         "[%s] linhas: %s -> %s únicas (%s duplicatas removidas); %s ainda com status=error",
         path.name,
-        total_lines,
-        len(kept),
+        len(records),
+        len(deduped),
         duplicates_removed,
         still_error,
     )
@@ -116,10 +134,10 @@ def dedupe_file(path: Path, dry_run: bool) -> None:
     logger.info("[%s] backup salvo em %s", path.name, backup_path.name)
 
     with open(path, "w", encoding="utf-8") as out:
-        for key in order:
-            out.write(json.dumps(kept[key], ensure_ascii=False) + "\n")
+        for record in deduped:
+            out.write(json.dumps(record, ensure_ascii=False) + "\n")
 
-    logger.info("[%s] reescrito com %s linhas", path.name, len(kept))
+    logger.info("[%s] reescrito com %s linhas", path.name, len(deduped))
 
 
 def main() -> None:

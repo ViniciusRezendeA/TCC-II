@@ -35,14 +35,45 @@ def load_dataset_rows(dataset_path: Path, limit: int | None = None) -> list[dict
     return rows
 
 
+# SDK patterns where one handler function/call site produces N tools that all share the
+# same qualified_name + source_location (the handler's own location, not a per-tool one) --
+# see python_patterns.py::detect_lowlevel_list_tools and
+# ecmascript_common.py::detect_lowlevel_set_request_handler. Confirmed on the real dataset:
+# 257 (repo, qualified_name, source_location) keys collapse ~3.7k distinct tools (30% of
+# dataset.jsonl) onto one another under these patterns alone.
+_LOWLEVEL_SHARED_LOCATION_PATTERNS = frozenset(
+    {
+        "python.list_tools_lowlevel",
+        "typescript.set_request_handler_lowlevel",
+        "javascript.set_request_handler_lowlevel",
+    }
+)
+
+
 def tool_uid_for(row: dict) -> str:
     """Stable semantic key (repo + qualified_name + source location), not a row index into
     dataset.jsonl -- a row-index key would silently misfire if assemble_dataset.py is ever
     re-run with a different repo set. Also the pairing key Etapa 5's Wilcoxon test needs
     ("same tool, same model, scenario A vs B") and the join key for the human spot-check.
+
+    qualified_name + source_location alone is NOT unique for the "lowlevel" SDK patterns
+    (see _LOWLEVEL_SHARED_LOCATION_PATTERNS): every tool returned by the same
+    list_tools()/setRequestHandler() handler shares the handler's own location, so without
+    this branch, distinct tools (different tool.name/description) silently collide onto one
+    tool_uid -- confirmed to corrupt the description_only/with_source pairing (pivot_table
+    averages the colliding rows together) and to make should_skip() treat the whole group as
+    "done" once any one of them completes, permanently dropping the rest on a resumed run.
+    tool.name is required to be a literal string by both lowlevel detectors (a tool without
+    one is skipped at extraction time, never reaches dataset.jsonl), so it's always safe to
+    use here. Every other sdk_pattern already has a per-tool source_location and keeps the
+    exact same tool_uid as before this branch existed -- their checkpoint entries and
+    already-collected evaluations stay valid.
     """
     loc = row["tool"]["source_location"]
-    return f"{row['repo']['name_with_owner']}::{row['tool']['qualified_name']}::{loc['file']}:{loc['start_line']}"
+    base = f"{row['repo']['name_with_owner']}::{row['tool']['qualified_name']}::{loc['file']}:{loc['start_line']}"
+    if row["tool"].get("sdk_pattern") in _LOWLEVEL_SHARED_LOCATION_PATTERNS:
+        return f"{base}::{row['tool']['name']}"
+    return base
 
 
 def checkpoint_key(tool_uid: str, scenario: str, judge_id: str) -> str:

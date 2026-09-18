@@ -103,6 +103,32 @@ def test_tool_uid_for_is_stable_and_includes_source_location():
     assert tool_uid_for(row) == "acme/weather-mcp::get_weather::server.py:1"
 
 
+def test_tool_uid_for_disambiguates_lowlevel_tools_sharing_one_handler():
+    """python.list_tools_lowlevel/*.set_request_handler_lowlevel put N distinct tools at the
+    same qualified_name + source_location (the shared handler's own location) -- tool_uid_for
+    must fold in tool.name for these patterns, or two different tools collide onto one uid.
+    """
+    row_a = _make_row(name="search_models")
+    row_a["tool"]["sdk_pattern"] = "python.list_tools_lowlevel"
+    row_a["tool"]["qualified_name"] = "handle_list_tools"
+    row_b = _make_row(name="search_datasets")
+    row_b["tool"]["sdk_pattern"] = "python.list_tools_lowlevel"
+    row_b["tool"]["qualified_name"] = "handle_list_tools"
+
+    assert tool_uid_for(row_a) != tool_uid_for(row_b)
+    assert tool_uid_for(row_a) == "acme/weather-mcp::handle_list_tools::server.py:1::search_models"
+
+
+def test_tool_uid_for_unaffected_for_non_lowlevel_patterns():
+    """Every other sdk_pattern already has a per-tool source_location -- tool_uid must stay
+    byte-identical to before the lowlevel fix, so existing checkpoints/evaluations for the
+    ~70% of the dataset outside the lowlevel patterns aren't invalidated by it."""
+    row = _make_row()
+
+    assert row["tool"]["sdk_pattern"] == "python.fastmcp_decorator"
+    assert tool_uid_for(row) == "acme/weather-mcp::get_weather::server.py:1"
+
+
 def test_checkpoint_key_embeds_prompt_version():
     from mcp_pipeline.evaluation.prompts import PROMPT_VERSION
 

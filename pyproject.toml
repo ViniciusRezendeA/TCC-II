@@ -17,6 +17,7 @@ dependencies = [
     "python-dotenv>=1.2.3",
     "pyyaml>=6.0.3",
     "requests>=2.34.2",
+    "scipy>=1.18.1",
     "tenacity>=9.1.4",
     "tqdm>=4.70.0",
     "tree-sitter==0.25.2",

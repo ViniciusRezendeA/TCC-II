@@ -6,26 +6,38 @@ from unittest.mock import MagicMock
 import pytest
 from google.genai import errors as genai_errors
 
-from mcp_pipeline.evaluation.judges.base import JudgeError, JudgeQuotaExhausted, JudgeRefusal, RateLimiter, RubricScores
+from mcp_pipeline.evaluation.judges.base import (
+    JudgeError,
+    JudgeQuotaExhausted,
+    JudgeRateLimited,
+    JudgeRefusal,
+    RateLimiter,
+    RubricScores,
+)
 from mcp_pipeline.evaluation.judges.gemini_judge import GeminiJudge, _is_daily_quota_exhausted
 
 
-def _make_quota_error(quota_id: str) -> genai_errors.ClientError:
+def _make_quota_error(quota_id: str, retry_delay: str | None = None) -> genai_errors.ClientError:
     """Mirrors the real structured 429 body Google returns (captured live against the
     free-tier API) -- not a hand-wavy string, so _is_daily_quota_exhausted's parsing is
-    tested against the actual shape it has to handle.
+    tested against the actual shape it has to handle. `retry_delay` mirrors the sibling
+    RetryInfo detail Google includes alongside QuotaFailure on a per-minute 429 (e.g. "19s"),
+    which _retry_after_seconds()/JudgeRateLimited.retry_after_seconds parse.
     """
+    details = [
+        {
+            "@type": "type.googleapis.com/google.rpc.QuotaFailure",
+            "violations": [{"quotaId": quota_id, "quotaValue": "500"}],
+        }
+    ]
+    if retry_delay is not None:
+        details.append({"@type": "type.googleapis.com/google.rpc.RetryInfo", "retryDelay": retry_delay})
     response_json = {
         "error": {
             "code": 429,
             "message": f"Quota exceeded for metric: ...\n* quotaId: {quota_id}",
             "status": "RESOURCE_EXHAUSTED",
-            "details": [
-                {
-                    "@type": "type.googleapis.com/google.rpc.QuotaFailure",
-                    "violations": [{"quotaId": quota_id, "quotaValue": "500"}],
-                }
-            ],
+            "details": details,
         }
     }
     return genai_errors.ClientError(429, response_json, None)
@@ -168,11 +180,17 @@ def test_evaluate_raises_judge_quota_exhausted_on_daily_quota_error(monkeypatch)
         judge.evaluate({"name": "get_weather", "server_name": "acme/weather-mcp", "description": "..."})
 
 
-def test_evaluate_raises_plain_judge_error_on_per_minute_quota_error(monkeypatch):
+def test_evaluate_raises_judge_rate_limited_on_per_minute_quota_error(monkeypatch):
+    """Distinct from the daily case (JudgeQuotaExhausted): run_step3.py's normal single-key
+    flow doesn't special-case JudgeRateLimited (it's still a JudgeError, so falls through to
+    the same generic technical-error handling as before this type existed), but
+    scripts/run_sequential_step3.py catches it specifically to rotate to the next key.
+    """
     judge = _make_judge(monkeypatch)
-    error = _make_quota_error("GenerateRequestsPerMinutePerProjectPerModel-FreeTier")
+    error = _make_quota_error("GenerateRequestsPerMinutePerProjectPerModel-FreeTier", retry_delay="19s")
     monkeypatch.setattr(judge._client.models, "generate_content", MagicMock(side_effect=error))
 
-    with pytest.raises(JudgeError) as exc_info:
+    with pytest.raises(JudgeRateLimited) as exc_info:
         judge.evaluate({"name": "get_weather", "server_name": "acme/weather-mcp", "description": "..."})
     assert not isinstance(exc_info.value, JudgeQuotaExhausted)
+    assert exc_info.value.retry_after_seconds == 19.0
