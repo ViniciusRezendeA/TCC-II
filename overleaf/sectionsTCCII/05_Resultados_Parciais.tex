@@ -2,11 +2,11 @@
 \section{Resultados}
 \label{sec:resultados}
 
-\textcolor{green}{Esta seção apresenta os resultados da avaliação por rubrica descrita na Seção~\ref{sec:materiais}, obtidos até o momento da redação deste artigo com o juiz DeepSeek-V4.1-Flash: 8.648 avaliações concluídas, das quais 4.304 ferramentas foram avaliadas nos dois cenários experimentais (\textit{description\_only} e \textit{with\_source}), permitindo o pareamento necessário para o Teste de Wilcoxon. A avaliação pelos demais juízes configurados no pipeline (Gemini 3.5 Flash-Lite e Qwen2.5-14B-Instruct, Seção~\ref{sec:materiais}) está em execução; a comparação entre avaliadores distintos é tratada como direção de trabalho futuro.}
+Esta seção apresenta os resultados da avaliação por rubrica descrita na Seção~\ref{sec:materiais}, obtidos até o momento da redação deste artigo com o juiz DeepSeek-V4.1-Flash: 8.648 avaliações concluídas, das quais 4.304 ferramentas foram avaliadas nos dois cenários experimentais (\textit{description\_only} e \textit{with\_source}), permitindo o pareamento necessário para o Teste de Wilcoxon. A avaliação pelos demais juízes configurados no pipeline (Gemini 3.5 Flash-Lite e Qwen2.5-14B-Instruct, Seção~\ref{sec:materiais}) está em execução; a comparação entre avaliadores distintos é tratada como direção de trabalho futuro.
 
-\subsection{\textcolor{green}{Comparação entre Cenários e Significância Estatística}}
+\subsection{Comparação entre Cenários e Significância Estatística}
 
-\textcolor{green}{A Tabela~\ref{tab:comparacao-deepseek} apresenta, para o juiz DeepSeek-V4.1-Flash, o escore médio de cada componente da rubrica nos dois cenários (apenas descrição \textit{versus} descrição com código), a diferença entre eles ($\Delta$) e o resultado do Teste de Postos Sinalizados de Wilcoxon, com correção de Benjamini-Hochberg para comparações múltiplas entre as seis dimensões. A proporção de empates (pares em que os dois cenários recebem exatamente o mesmo escore) varia por dimensão, de 61,8\% a 94,6\%.}
+A Tabela~\ref{tab:comparacao-deepseek} apresenta, para o juiz DeepSeek-V4.1-Flash, o escore médio de cada componente da rubrica nos dois cenários (apenas descrição \textit{versus} descrição com código), a diferença entre eles ($\Delta$) e o resultado do Teste de Postos Sinalizados de Wilcoxon, com correção de Benjamini-Hochberg para comparações múltiplas entre as seis dimensões. A proporção de empates (pares em que os dois cenários recebem exatamente o mesmo escore) varia por dimensão, de 61,8\% a 94,6\%.
 
 \begin{table}[H]
 \centering
@@ -24,4 +24,4 @@ Examples & 1,20 & 1,20 & -0,00 & 0,425 & Não \\ \hline
 \end{tabular}
 \end{table}
 
-\textcolor{green}{A inclusão do código reduz o escore médio nas seis dimensões da rubrica, com diferença estatisticamente significativa em cinco delas (todas exceto \textit{Examples}); a maior queda ocorre em \textit{Purpose} ($\Delta = -0,13$), seguida por \textit{Parameter Explanation} ($\Delta = -0,06$). Esse padrão é compatível com a hipótese de que o código expõe lacunas da descrição não percebidas quando apenas o texto é avaliado: ao confrontar a descrição com uma implementação mais completa do que o texto sugere, o avaliador atribui uma pontuação mais conservadora. A generalização desse resultado para outros juízes depende da conclusão da coleta de avaliações e é tratada como direção de trabalho futuro.}
+A inclusão do código reduz o escore médio nas seis dimensões da rubrica, com diferença estatisticamente significativa em cinco delas (todas exceto \textit{Examples}); a maior queda ocorre em \textit{Purpose} ($\Delta = -0,13$), seguida por \textit{Parameter Explanation} ($\Delta = -0,06$). Esse padrão é compatível com a hipótese de que o código expõe lacunas da descrição não percebidas quando apenas o texto é avaliado: ao confrontar a descrição com uma implementação mais completa do que o texto sugere, o avaliador atribui uma pontuação mais conservadora. A generalização desse resultado para outros juízes depende da conclusão da coleta de avaliações e é tratada como direção de trabalho futuro.

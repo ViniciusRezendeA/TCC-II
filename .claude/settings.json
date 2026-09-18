@@ -2,7 +2,9 @@
   "permissions": {
     "allow": [
       "Bash(python3 -c ' *)",
-      "Bash(python3 -m json.tool)"
+      "Bash(python3 -m json.tool)",
+      "Bash(kill -TERM 21436)",
+      "Bash(ps -p 21436 -o pid,stat,etime,command)"
     ]
   }
 }
