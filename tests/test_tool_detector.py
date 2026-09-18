@@ -55,13 +55,17 @@ def other_tool(x):
     call_texts = {c.raw_call_text for c in weather_graph.calls[0].calls}
     assert "requests.get(city)" in call_texts
     assert "cache_utils.get_cached(city)" in call_texts
-    assert weather_tool.loc == 3  # def/docstring/return -- decorator line excluded
+    # "Complete tool": get_weather's own 3 lines + _fetch's own 3 lines +
+    # get_cached's own 2 lines (requests.get is external, contributes 0).
+    assert weather_tool.loc == 8
+    assert weather_tool.cyclomatic_complexity == 3  # 1 (get_weather) + 1 (_fetch) + 1 (get_cached), no branches anywhere
     assert weather_tool.call_graph_depth == 3  # get_weather -> _fetch -> get_cached
 
     other_tool_record, other_graph = by_name["other_tool"]
     assert other_tool_record.description == "Second tool"
     assert other_graph.calls == []  # `return x` has no call expressions
-    assert other_tool_record.loc == 2  # def/return -- decorator line excluded
+    assert other_tool_record.loc == 2  # def/return -- decorator line excluded, no calls to sum in
+    assert other_tool_record.cyclomatic_complexity == 1  # no branches
     assert other_tool_record.call_graph_depth == 1  # no calls at all
 
 
@@ -229,11 +233,11 @@ async function handleGetWeather(args) {
     assert tool.sdk_pattern == "javascript.registerTool"
     assert graph.qualified_name == "handleGetWeather"
     assert graph.calls[0].qualified_name == "getCached"
-    # handleGetWeather's own 3-line body (lines 9-11 of the fixture), NOT the
-    # 4-line server.registerTool(...) call site (lines 4-7) that
-    # tool.source_location points to -- this is what pins loc to start_def,
-    # not tool.source_location.
-    assert tool.loc == 3
+    # "Complete tool": handleGetWeather's own 3-line body (lines 9-11 of the
+    # fixture, NOT the 4-line server.registerTool(...) call site at lines 4-7
+    # that tool.source_location points to) + getCached's own 3-line body.
+    assert tool.loc == 6
+    assert tool.cyclomatic_complexity == 2  # 1 (handleGetWeather) + 1 (getCached), no branches
     assert tool.call_graph_depth == 2  # handleGetWeather -> getCached (leaf)
 
 

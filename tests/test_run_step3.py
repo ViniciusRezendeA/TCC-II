@@ -72,6 +72,7 @@ def _make_row(name: str = "get_weather", file: str = "server.py", start_line: in
             "source_location": {"file": file, "start_line": start_line, "end_line": start_line + 1},
             "loc": 2,
             "call_graph_depth": 1,
+            "cyclomatic_complexity": 1,
         },
         "call_graph": {
             "level": 1,

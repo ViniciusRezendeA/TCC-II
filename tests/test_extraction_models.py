@@ -20,6 +20,7 @@ def test_tool_record_round_trips():
         qualified_name="WeatherServer.get_weather",
         loc=3,
         call_graph_depth=2,
+        cyclomatic_complexity=1,
     )
     reloaded = ToolRecord.from_dict(tool.to_dict())
     assert reloaded == tool
@@ -36,6 +37,7 @@ def test_tool_record_loc_and_call_graph_depth_default_to_zero():
     )
     assert tool.loc == 0
     assert tool.call_graph_depth == 0
+    assert tool.cyclomatic_complexity == 0
 
 
 def test_tool_record_from_dict_requires_loc_and_call_graph_depth():
@@ -49,6 +51,7 @@ def test_tool_record_from_dict_requires_loc_and_call_graph_depth():
     ).to_dict()
     del stale["loc"]
     del stale["call_graph_depth"]
+    del stale["cyclomatic_complexity"]
     with pytest.raises(KeyError):
         ToolRecord.from_dict(stale)
 

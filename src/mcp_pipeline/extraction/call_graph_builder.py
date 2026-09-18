@@ -110,6 +110,50 @@ def _build_node(
     return node
 
 
+def collect_reachable_definitions(
+    start_def: FunctionDef,
+    definitions: DefinitionIndex,
+    imports_by_file: dict[str, ImportIndex],
+    source_bytes_by_file: dict[str, bytes],
+    extract_calls: CallExtractor,
+) -> list[FunctionDef]:
+    """Every FunctionDef transitively reachable from `start_def` via resolved
+    internal calls, deduped by qualified_name and including `start_def`
+    itself. Used to measure "the complete tool" for `loc`/cyclomatic
+    complexity (summed across the tool's own body AND every helper it calls,
+    however deep) -- deliberately NOT bounded by MAX_LEVEL like
+    `build_call_graph` above. That 3-level cap exists only to keep the
+    *serialized* call graph tree small/readable; it isn't a claim that code
+    past level 3 stops being part of the tool's own implementation.
+
+    A visited-by-qualified_name set (rather than the level cap) is what
+    keeps direct/mutual recursion from looping forever here, and also
+    naturally dedupes diamond-shaped call graphs (two callees sharing one
+    helper) so shared helpers aren't double-counted into loc/complexity.
+    """
+    visited: dict[str, FunctionDef] = {start_def.qualified_name: start_def}
+    queue: list[FunctionDef] = [start_def]
+    while queue:
+        current = queue.pop()
+        source_bytes = source_bytes_by_file[current.file]
+        seen_raw_texts: set[str] = set()
+        for call_site in extract_calls(current.body_node, source_bytes):
+            if call_site.raw_text in seen_raw_texts:
+                continue
+            seen_raw_texts.add(call_site.raw_text)
+
+            resolved_def, _ambiguous = resolve_call(
+                call_site, current_file=current.file, current_class=current.class_name,
+                definitions=definitions, imports_by_file=imports_by_file,
+            )
+            if resolved_def is None or resolved_def.qualified_name in visited:
+                continue
+            visited[resolved_def.qualified_name] = resolved_def
+            queue.append(resolved_def)
+
+    return list(visited.values())
+
+
 def resolve_call(
     call_site: CallSite,
     current_file: str,

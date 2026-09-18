@@ -69,6 +69,12 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Etapa 2: extração de ferramentas e call graph")
     parser.add_argument("--limit", type=int, default=None, help="Processa só os N primeiros repositórios (para pilotos/depuração).")
     parser.add_argument("--retry-failed", action="store_true", help="Reprocessa também repositórios previamente marcados como falha.")
+    parser.add_argument(
+        "--force", action="store_true",
+        help="Reprocessa também repositórios que já têm tools.jsonl, sobrescrevendo-o "
+        "(para recomputar campos como loc/cyclomatic_complexity sem reclonar; só funciona "
+        "para repositórios cujo src/ ainda esteja em disco).",
+    )
     args = parser.parse_args()
 
     ensure_dirs()
@@ -96,7 +102,7 @@ def main() -> None:
             slug = meta.repo.name_with_owner
             tools_file = meta.src_path.parent / TOOLS_FILENAME
 
-            if tools_file.exists():
+            if tools_file.exists() and not args.force:
                 skipped += 1
                 bar.set_postfix(tools=total_tools, falhas=failed, pulados=skipped)
                 bar.update(1)

@@ -25,14 +25,22 @@ class ToolRecord:
     sdk_pattern: str  # e.g. "python.fastmcp_decorator" — see patterns/*.py
     source_location: SourceLocation
     qualified_name: str  # links this tool to its Level-1 node in the definition index
-    loc: int = 0  # lines of the implementing function: end_line - start_line + 1 of
-    # the resolved FunctionDef (see tool_detector.py) -- NOT of source_location,
-    # which for JS/TS .tool()/.registerTool() patterns is the registration call
-    # site, not the handler. 0 is a "not computed yet" sentinel; real values are
+    loc: int = 0  # total lines of code summed over the tool's own implementing
+    # function AND every function it transitively calls within the repo (see
+    # collect_reachable_definitions() in call_graph_builder.py) -- "the
+    # complete tool", not just its outer handler. Deliberately NOT bounded by
+    # call_graph_depth's 3-level cap below: that cap only limits the
+    # *serialized* call graph tree, not what counts as part of the tool's own
+    # implementation. 0 is a "not computed yet" sentinel; real values are
     # always >= 1.
     call_graph_depth: int = 0  # max `level` reached in this tool's call graph tree.
     # Bounded to {1, 2, 3} by MAX_LEVEL in call_graph_builder.py. 0 is a "not
     # computed yet" sentinel; real values are always >= 1.
+    cyclomatic_complexity: int = 0  # McCabe cyclomatic complexity (classic
+    # definition: decision points + 1, NOT counting short-circuit boolean
+    # operators -- see extraction/complexity.py), summed over the same
+    # reachable-function set as `loc` above, for the same "complete tool"
+    # reason. 0 is a "not computed yet" sentinel; real values are always >= 1.
 
     def to_dict(self) -> dict:
         return {
@@ -44,6 +52,7 @@ class ToolRecord:
             "qualified_name": self.qualified_name,
             "loc": self.loc,
             "call_graph_depth": self.call_graph_depth,
+            "cyclomatic_complexity": self.cyclomatic_complexity,
         }
 
     @classmethod
@@ -57,6 +66,7 @@ class ToolRecord:
             qualified_name=d["qualified_name"],
             loc=d["loc"],
             call_graph_depth=d["call_graph_depth"],
+            cyclomatic_complexity=d["cyclomatic_complexity"],
         )
 
 

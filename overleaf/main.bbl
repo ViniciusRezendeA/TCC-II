@@ -1,0 +1,112 @@
+\begin{thebibliography}{}
+
+\bibitem[Borges et~al. 2016]{Borges2016}
+Borges, H., Hora, A., and Valente, M.~T. (2016).
+\newblock Predicting the popularity of github repositories.
+\newblock In {\em Proceedings of the 12th International Conference on
+  Predictive Models and Data Analytics in Software Engineering}, pages 1--10.
+
+\bibitem[Dong et~al. 2023]{BashInTheWild}
+Dong, Y., Li, Z., Tian, Y., Sun, C., Godfrey, M.~W., and Nagappan, M. (2023).
+\newblock Bash in the wild: Language usage, code smells, and bugs.
+\newblock {\em ACM Trans. Softw. Eng. Methodol.}, 32(1).
+
+\bibitem[Femmer et~al. 2017]{femmer2017}
+Femmer, H., M{\'e}ndez~Fern{\'a}ndez, D., Wagner, S., and Eder, S. (2017).
+\newblock Rapid quality assurance with requirements smells.
+\newblock {\em Journal of Systems and Software}, 123:190--213.
+
+\bibitem[{Guo} et~al. 2025]{guo2025measurement}
+{Guo}, H., {Hao}, Y., {Zhang}, Y., {Xu}, M., {Lv}, P., {Chen}, J., and {Cheng},
+  X. (2025).
+\newblock {A Measurement Study of Model Context Protocol Ecosystem}.
+\newblock {\em arXiv e-prints}.
+
+\bibitem[Hasan et~al. 2026]{mcpAtFirstGlance}
+Hasan, M.~M., Li, H., Fallahzadeh, E., Rajbahadur, G.~K., Adams, B., and
+  Hassan, A.~E. (2026).
+\newblock Model context protocol (mcp) at first glance: Studying the security
+  and maintainability of mcp servers.
+\newblock {\em ACM Trans. Softw. Eng. Methodol.}
+\newblock Just Accepted.
+
+\bibitem[{ISO/IEC} 2011]{iso25010}
+{ISO/IEC} (2011).
+\newblock Iso/iec 25010:2011 -- systems and software engineering -- systems and
+  software quality requirements and evaluation (square) -- system and software
+  quality models.
+\newblock Technical report, International Organization for Standardization,
+  Geneva, Switzerland.
+
+\bibitem[{ISO/IEC/IEEE} 2017]{iso24765}
+{ISO/IEC/IEEE} (2017).
+\newblock Iso/iec/ieee 24765:2017 -- systems and software engineering --
+  vocabulary.
+\newblock Technical report, International Organization for Standardization,
+  Geneva, Switzerland.
+
+\bibitem[Khan et~al. 2021]{khan2021}
+Khan, J.~Y., Khondaker, M. T.~I., Uddin, G., and Iqbal, A. (2021).
+\newblock Automatic detection of five api documentation smells: Practitioners'
+  perspectives.
+\newblock In {\em 2021 IEEE International Conference on Software Analysis,
+  Evolution and Reengineering (SANER)}, pages 318--329.
+
+\bibitem[LLC 2026]{Avaya2026}
+LLC, A. (2026).
+\newblock The model context protocol: A status report for enterprise customer
+  experience leaders.
+\newblock White paper, Avaya.
+
+\bibitem[{Luo} et~al. 2025]{2025arXiv250814704L}
+{Luo}, Z., {Shen}, Z., {Yang}, W., {Zhao}, Z., {Jwalapuram}, P., {Saha}, A.,
+  {Sahoo}, D., {Savarese}, S., {Xiong}, C., and {Li}, J. (2025).
+\newblock {MCP-Universe: Benchmarking Large Language Models with Real-World
+  Model Context Protocol Servers}.
+\newblock {\em arXiv e-prints}.
+
+\bibitem[{Mehedi Hasan} et~al. 2026]{2026arXiv260214878M}
+{Mehedi Hasan}, M., {Li}, H., {Krishnan Rajbahadur}, G., {Adams}, B., and
+  {Hassan}, A.~E. (2026).
+\newblock {Model Context Protocol (MCP) Tool Descriptions Are Smelly! Towards
+  Improving AI Agent Efficiency with Augmented MCP Tool Descriptions}.
+\newblock {\em arXiv e-prints}.
+
+\bibitem[{National Security Agency} 2026]{NSA2026}
+{National Security Agency} (2026).
+\newblock Model context protocol (mcp): Security design considerations for
+  ai-driven automation.
+\newblock Cybersecurity report, NSA Cybersecurity Information.
+
+\bibitem[Pressman and Maxim 2016]{pressman2016}
+Pressman, R.~S. and Maxim, B.~R. (2016).
+\newblock {\em Engenharia de Software: Uma Abordagem Profissional}.
+\newblock AMGH, Porto Alegre, 8 edition.
+
+\bibitem[Shi et~al. 2026]{shi2026description}
+Shi, Y., Zhang, X., Zhang, X., Shen, X., Ouyang, H., Qiu, H., Zhang, M., and
+  Yang, M. (2026).
+\newblock Description-code inconsistency in real-world mcp servers:
+  Measurement, detection, and security implications.
+\newblock {\em arXiv preprint arXiv:2606.04769}.
+
+\bibitem[Taraghi et~al. 2026]{Taraghi2026}
+Taraghi, M., Morovati, M.~M., and Khomh, F. (2026).
+\newblock Real faults in model context protocol (mcp) software: a comprehensive
+  taxonomy.
+\newblock {\em arXiv preprint arXiv:2603.05637}.
+
+\bibitem[Wilcoxon 1945]{wilcoxon1945individual}
+Wilcoxon, F. (1945).
+\newblock Individual comparisons by ranking methods.
+\newblock {\em Biometrics Bulletin}, 1(6):80--83.
+
+\bibitem[Zheng et~al. 2023]{NEURIPS2023_91f18a12}
+Zheng, L., Chiang, W.-L., Sheng, Y., Zhuang, S., Wu, Z., Zhuang, Y., Lin, Z.,
+  Li, Z., Li, D., Xing, E., Zhang, H., Gonzalez, J., and Stoica, I. (2023).
+\newblock Judging llm-as-a-judge with mt-bench and chatbot arena.
+\newblock In Oh, A., Naumann, T., Globerson, A., Saenko, K., Hardt, M., and
+  Levine, S., editors, {\em Advances in Neural Information Processing Systems},
+  volume~36, pages 46595--46623. Curran Associates, Inc.
+
+\end{thebibliography}

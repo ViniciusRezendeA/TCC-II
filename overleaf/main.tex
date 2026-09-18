@@ -1,0 +1,112 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% How to use writeLaTeX: 
+%
+% You edit the source code here on the left, and the preview on the
+% right shows you the result within a few seconds.
+%
+% Bookmark this page and share the URL with your co-authors. They can
+% edit at the same time!
+%
+% You can upload figures, bibliographies, custom classes and
+% styles using the files menu.
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\documentclass[12pt]{article}
+
+\usepackage{sbc-template}
+\usepackage{graphicx,url}
+\usepackage{float} 
+\usepackage[brazil]{babel}
+\usepackage{tabularx}
+\newcolumntype{C}{>{\centering\arraybackslash}X} % <-- modified
+\usepackage[utf8]{inputenc}  
+\usepackage[inline]{enumitem}
+\usepackage{tcolorbox}
+\usepackage{multirow}
+
+%%%%%%%%%%%%%%%%% Pacotes para inserção de algoritmos - BEGIN
+\usepackage[ruled,lined]{algorithm2e}
+
+
+% Pacote para a definição de novas cores
+\usepackage{xcolor}
+% Definindo novas cores
+\definecolor{verde}{rgb}{0.25,0.5,0.35}
+\definecolor{jpurple}{rgb}{0.5,0,0.35}
+\definecolor{darkgreen}{rgb}{0.0, 0.2, 0.13}
+%\definecolor{oldmauve}{rgb}{0.4, 0.19, 0.28}
+
+\usepackage{listings}
+\lstset{
+    language=Java,
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{jpurple}\bfseries,
+    stringstyle=\color{red},
+    commentstyle=\color{verde},
+    morecomment=[s][\color{blue}]{/**}{*/},
+    extendedchars=true,
+    showspaces=false,
+    showstringspaces=false,
+    numbers=left,
+    numberstyle=\tiny,
+    breaklines=true,
+    backgroundcolor=\color{white!10},
+    breakautoindent=true,
+    captionpos=b,
+    xleftmargin=0pt,
+    tabsize=2
+}
+%%%%%%%%%%%%%%%%% Pacotes para inserção de algoritmos - END
+
+     
+\sloppy
+
+\title{Model Context Protocol (MCP): Avaliação da Qualidade de Descrições de Tools com Base em Contexto de Código Fonte }
+
+\author{Pedro H. P. Rodrigues\inst{1}, Vinicius R. A. de A. Moreira\inst{1}
+}
+\address{Instituto de Ciências Exatas e Informática  -- Pontifícia Universidade Católica de Minas Gerais \\
+  Caixa Postal 500 -- 30535-901 -- Belo Horizonte -- MG -- Brazil \\
+    \email{\{vinicius,pedro\}viniciusarantes133@gmail.com, pedrohenriquepr08@gmail.com}}
+
+
+\begin{document} 
+
+\maketitle
+
+\begin{resumo}
+O \textit{Model Context Protocol} (MCP) permite que agentes de Inteligência Artificial (IA) interajam com sistemas externos por meio de \textit{tools}, cujas descrições em linguagem natural orientam sua utilização. Entretanto, descrições de baixa qualidade, caracterizadas pela presença de \textit{smells}, podem comprometer a eficácia desses agentes. Nesse contexto, este trabalho \textcolor{red}{realiza um} estudo sobre \textcolor{green}{a avaliação da qualidade dessas descrições por meio de uma rubrica multidimensional, da qual se derivam deficiências associadas a} \textit{smells} \textcolor{green}{em ferramentas MCP}, incorporando o código das ferramentas ao processo de avaliação. Para isso, são minerados repositórios de servidores MCP no GitHub e realizadas avaliações automatizadas das descrições das \textit{tools}. O objetivo é comparar resultados obtidos a partir das descrições com aqueles enriquecidos pelo código da ferramenta. Espera-se demonstrar que a inclusão desse contexto técnico revela inconsistências entre descrição e implementação, tornando mais precisa a avaliação de qualidade e \textcolor{green}{a identificação} desses \textit{smells}.
+\end{resumo}
+
+\begin{abstract}
+The \textit{Model Context Protocol} (MCP) enables Artificial Intelligence (AI) agents to interact with external systems through \textit{tools}, whose natural language descriptions guide their usage. However, poor-quality descriptions, characterized by the presence of \textit{smells}, can compromise the effectiveness of these agents. In this context, this work \textcolor{red}{conducts a} study on \textcolor{green}{assessing the quality of these descriptions through a multidimensional rubric, from which deficiencies associated with} \textit{smells} \textcolor{green}{in MCP tools are derived}, incorporating the tools' source code into the evaluation process. To achieve this, MCP server repositories are mined from GitHub, and automated evaluations of tool descriptions are performed. The objective is to compare results obtained solely from descriptions with those enriched by the tool's code. It is expected to demonstrate that incorporating this technical context reveals inconsistencies between description and implementation, thereby improving both the quality assessment and \textcolor{green}{the identification} of these \textit{smells}.
+\end{abstract}
+
+
+\begin{tcolorbox}
+\footnotesize
+\textbf{Bacharelado em Engenharia de \emph{Software} - PUC Minas\\
+Trabalho de Conclusão de Curso (TCC)} \\
+
+\indent 
+Orientador de conteúdo (TCC I): João Pedro Batisteli - joaobatisteli@pucminas.br\\
+Orientador acadêmico (TCC I): Leonardo Vilela - leonardocardoso@pucminas.br \\
+Orientador do TCC II: Glender Brás - glendermedeiros@pucminas.br\\ \\
+Belo Horizonte, 28 de junho de 2026.
+\end{tcolorbox}
+
+
+\input{sectionsTCCII/01_Introducao}
+\input{SectionsTCCI/02_Fundamentacao_Teorica_V3}
+\input{SectionsTCCI/03_Trabalhos_Relacionados}
+\input{sectionsTCCII/04_Materiais_Metodos}
+\input{sectionsTCCII/05_Resultados_Parciais}
+\bibliographystyle{sbc}
+\bibliography{sbc-template}
+
+\appendix
+\section*{Apêndice}
+\input{sectionsTCCII/Apendice}
+
+\end{document}
