@@ -330,68 +330,87 @@ def gen_etapa2():
 # 4. Etapa 3 (fluxo_etapa3_detalhado.png)
 # ---------------------------------------------------------------------------
 def gen_etapa3():
+    """3 fileiras, de cima para baixo, com distancia minima `vgap` entre elas:
+      fileira 1: Montagem -> Payload -> Envio -> Resposta (a cadeia principal)
+      fileira 2: Desfecho? (losango) com os 3 desfechos (ok/refused/error) em leque a direita
+      fileira 3: os 2 destinos (Registro nos resultados / Log de erros), abaixo da fileira 2
+    """
     fill, edge = STEP_CLASSIFICACAO
     w, h = 2.15, 1.25
-    dw = 1.9
+    dw, dh = 1.9, 1.85
     wr, hr = 2.1, 0.9
     wres, hres = 2.3, 1.35
     wlog, hlog = 2.1, 0.85
     stub = 0.65
-    xs = layout_row(0, GAP, [w, w, w, w, dw])
-    y = 0
-    d1_right_x = xs[-1] + dw / 2
+    vgap = 0.8
+    spread = 1.15  # espacamento vertical entre os 3 desfechos, dentro da fileira 2 (> hr, sem sobrepor)
 
-    bus_x = d1_right_x + stub
-    xr = bus_x + stub + wr / 2
-    outcome_right_x = xr + wr / 2
-    bus2_x = outcome_right_x + stub
-    xc = bus2_x + stub + wres / 2
+    xs = layout_row(0, GAP, [w, w, w, w])
+    row1_y = 0
+    xd = xs[-1]  # losango alinhado sob a ultima caixa da fileira 1 (Resposta)
+
+    row2_y = row1_y - h / 2 - vgap - dh / 2
+    ok_y, ref_y, err_y = row2_y + spread, row2_y, row2_y - spread
+
+    row3_y = (err_y - hr / 2) - vgap - max(hres, hlog) / 2
+
+    xr = xd + dw / 2 + stub + wr / 2
+    x_res = xr - 1.3
+    x_log = xr + 1.3
 
     fig, ax = new_ax()
-    b1 = box(ax, xs[0], y, w, h, "Montagem\ndos 2 cenários", fontsize=13, fill=fill, edge=edge)
-    b2 = box(ax, xs[1], y, w, h, "Payload com\ndescrição + código", fontsize=11.5, fill=fill, edge=edge)
-    b3 = box(ax, xs[2], y, w, h, "Envio concorrente\naos juízes", fontsize=12, fill=fill, edge=edge)
-    b4 = box(ax, xs[3], y, w, h, "Resposta\ndo juiz", fontsize=14, fill=fill, edge=edge)
-    d1 = diamond(ax, xs[4], y, dw + 0.15, 1.85, "Desfecho?", fontsize=13.5, edge=edge)
-
+    b1 = box(ax, xs[0], row1_y, w, h, "Montagem\ndos 2 cenários", fontsize=13, fill=fill, edge=edge)
+    b2 = box(ax, xs[1], row1_y, w, h, "Payload com\ndescrição + código", fontsize=11.5, fill=fill, edge=edge)
+    b3 = box(ax, xs[2], row1_y, w, h, "Envio concorrente\naos juízes", fontsize=12, fill=fill, edge=edge)
+    b4 = box(ax, xs[3], row1_y, w, h, "Resposta\ndo juiz", fontsize=14, fill=fill, edge=edge)
     conn(ax, b1, b2)
     conn(ax, b2, b3)
     conn(ax, b3, b4)
-    conn(ax, b4, d1)
 
-    # "ok" e "refused" sao gravados no JSONL de resultados + checkpoint
-    # (run_step3.py::run_judge grava os dois com write_result=True); so o
+    d1 = diamond(ax, xd, row2_y, dw, dh, "Desfecho?", fontsize=13.5, edge=edge)
+    elbow(ax, edge_bottom(b4), edge_top(d1), bend="y", fontsize=13)
+
+    # "ok" e "refused" sao gravados no JSONL de resultados + checkpoint; so o
     # erro tecnico fica de fora do checkpoint, indo so para um log de erros
-    # separado (step3_errors_{judge_id}.jsonl), sem registro nos resultados.
-    ok_y, ref_y, err_y = y + 1.4, y, y - 1.4
+    # separado, sem registro nos resultados.
     ok = box(ax, xr, ok_y, wr, hr, "Avaliação\nconcluída", fill=GREEN_FILL, edge=GREEN_EDGE, fontsize=13)
     ref = box(ax, xr, ref_y, wr, hr, "Recusa de\nsegurança", fill=ORANGE_FILL, edge=ORANGE_EDGE, fontsize=12.5)
     err = box(ax, xr, err_y, wr, hr, "Erro\ntécnico", fill=RED_FILL, edge=RED_EDGE, fontsize=13)
 
     dr = edge_right(d1)
-    ax.add_line(Line2D([dr[0], bus_x], [dr[1], dr[1]], color="#333333", linewidth=LW))
+    ax.add_line(Line2D([dr[0], xr - wr / 2 - 0.35], [dr[1], dr[1]], color="#333333", linewidth=LW))
+    bus_x = xr - wr / 2 - 0.35
     ax.add_line(Line2D([bus_x, bus_x], [ok_y, err_y], color="#333333", linewidth=LW))
     for target, ty in ((ok, ok_y), (ref, ref_y), (err, err_y)):
         ax.add_line(Line2D([bus_x, edge_left(target)[0]], [ty, ty], color="#333333", linewidth=LW))
         arr = FancyArrowPatch((bus_x, ty), edge_left(target), arrowstyle="-|>", mutation_scale=18, linewidth=LW, color="#333333")
         ax.add_patch(arr)
     ax.text(bus_x - 0.15, ok_y + 0.32, "ok", ha="right", va="center", fontsize=12, family=FONT, backgroundcolor="white")
-    ax.text(bus_x + 0.15, ref_y + 0.32, "refused", ha="left", va="center", fontsize=12, family=FONT, backgroundcolor="white")
+    ax.text(bus_x - 0.15, ref_y + 0.32, "refused", ha="right", va="center", fontsize=12, family=FONT, backgroundcolor="white")
     ax.text(bus_x - 0.15, err_y + 0.32, "error", ha="right", va="center", fontsize=12, family=FONT, backgroundcolor="white")
 
-    # "ok" e "refused" convergem para o mesmo destino (resultados); "erro"
-    # segue sozinho, sem barramento, para um destino separado (log).
-    res_y = (ok_y + ref_y) / 2
-    res = box(ax, xc, res_y, wres, hres, "Registro nos\nresultados\n(JSONL + checkpoint)", fontsize=11)
-    log = box(ax, xc, err_y, wlog, hlog, "Log de erros\n(sem checkpoint)", fill=GRAY_FILL, edge=GRAY_EDGE, fontsize=11)
+    # "ok" e "refused" convergem para o mesmo destino (resultados), na fileira
+    # 3; "erro" desce sozinho para um destino separado (log), tambem na
+    # fileira 3. "ok"/"refused" saem pela direita das caixas antes de descer
+    # -- descer reto (pela mesma coluna x das 3 caixas) cruzaria por dentro
+    # de "Recusa de seguranca"/"Erro tecnico", que ficam abaixo na mesma
+    # coluna. So depois de sair da coluna e ja abaixo de todas as caixas
+    # (clear_y) e que a linha pode virar para a esquerda, ate a coluna de
+    # "erro" (que nao tem nada abaixo dela) pode descer reto.
+    res = box(ax, x_res, row3_y, wres, hres, "Registro nos\nresultados\n(JSONL + checkpoint)", fontsize=11)
+    log = box(ax, x_log, row3_y, wlog, hlog, "Log de erros\n(sem checkpoint)", fill=GRAY_FILL, edge=GRAY_EDGE, fontsize=11)
 
+    exit_x = xr + wr / 2 + 0.35
+    clear_y = err_y - hr / 2 - 0.3
     for target, ty in ((ok, ok_y), (ref, ref_y)):
         tr = edge_right(target)
-        ax.add_line(Line2D([tr[0], bus2_x], [ty, ty], color="#333333", linewidth=LW))
-    ax.add_line(Line2D([bus2_x, bus2_x], [ok_y, ref_y], color="#333333", linewidth=LW))
-    arr_res = FancyArrowPatch((bus2_x, res_y), edge_left(res), arrowstyle="-|>", mutation_scale=18, linewidth=LW, color="#333333")
+        ax.add_line(Line2D([tr[0], exit_x], [ty, ty], color="#333333", linewidth=LW))
+    ax.add_line(Line2D([exit_x, exit_x], [ok_y, clear_y], color="#333333", linewidth=LW))
+    ax.add_line(Line2D([exit_x, x_res], [clear_y, clear_y], color="#333333", linewidth=LW))
+    arr_res = FancyArrowPatch((x_res, clear_y), edge_top(res), arrowstyle="-|>", mutation_scale=18, linewidth=LW, color="#333333")
     ax.add_patch(arr_res)
-    straight(ax, edge_right(err), edge_left(log))
+
+    elbow(ax, edge_bottom(err), edge_top(log), bend="y", at=clear_y)
 
     save(fig, "fluxo_etapa3_detalhado.png")
 
@@ -400,22 +419,33 @@ def gen_etapa3():
 # 5. Exemplo de arvore de chamadas (arvoreFinal.png) - horizontal, raiz a esquerda
 # ---------------------------------------------------------------------------
 def gen_arvore():
-    root_w, root_h = 2.0, 1.05
-    l2_w, l2_h = 2.0, 0.85
+    # Raiz com mais respiro entre texto e borda (era justa demais). Um dos
+    # tres galhos de nivel 2 termina sem resolucao (externo), deixando claro
+    # que uma chamada pode ficar sem resolver em QUALQUER nivel da arvore,
+    # nao so no nivel 3 -- os outros dois galhos seguem ate o nivel 3 normal.
+    root_w, root_h = 2.5, 1.4
+    l2_w, l2_h = 2.2, 0.95
     l3_w, l3_h = 2.2, 0.7
     col_gap = 1.0
     bus_stub = 0.5
 
     root_x = 0
     fig, ax = new_ax()
-    root = box(ax, root_x, 0, root_w, root_h, "search_documents()\n(nível 1 — ferramenta)", fontsize=11.5)
+    root = box(ax, root_x, 0, root_w, root_h, "search_documents()\n(nível 1 — ferramenta)", fontsize=12.5)
 
     l2_x = root_x + root_w / 2 + col_gap + l2_w / 2
     l2_y = [1.9, 0, -1.9]
-    l2_labels = ["validate_query()", "run_vector_search()", "format_results()"]
+    l2_defs = [
+        ("validate_query()", False),
+        ("run_vector_search()", False),
+        ("<externo: json.dumps>", True),
+    ]
     l2_boxes = []
-    for y, label in zip(l2_y, l2_labels):
-        b = box(ax, l2_x, y, l2_w, l2_h, f"{label}\n(nível 2)", fontsize=11)
+    for y, (label, external) in zip(l2_y, l2_defs):
+        fill = GRAY_FILL if external else BLUE_FILL
+        edge = GRAY_EDGE if external else BLUE_EDGE
+        b = box(ax, l2_x, y, l2_w, l2_h, f"{label}\n(nível 2)", fill=fill, edge=edge,
+                fontsize=10.5, dashed=external)
         l2_boxes.append(b)
 
     bus1_x = root_x + root_w / 2 + bus_stub
@@ -428,13 +458,15 @@ def gen_arvore():
         ax.add_patch(arr)
 
     l3_x = l2_x + l2_w / 2 + col_gap + l3_w / 2
+    # Sem entrada para o indice 2: o galho externo de nivel 2 nao tem filhos.
     l3_defs = {
         0: [("check_schema()", False), ("<externo: re.match>", True)],
         1: [("embed_text()", False), ("query_index()", False)],
-        2: [("truncate_text()", False)],
     }
     for i, b2 in enumerate(l2_boxes):
-        children = l3_defs[i]
+        children = l3_defs.get(i)
+        if children is None:
+            continue
         n = len(children)
         bus2_x = l2_x + l2_w / 2 + bus_stub
         cys = [b2[1] + (j - (n - 1) / 2) * 0.95 for j in range(n)]

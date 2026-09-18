@@ -118,7 +118,7 @@ def build_call_graph(fn_def, level=1):
                 ambiguous=False, location=fn_def.location)
 
     if level >= MAX_LEVEL:
-        return node  # nó de nivel 3: resolvido, mas nao expandido
+        return node  # no de nivel 3: resolvido, mas nao expandido
 
     for call_site in extract_calls(fn_def.body):
         resolved_def, ambiguous = resolve_call(call_site, fn_def)

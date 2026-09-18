@@ -1,9 +1,15 @@
 #!/usr/bin/env python
 """Gera uma análise narrativa (texto em prosa, em português) dos resultados agregados da
 Etapa 3 via Gemini, consumindo o mesmo pacote de dados que alimenta o dashboard
-(scripts/generate_dashboard.py::build_dashboard_data()) -- uma seção de texto por seção da
-aba "Visão geral" (Por componente, Comparação de cenários, Significância/Wilcoxon, Por juiz)
-mais a aba Divergências, na mesma ordem em que aparecem lá, além de um resumo geral.
+(scripts/generate_dashboard.py::build_dashboard_data()).
+
+Segmentada por modelo de IA como o restante do dashboard: uma análise de "Por componente da
+rubrica"/"Comparação de cenários"/"Significância (Wilcoxon)" para CADA breakdown (o
+combinado "__all__" -- aba "Todos" -- e um por judge_id), a ser exibida junto da seção
+correspondente quando aquela aba estiver selecionada -- não um bloco só, solto no topo da
+página. "Por juiz" e "Divergências" não são segmentadas (essas duas seções do dashboard
+também não são: a tabela "Por juiz" e a aba "Divergências" já mostram todos os juízes juntos,
+sem seletor de aba), então ganham uma análise única cada.
 
 Separado de generate_dashboard.py de propósito: chama uma API externa (rede, custo, rate
 limit), então não roda a cada geração do dashboard nem no CI -- rode manualmente quando
@@ -16,9 +22,10 @@ da Etapa 3 em config/judges.yaml) -- chave deliberadamente separada para esta ch
 nunca competir por rate limit/quota diária com as avaliações do experimento.
 
 Saída estruturada (response_schema, mesmo padrão de
-evaluation/judges/gemini_judge.py::GeminiJudge): um objeto com `overall_summary` e uma lista
-`sections`, cada uma amarrada a uma chave fixa (SECTION_KEYS) -- nunca texto solto sem se
-saber a que seção do dashboard ele corresponde.
+evaluation/judges/gemini_judge.py::GeminiJudge): um objeto com `overall_summary`, uma lista
+`by_breakdown` (uma entrada por chave em `breakdown_keys` do payload enviado), e
+`judges_analysis`/`divergences_analysis` -- nunca texto solto sem se saber a que
+seção/breakdown do dashboard ele corresponde.
 
 Uso:
   uv run python -m scripts.generate_narrative_analysis
@@ -52,42 +59,35 @@ DEFAULT_MODEL = "gemini-3.5-flash-lite"
 # extremos sem estourar o prompt com centenas de pares (dashboard atual: 150+).
 MAX_DIVERGENCES_IN_PROMPT = 20
 
-# Estrutura de saída fixa -- uma análise por seção da aba "Visão geral" (nesta ordem) mais a
-# aba Divergências. `section` na resposta do modelo é validado contra esta lista para a
-# análise sempre poder ser encaixada de volta na seção certa do HTML, nunca texto solto.
-SECTION_KEYS = ["rubric_components", "scenario_comparison", "wilcoxon_significance", "judges", "divergences"]
 
-SECTION_LABELS = {
-    "rubric_components": "Por componente da rubrica",
-    "scenario_comparison": "Comparação de cenários",
-    "wilcoxon_significance": "Significância (Teste de Wilcoxon)",
-    "judges": "Por juiz",
-    "divergences": "Maiores divergências entre cenários",
-}
-
-
-class SectionAnalysis(BaseModel):
-    section: str = Field(description=f"Uma das chaves fixas, exatamente: {', '.join(SECTION_KEYS)}.")
-    analysis: str = Field(description="Análise em português do Brasil, 2-4 frases, citando números específicos do JSON de entrada.")
+class BreakdownNarrative(BaseModel):
+    key: str = Field(description="A chave deste breakdown, copiada exatamente de um item de 'breakdown_keys' no JSON de entrada ('__all__' ou um judge_id).")
+    rubric_components: str = Field(description="Análise da seção 'Por componente da rubrica' PARA ESTE breakdown, em português, 2-4 frases.")
+    scenario_comparison: str = Field(description="Análise da seção 'Comparação de cenários' PARA ESTE breakdown, em português, 2-4 frases. String vazia se este breakdown não tiver dados de comparação de cenário no JSON.")
+    wilcoxon_significance: str = Field(description="Análise da seção 'Significância (Teste de Wilcoxon)' PARA ESTE breakdown, em português, 2-4 frases. String vazia quando key='__all__' (o teste não é aplicado misturando juízes) ou quando não houver dados de wilcoxon para este breakdown.")
 
 
 class NarrativeAnalysis(BaseModel):
-    overall_summary: str = Field(description="Resumo geral em português, 3-5 frases, conectando os achados das seções.")
-    sections: list[SectionAnalysis] = Field(description=f"Uma entrada para cada uma das {len(SECTION_KEYS)} chaves de SECTION_KEYS, nesta ordem.")
+    overall_summary: str = Field(description="Resumo geral em português, 3-5 frases, conectando os achados entre breakdowns.")
+    by_breakdown: list[BreakdownNarrative] = Field(description="Exatamente uma entrada para cada chave em 'breakdown_keys' do JSON de entrada, nesta ordem.")
+    judges_analysis: str = Field(description="Análise da tabela 'Por juiz' (compara os juízes entre si -- não segmentada por modelo, é sobre todos ao mesmo tempo), em português, 2-4 frases.")
+    divergences_analysis: str = Field(description="Análise da aba 'Divergências' (não segmentada por modelo, lista todos os juízes juntos), em português, 2-4 frases.")
 
 
-SYSTEM_INSTRUCTION = f"""Você é um analista de dados auxiliando a redação da seção de resultados de um TCC sobre avaliação automática (LLM-as-a-Judge) da qualidade de descrições de ferramentas MCP (Model Context Protocol).
+SYSTEM_INSTRUCTION = """Você é um analista de dados auxiliando a redação da seção de resultados de um TCC sobre avaliação automática (LLM-as-a-Judge) da qualidade de descrições de ferramentas MCP (Model Context Protocol).
 
 Você recebe um resumo estruturado (JSON) dos resultados agregados de um experimento comparando duas condições sobre a MESMA descrição em linguagem natural: 'description_only' (o juiz avalia só a descrição) e 'with_source' (o mesmo juiz avalia a mesma descrição, mas com acesso ao código-fonte correspondente). A pergunta de pesquisa central é se o acesso ao código muda a nota atribuída, e em quais dimensões da rubrica (purpose, guidelines, limitations, parameter_explanation, length_completeness, examples) esse efeito é mais forte.
+
+O JSON de entrada traz `breakdown_keys` (a lista fixa de recortes: '__all__' = todos os juízes combinados, e um por judge_id) e `breakdowns` (os dados de cada um desses recortes, na mesma chave). Vários juízes podem discordar entre si -- é esperado, e vale comentar quando o padrão de significância ou o tamanho do efeito diverge de um juiz para outro.
 
 Regras obrigatórias:
 - Escreva sempre em português do Brasil, tom acadêmico-descritivo: descreva o que os dados mostram, nunca prescreva o que fazer a respeito.
 - Cite números específicos do JSON fornecido (médias, p-valores, contagens, percentuais) em vez de generalidades vagas.
-- Nunca invente números que não estejam no JSON. Se os dados de uma seção estiverem vazios ou ausentes, diga isso explicitamente na análise daquela seção em vez de inventar conteúdo.
+- Nunca invente números que não estejam no JSON. Se os dados de um breakdown/seção estiverem vazios ou ausentes, diga isso explicitamente na análise daquele item em vez de inventar conteúdo.
 - p_valor_bh já é corrigido para comparações múltiplas (Benjamini-Hochberg) -- é esse valor que decide significância, não p_valor bruto.
-- "wilcoxon_por_juiz" é reportado separadamente por juiz de propósito (misturar juízes no mesmo teste pareado não é válido) -- se houver mais de um juiz, compare o padrão de significância entre eles em vez de tratá-los como uma amostra só.
+- Para o breakdown '__all__', wilcoxon_significance deve ser string vazia (misturar juízes no mesmo teste pareado não é estatisticamente válido).
 
-Estrutura de saída obrigatória: um objeto com `overall_summary` (resumo geral) e `sections`, contendo exatamente {len(SECTION_KEYS)} entradas, uma para cada chave em {SECTION_KEYS!r}, nesta ordem, cada uma com `section` igual à chave e `analysis` com o texto."""
+Estrutura de saída obrigatória: um objeto com `overall_summary`, `by_breakdown` (exatamente uma entrada por chave em `breakdown_keys`, nesta ordem, cada uma com `key` igual à chave e os 3 campos de análise), `judges_analysis` e `divergences_analysis`."""
 
 
 def _round_floats(obj, ndigits: int = 3):
@@ -104,28 +104,34 @@ def _round_floats(obj, ndigits: int = 3):
 
 
 def build_payload(dashboard_data: dict) -> dict:
-    """Extrai só o que as seções da aba Visão Geral (mais Divergências) precisam -- não o
+    """Extrai só o que cada seção da aba Visão Geral (mais Divergências) precisa -- não o
     dataset bruto avaliação a avaliação, que estouraria o prompt sem agregar nada a uma
     análise de tendências. Mesma fonte de dados que o HTML renderiza
     (build_dashboard_data()), então o texto gerado nunca descreve um número que o dashboard
     não mostra também.
+
+    `breakdowns` espelha DATA.breakdowns do dashboard (mesmas chaves, mesma ordem -- inclui
+    '__all__') para o modelo devolver uma análise por breakdown, igual ao seletor de aba
+    "Todos"/por-juiz que já existe no HTML.
     """
-    overview = dashboard_data["breakdowns"]["__all__"]
-    wilcoxon_por_juiz = {
-        jid: breakdown["wilcoxon"]
-        for jid, breakdown in dashboard_data["breakdowns"].items()
-        if jid != "__all__" and breakdown.get("wilcoxon")
+    breakdown_keys = list(dashboard_data["breakdowns"].keys())
+    breakdowns_payload = {
+        key: {
+            "rubric_components": b["rubric_components"],
+            "scenario_comparison": b["scenario_comparison"],
+            "wilcoxon": b["wilcoxon"],  # [] para "__all__" e para breakdowns sem par suficiente
+        }
+        for key, b in dashboard_data["breakdowns"].items()
     }
     divergencias = dashboard_data["divergences"][:MAX_DIVERGENCES_IN_PROMPT]
     payload = {
+        "breakdown_keys": breakdown_keys,
         "overall": dashboard_data["overall"],
-        "rubric_components_combined_todos_juizes": overview["rubric_components"],
-        "scenario_comparison_combined_todos_juizes": overview["scenario_comparison"],
+        "breakdowns": breakdowns_payload,
         "por_juiz": [
             {k: v for k, v in j.items() if k != "flag"} | ({"flag": j["flag"]} if j.get("flag") else {})
             for j in dashboard_data["judges"]
         ],
-        "wilcoxon_por_juiz": wilcoxon_por_juiz,
         "maiores_divergencias": [
             {
                 "componente": d["componente_label"],
@@ -162,7 +168,7 @@ def call_gemini(payload: dict, model: str) -> NarrativeAnalysis:
                 system_instruction=SYSTEM_INSTRUCTION,
                 response_mime_type="application/json",
                 response_schema=NarrativeAnalysis,
-                max_output_tokens=4096,
+                max_output_tokens=8192,
             ),
         )
     except genai_errors.APIError as e:
@@ -175,10 +181,10 @@ def call_gemini(payload: dict, model: str) -> NarrativeAnalysis:
     if not isinstance(result, NarrativeAnalysis):
         result = NarrativeAnalysis.model_validate(result)
 
-    got_sections = {s.section for s in result.sections}
-    missing = [k for k in SECTION_KEYS if k not in got_sections]
+    got_keys = {b.key for b in result.by_breakdown}
+    missing = [k for k in payload["breakdown_keys"] if k not in got_keys]
     if missing:
-        logger.warning("Gemini não devolveu análise para as seções %s -- dashboard mostrará essas em branco.", missing)
+        logger.warning("Gemini não devolveu análise para os breakdowns %s -- dashboard mostrará essas em branco.", missing)
     return result
 
 
@@ -201,8 +207,9 @@ def main() -> None:
     payload = build_payload(dashboard_data)
 
     logger.info(
-        "enviando resumo agregado (%s seções, %s de %s divergências) para o modelo %s",
-        len(SECTION_KEYS), len(payload["maiores_divergencias"]), payload["total_divergencias_acima_do_limiar"], args.model,
+        "enviando resumo agregado (%s breakdowns: %s, %s de %s divergências) para o modelo %s",
+        len(payload["breakdown_keys"]), payload["breakdown_keys"],
+        len(payload["maiores_divergencias"]), payload["total_divergencias_acima_do_limiar"], args.model,
     )
     narrative = call_gemini(payload, args.model)
 
@@ -212,7 +219,6 @@ def main() -> None:
         "model": args.model,
         "prompt_version": dashboard_data["meta"]["active_prompt_version"],
         "generated_at": dashboard_data["meta"]["generated_at"],
-        "section_labels": SECTION_LABELS,
         **narrative.model_dump(),
     }
     output_path.write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")

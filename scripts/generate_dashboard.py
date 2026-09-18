@@ -29,6 +29,21 @@ from mcp_pipeline.config import DATA_DIR
 from mcp_pipeline.evaluation.prompts import PROMPT_VERSION, RUBRIC_COMPONENTS
 from mcp_pipeline.logging_setup import setup_logging
 from scripts.analysis_evaluation_report import scores_long, tool_key_for, wilcoxon_por_componente
+from scripts.analysis_report import (
+    call_graph_resolucao,
+    description_literal_rate,
+    distribuicao_complexidade_ciclomatica,
+    distribuicao_estrelas,
+    distribuicao_loc,
+    distribuicao_sdk_pattern,
+    load_jsonl,
+    media_tools_por_server,
+    profundidade_call_graph,
+    repos_por_linguagem,
+    taxa_cobertura_por_linguagem,
+    top_repos_por_tools,
+    tools_por_linguagem,
+)
 from scripts.dedupe_evaluations import dedupe_records
 
 logger = setup_logging("generate_dashboard")
@@ -52,6 +67,48 @@ def load_records(eval_dir: Path, judge_id: str | None) -> list[dict]:
                 if line:
                     records.append(json.loads(line))
     return records
+
+
+def build_dataset_data() -> dict | None:
+    """Etapas 1-2 (coleta + extração) na mesma página interativa da Etapa 3 -- reaproveita as
+    métricas de scripts/analysis_report.py (o companion PNG/CSV desta Etapa) em vez de
+    recalculá-las de novo, mesmo princípio de reaproveitamento de
+    scripts.analysis_evaluation_report usado no resto deste arquivo.
+
+    Opcional por completo: sem selected_repos.jsonl/dataset.jsonl no disco (repo clonado só
+    para rodar Etapa 3 a partir de jsonl de avaliação já prontos, sem os artefatos brutos da
+    extração), a aba "Dataset" fica oculta -- não é um erro, mesmo tratamento de
+    load_narrative_analysis() para o cache da análise Gemini ausente.
+    """
+    selected_repos_path = DATA_DIR / "selected_repos.jsonl"
+    dataset_path = DATA_DIR / "dataset.jsonl"
+    if not selected_repos_path.exists() or not dataset_path.exists():
+        logger.info(
+            "%s e/ou %s não encontrados -- dashboard sem aba Dataset (rode Etapas 1-2 para gerá-los).",
+            selected_repos_path, dataset_path,
+        )
+        return None
+
+    selected_repos = load_jsonl(selected_repos_path)
+    dataset = load_jsonl(dataset_path)
+    complexidade = distribuicao_complexidade_ciclomatica(dataset)
+
+    return {
+        "repos_total": len(selected_repos),
+        "tools_total": len(dataset),
+        "repos_por_linguagem": repos_por_linguagem(selected_repos).to_dict("records"),
+        "tools_por_linguagem": tools_por_linguagem(dataset).to_dict("records"),
+        "media_tools_por_server": media_tools_por_server(selected_repos, dataset).to_dict("records"),
+        "distribuicao_sdk_pattern": distribuicao_sdk_pattern(dataset).to_dict("records"),
+        "taxa_cobertura_por_linguagem": taxa_cobertura_por_linguagem(selected_repos, dataset).to_dict("records"),
+        "call_graph_resolucao": call_graph_resolucao(dataset).to_dict("records"),
+        "distribuicao_loc": distribuicao_loc(dataset).to_dict("records"),
+        "distribuicao_complexidade_ciclomatica": complexidade.to_dict("records"),
+        "profundidade_call_graph": profundidade_call_graph(dataset).to_dict("records"),
+        "distribuicao_estrelas": distribuicao_estrelas(selected_repos).to_dict("records"),
+        "description_literal_rate": description_literal_rate(dataset).to_dict("records"),
+        "top_repos_por_tools": top_repos_por_tools(dataset, n=15).to_dict("records"),
+    }
 
 
 def compute_breakdown(ok_records: list[dict]) -> dict:
@@ -338,7 +395,9 @@ def build_tools_data(records: list[dict]) -> list[dict]:
     return tools
 
 
-HTML_TEMPLATE = """<title>Rubrica MCP</title>
+HTML_TEMPLATE = """<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rubrica MCP</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -382,8 +441,10 @@ HTML_TEMPLATE = """<title>Rubrica MCP</title>
     --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px -12px rgba(0,0,0,.5);
   }
   * { box-sizing: border-box; }
-  body { background: var(--surface-0); color: var(--text-primary); font-family: "IBM Plex Sans", system-ui, sans-serif; line-height: 1.5; }
+  html { -webkit-text-size-adjust: 100%; }
+  body { background: var(--surface-0); color: var(--text-primary); font-family: "IBM Plex Sans", system-ui, sans-serif; line-height: 1.5; overflow-x: hidden; }
   .wrap { max-width: 920px; margin: 0 auto; padding: 48px 24px 96px; }
+  @media (max-width: 640px) { .wrap { padding: 32px 16px 64px; } }
   h1, h2 { font-family: "Newsreader", Georgia, serif; text-wrap: balance; margin: 0; }
   .eyebrow { font-family: "IBM Plex Mono", monospace; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--text-muted); }
   .tabular { font-variant-numeric: tabular-nums; font-family: "IBM Plex Mono", monospace; }
@@ -408,11 +469,10 @@ HTML_TEMPLATE = """<title>Rubrica MCP</title>
   section { margin-bottom: 52px; }
   section > h2 { font-size: 22px; font-weight: 600; margin-bottom: 4px; }
   section > .section-note { color: var(--text-secondary); font-size: 14px; max-width: 68ch; margin: 0 0 22px; }
-  .narrative-summary { background: var(--surface-1); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; margin-bottom: 16px; font-size: 14.5px; color: var(--text-primary); line-height: 1.6; }
-  .narrative-sections { display: flex; flex-direction: column; gap: 14px; }
-  .narrative-item { border-left: 2px solid var(--accent-1); padding: 2px 0 2px 14px; }
-  .narrative-item h4 { margin: 0 0 4px; font-family: "IBM Plex Sans", sans-serif; font-size: 13px; font-weight: 600; color: var(--text-secondary); }
-  .narrative-item p { margin: 0; font-size: 14px; color: var(--text-primary); line-height: 1.6; }
+  .narrative-summary { background: var(--surface-1); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; margin-bottom: 40px; font-size: 14.5px; color: var(--text-primary); line-height: 1.6; }
+  .narrative-summary .eyebrow { display: block; margin-bottom: 6px; }
+  .narrative-text { border-left: 2px solid var(--accent-1); padding: 2px 0 2px 14px; margin: 14px 0 0; font-size: 14px; color: var(--text-primary); line-height: 1.6; }
+  .narrative-text:empty { display: none; }
   .legend { display: flex; gap: 18px; margin-bottom: 16px; font-size: 13px; color: var(--text-secondary); }
   .legend .key { display: inline-flex; align-items: center; gap: 7px; }
   .legend .swatch { width: 10px; height: 10px; border-radius: 3px; }
@@ -448,10 +508,10 @@ HTML_TEMPLATE = """<title>Rubrica MCP</title>
   footer code { font-family: "IBM Plex Mono", monospace; background: var(--surface-1); padding: 1px 5px; border-radius: 4px; font-size: 12px; color: var(--text-secondary); }
 
   /* ---------- tabs ---------- */
-  .tabs { display: flex; gap: 4px; margin-top: 28px; border-bottom: 1px solid var(--line); }
+  .tabs { display: flex; gap: 4px; margin-top: 28px; border-bottom: 1px solid var(--line); overflow-x: auto; -webkit-overflow-scrolling: touch; }
   .tab-btn {
     font: inherit; font-family: "IBM Plex Sans", sans-serif; font-size: 14.5px; font-weight: 500;
-    background: none; border: none; cursor: pointer;
+    background: none; border: none; cursor: pointer; flex: 0 0 auto;
     color: var(--text-muted); padding: 10px 4px; margin-right: 20px;
     border-bottom: 2px solid transparent; transform: translateY(1px);
   }
@@ -528,6 +588,7 @@ HTML_TEMPLATE = """<title>Rubrica MCP</title>
     </div>
     <div class="tabs" role="tablist">
       <button class="tab-btn" role="tab" id="tab-btn-overview" aria-controls="tab-overview" aria-selected="true">Visão geral</button>
+      <button class="tab-btn" role="tab" id="tab-btn-dataset" aria-controls="tab-dataset" aria-selected="false">Dataset</button>
       <button class="tab-btn" role="tab" id="tab-btn-tools" aria-controls="tab-tools" aria-selected="false">Tools</button>
       <button class="tab-btn" role="tab" id="tab-btn-divergences" aria-controls="tab-divergences" aria-selected="false">Divergências</button>
       <button class="tab-btn" role="tab" id="tab-btn-versions" aria-controls="tab-versions" aria-selected="false">Versões do prompt</button>
@@ -542,12 +603,10 @@ HTML_TEMPLATE = """<title>Rubrica MCP</title>
       <div class="tile"><span class="label">Recusas</span><span class="value tabular" id="tile-refused">—</span><span class="sub">segurança</span></div>
     </div>
 
-    <section id="section-narrative" hidden>
-      <h2>Análise (Gemini)</h2>
-      <p class="section-note">Leitura em prosa dos dados abaixo, gerada por <code id="narrative-model">—</code> a partir dos mesmos números mostrados nesta página (ver <code>scripts/generate_narrative_analysis.py</code>) -- não é uma fonte independente, é a mesma tabela em texto corrido. Conferir sempre contra os números antes de citar.</p>
-      <div class="narrative-summary" id="narrative-summary"></div>
-      <div class="narrative-sections" id="narrative-sections"></div>
-    </section>
+    <div class="narrative-summary" id="narrative-summary" hidden>
+      <span class="eyebrow">Análise (Gemini) · gerada a partir dos mesmos números desta página, ver <code id="narrative-model">—</code></span>
+      <span id="narrative-overall-text"></span>
+    </div>
 
     <div class="ai-tabs" id="ai-tabs" role="tablist" aria-label="Filtrar rubrica por juiz"></div>
 
@@ -555,6 +614,7 @@ HTML_TEMPLATE = """<title>Rubrica MCP</title>
       <h2>Por componente da rubrica</h2>
       <p class="section-note" id="components-note">Média de todas as avaliações concluídas com sucesso, nos cenários combinados. Ordenado do melhor para o pior.</p>
       <div class="chart" id="chart-components"></div>
+      <p class="narrative-text" id="narrative-rubric-components"></p>
     </section>
 
     <section id="section-scenarios">
@@ -562,6 +622,7 @@ HTML_TEMPLATE = """<title>Rubrica MCP</title>
       <p class="section-note" id="scenario-note"></p>
       <div class="legend" id="scenario-legend"></div>
       <div class="chart" id="chart-scenarios"></div>
+      <p class="narrative-text" id="narrative-scenario-comparison"></p>
     </section>
 
     <section id="section-wilcoxon">
@@ -573,6 +634,7 @@ HTML_TEMPLATE = """<title>Rubrica MCP</title>
           <tbody id="wilcoxon-rows"></tbody>
         </table>
       </div>
+      <p class="narrative-text" id="narrative-wilcoxon-significance"></p>
     </section>
 
     <section>
@@ -582,6 +644,110 @@ HTML_TEMPLATE = """<title>Rubrica MCP</title>
         <table>
           <thead><tr><th>Juiz</th><th class="num">Avaliações</th><th>Status</th><th class="num">Média geral</th></tr></thead>
           <tbody id="judge-rows"></tbody>
+        </table>
+      </div>
+      <p class="narrative-text" id="narrative-judges"></p>
+    </section>
+  </div>
+
+  <div id="tab-dataset" role="tabpanel" aria-labelledby="tab-btn-dataset" hidden>
+    <div class="tiles" style="grid-template-columns: repeat(2, 1fr); margin-bottom: 40px;">
+      <div class="tile"><span class="label">Repositórios selecionados</span><span class="value tabular" id="dataset-tile-repos">—</span></div>
+      <div class="tile"><span class="label">Tools extraídas</span><span class="value tabular" id="dataset-tile-tools">—</span></div>
+    </div>
+
+    <section>
+      <h2>Repositórios por linguagem</h2>
+      <div class="chart" id="chart-repos-linguagem"></div>
+    </section>
+
+    <section>
+      <h2>Tools por linguagem</h2>
+      <div class="chart" id="chart-tools-linguagem"></div>
+    </section>
+
+    <section id="section-media-tools">
+      <h2>Média de tools por servidor, por linguagem</h2>
+      <p class="section-note">Duas médias por propósito diferente: por repositório selecionado na Etapa 1 (inclui repos com 0 tools) vs. só entre os que confirmaram pelo menos 1 tool na Etapa 2.</p>
+      <div class="legend" id="media-tools-legend"></div>
+      <div class="chart" id="chart-media-tools"></div>
+    </section>
+
+    <section>
+      <h2>Cobertura da Etapa 2 por linguagem</h2>
+      <p class="section-note">% dos repositórios selecionados (Etapa 1), por linguagem, que confirmaram pelo menos 1 tool detectável (Etapa 2).</p>
+      <div class="chart" id="chart-cobertura-linguagem"></div>
+    </section>
+
+    <section>
+      <h2>Padrão de SDK</h2>
+      <p class="section-note">Como cada tool declara sua ferramenta ao SDK do protocolo MCP (decorator de alto nível vs. handler de baixo nível, por linguagem).</p>
+      <div class="chart" id="chart-sdk-pattern"></div>
+    </section>
+
+    <section>
+      <h2>Profundidade do call graph</h2>
+      <p class="section-note">Nível máximo alcançado na árvore de chamadas de cada tool, limitada a 3 por construção.</p>
+      <div class="chart" id="chart-profundidade"></div>
+    </section>
+
+    <section>
+      <h2>Resolução do call graph</h2>
+      <p class="section-note">Dos nós de nível 2-3 da árvore de chamadas: quantos foram resolvidos sem ambiguidade, resolvidos por desempate, ou permaneceram externos/dinâmicos.</p>
+      <div class="chart" id="chart-call-graph-resolucao"></div>
+    </section>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 32px;">
+      <section style="margin-bottom: 0;">
+        <h2>Distribuição de estrelas</h2>
+        <div class="overflow-x">
+          <table>
+            <thead><tr><th>Estatística</th><th class="num">Estrelas</th></tr></thead>
+            <tbody id="stats-estrelas-rows"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section style="margin-bottom: 0;">
+        <h2>LOC por tool</h2>
+        <p class="section-note">Linhas de código da função que implementa a tool (nível 1 do call graph).</p>
+        <div class="overflow-x">
+          <table>
+            <thead><tr><th>Estatística</th><th class="num">LOC</th></tr></thead>
+            <tbody id="stats-loc-rows"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="section-complexidade" style="margin-bottom: 0;" hidden>
+        <h2>Complexidade ciclomática</h2>
+        <p class="section-note">McCabe, da mesma função. Só disponível para tools extraídas depois que este campo passou a existir.</p>
+        <div class="overflow-x">
+          <table>
+            <thead><tr><th>Estatística</th><th class="num">Complexidade</th></tr></thead>
+            <tbody id="stats-complexidade-rows"></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+
+    <section>
+      <h2>Taxa de descrição literal, por linguagem</h2>
+      <p class="section-note">% de descrições que são literais de string simples (vs. resolvidas a partir de constante/variável) -- afeta a confiabilidade da extração da descrição em si.</p>
+      <div class="overflow-x">
+        <table>
+          <thead><tr><th>Linguagem</th><th class="num">Descrições literais</th><th class="num">Tools</th><th class="num">% literal</th></tr></thead>
+          <tbody id="literal-rate-rows"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section style="margin-bottom: 0;">
+      <h2>Top repositórios por número de tools</h2>
+      <div class="overflow-x">
+        <table>
+          <thead><tr><th>Repositório</th><th class="num">Tools</th><th>Linguagem</th><th class="num">Estrelas</th><th class="num">% do total</th></tr></thead>
+          <tbody id="top-repos-rows"></tbody>
         </table>
       </div>
     </section>
@@ -626,6 +792,7 @@ HTML_TEMPLATE = """<title>Rubrica MCP</title>
     <section style="margin-bottom: 0;">
       <h2>Maiores divergências entre cenários</h2>
       <p class="section-note">Pares tool × componente × juiz em que a nota mudou por mais de <b id="divergence-threshold" class="tabular"></b> pontos (escala 1-5) entre <code>description_only</code> e <code>with_source</code> -- candidatos a inspeção manual: ou o código revelou algo que a descrição escondia, ou o juiz reagiu à presença do código em vez de validar a descrição contra ele. Clique numa linha para ver a justificativa dos dois cenários lado a lado.</p>
+      <p class="narrative-text" id="narrative-divergences"></p>
       <span class="tools-count" id="divergences-count"></span>
       <div class="overflow-x">
         <table>
@@ -697,6 +864,103 @@ HTML_TEMPLATE = """<title>Rubrica MCP</title>
     el.addEventListener("blur", hideTooltip);
   }
 
+  // ---- dataset tab (Etapas 1-2) -- rendered once at load, not tab-segmented by juiz (this
+  // data predates Etapa 3 entirely). Generic bar helper, unlike renderComponentsChart's
+  // (fixed 1-5 Likert scale with reference gridlines): these are arbitrary-scale counts,
+  // percentuais and category labels, so it just scales to each chart's own max.
+  function renderBarRows(containerId, rows, labelKey, valueKey, opts) {
+    opts = opts || {};
+    const el = document.getElementById(containerId);
+    el.innerHTML = "";
+    const maxValue = opts.max || Math.max(1, ...rows.map(r => r[valueKey]));
+    const fmt = opts.format || (v => v);
+    rows.forEach(r => {
+      const row = document.createElement("div");
+      row.className = "bar-row";
+      const pct = (r[valueKey] / maxValue) * 100;
+      row.innerHTML = `
+        <div class="row-label">${escapeHtml(String(r[labelKey]))}</div>
+        <div class="bar-track">
+          <div class="bar-fill" tabindex="0" style="width:${pct}%">
+            <span class="val tabular">${fmt(r[valueKey])}</span>
+          </div>
+        </div>`;
+      el.appendChild(row);
+    });
+  }
+
+  function renderStatsTable(bodyId, rows, valueKey) {
+    const tbody = document.getElementById(bodyId);
+    tbody.innerHTML = "";
+    rows.forEach(r => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td>${escapeHtml(r.estatistica)}</td><td class="num tabular">${r[valueKey]}</td>`;
+      tbody.appendChild(tr);
+    });
+  }
+
+  function renderDatasetTab() {
+    const d = DATA.dataset;
+    if (!d) {
+      document.getElementById("tab-btn-dataset").hidden = true;
+      return;
+    }
+    document.getElementById("dataset-tile-repos").textContent = d.repos_total;
+    document.getElementById("dataset-tile-tools").textContent = d.tools_total;
+
+    renderBarRows("chart-repos-linguagem", d.repos_por_linguagem, "linguagem", "repositorios");
+    renderBarRows("chart-tools-linguagem", d.tools_por_linguagem, "linguagem", "tools");
+
+    const mediaTools = d.media_tools_por_server.filter(r => r.linguagem !== "Total");
+    const mediaToolsKeys = ["media_tools_por_repo_selecionado", "media_tools_por_repo_com_tools"];
+    const mediaToolsLabels = ["Por repo selecionado (Etapa 1)", "Por repo com ≥1 tool"];
+    document.getElementById("media-tools-legend").innerHTML = mediaToolsLabels
+      .map((label, i) => `<span class="key"><span class="swatch" style="background:${SERIES_COLORS[i]}"></span>${label}</span>`)
+      .join("");
+    const mediaToolsMax = Math.max(1, ...mediaTools.flatMap(r => mediaToolsKeys.map(k => r[k])));
+    const mediaToolsEl = document.getElementById("chart-media-tools");
+    mediaToolsEl.innerHTML = "";
+    mediaTools.forEach(r => {
+      const row = document.createElement("div");
+      row.className = "bar-row grouped";
+      const subTracks = mediaToolsKeys.map((k, i) =>
+        `<div class="sub-track"><div class="bar-fill" tabindex="0" style="width:${(r[k] / mediaToolsMax) * 100}%; background:${SERIES_COLORS[i]}"><span class="val tabular">${r[k].toFixed(2)}</span></div></div>`
+      ).join("");
+      row.innerHTML = `<div class="row-label">${escapeHtml(r.linguagem)}</div><div class="bar-track">${subTracks}</div>`;
+      mediaToolsEl.appendChild(row);
+    });
+
+    renderBarRows("chart-cobertura-linguagem", d.taxa_cobertura_por_linguagem, "linguagem", "taxa_cobertura_percentual", { max: 100, format: v => v.toFixed(1) + "%" });
+    renderBarRows("chart-sdk-pattern", d.distribuicao_sdk_pattern, "sdk_pattern", "tools");
+    renderBarRows("chart-profundidade", d.profundidade_call_graph, "profundidade", "tools");
+    renderBarRows("chart-call-graph-resolucao", d.call_graph_resolucao, "categoria", "percentual", { max: 100, format: v => v.toFixed(1) + "%" });
+
+    renderStatsTable("stats-estrelas-rows", d.distribuicao_estrelas, "estrelas");
+    renderStatsTable("stats-loc-rows", d.distribuicao_loc, "loc");
+
+    if (d.distribuicao_complexidade_ciclomatica.length > 0) {
+      document.getElementById("section-complexidade").hidden = false;
+      renderStatsTable("stats-complexidade-rows", d.distribuicao_complexidade_ciclomatica, "complexidade_ciclomatica");
+    }
+
+    const literalTbody = document.getElementById("literal-rate-rows");
+    literalTbody.innerHTML = "";
+    d.description_literal_rate.forEach(r => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td>${escapeHtml(r.linguagem)}</td><td class="num tabular">${r.descricoes_literais}</td><td class="num tabular">${r.tools_total}</td><td class="num tabular">${r.taxa_literal_percentual.toFixed(1)}%</td>`;
+      literalTbody.appendChild(tr);
+    });
+
+    const topReposTbody = document.getElementById("top-repos-rows");
+    topReposTbody.innerHTML = "";
+    d.top_repos_por_tools.forEach(r => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td>${escapeHtml(r.repositorio)}</td><td class="num tabular">${r.tools}</td><td>${escapeHtml(r.linguagem)}</td><td class="num tabular">${r.estrelas}</td><td class="num tabular">${r.percentual_do_total.toFixed(1)}%</td>`;
+      topReposTbody.appendChild(tr);
+    });
+  }
+  renderDatasetTab();
+
   document.querySelectorAll(".tab-btn").forEach(btn => {
     btn.addEventListener("click", () => {
       document.querySelectorAll(".tab-btn").forEach(b => b.setAttribute("aria-selected", "false"));
@@ -718,22 +982,31 @@ HTML_TEMPLATE = """<title>Rubrica MCP</title>
   document.getElementById("tile-refused").textContent = DATA.overall.refused;
 
   // ---- narrative analysis (Gemini), only rendered when the cache file existed at
-  // generation time (scripts/generate_narrative_analysis.py) -- section stays hidden
-  // otherwise, this is never an error state ----
+  // generation time (scripts/generate_narrative_analysis.py) -- every narrative-* element
+  // stays empty/hidden otherwise, this is never an error state. Placed right after each
+  // section it analyzes (not one block at the top) and, for the 3 fields that vary by
+  // breakdown, re-rendered on every ai-tab switch by renderNarrativeForBreakdown() below --
+  // same "Todos"/per-judge segmentation the charts already use, not a separate mechanism.
+  function setNarrativeText(id, text) {
+    const el = document.getElementById(id);
+    el.textContent = text || "";
+  }
+
+  function renderNarrativeForBreakdown(key) {
+    if (!DATA.narrative) return;
+    const entry = (DATA.narrative.by_breakdown || []).find(b => b.key === key);
+    setNarrativeText("narrative-rubric-components", entry && entry.rubric_components);
+    setNarrativeText("narrative-scenario-comparison", entry && entry.scenario_comparison);
+    setNarrativeText("narrative-wilcoxon-significance", entry && entry.wilcoxon_significance);
+  }
+
   if (DATA.narrative) {
     const n = DATA.narrative;
-    document.getElementById("section-narrative").hidden = false;
+    document.getElementById("narrative-summary").hidden = false;
     document.getElementById("narrative-model").textContent = n.model;
-    document.getElementById("narrative-summary").textContent = n.overall_summary;
-    const sectionsEl = document.getElementById("narrative-sections");
-    sectionsEl.innerHTML = "";
-    (n.sections || []).forEach(s => {
-      const label = (n.section_labels && n.section_labels[s.section]) || s.section;
-      const item = document.createElement("div");
-      item.className = "narrative-item";
-      item.innerHTML = `<h4>${escapeHtml(label)}</h4><p>${escapeHtml(s.analysis)}</p>`;
-      sectionsEl.appendChild(item);
-    });
+    document.getElementById("narrative-overall-text").textContent = n.overall_summary;
+    setNarrativeText("narrative-judges", n.judges_analysis);
+    setNarrativeText("narrative-divergences", n.divergences_analysis);
   }
 
   // ---- rubric-by-component / scenario-comparison charts, parameterized by which
@@ -829,6 +1102,7 @@ HTML_TEMPLATE = """<title>Rubrica MCP</title>
     renderComponentsChart(DATA.breakdowns[key]);
     renderScenariosChart(DATA.breakdowns[key]);
     renderWilcoxonSection(DATA.breakdowns[key]);
+    renderNarrativeForBreakdown(key);
   }
 
   const aiTabsEl = document.getElementById("ai-tabs");
@@ -1147,6 +1421,7 @@ def main() -> None:
 
     data = build_dashboard_data(records, prompt_version=args.prompt_version)
     data["narrative"] = load_narrative_analysis(args.narrative or (DATA_DIR / "analysis" / "narrative_analysis.json"))
+    data["dataset"] = build_dataset_data()
     html = render_html(data)
 
     output_path = args.output or (DATA_DIR / "analysis" / "dashboard.html")

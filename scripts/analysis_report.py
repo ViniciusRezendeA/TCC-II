@@ -323,6 +323,27 @@ def distribuicao_loc(dataset: list[dict]) -> pd.DataFrame:
     )
 
 
+def distribuicao_complexidade_ciclomatica(dataset: list[dict]) -> pd.DataFrame:
+    """Estatísticas de complexidade ciclomática (McCabe) da função que implementa cada tool
+    -- mesmo padrão de distribuicao_loc(), mas tolerante a dataset.jsonl gerado antes do
+    campo `cyclomatic_complexity` existir em ToolRecord (extraction/models.py): linhas sem o
+    campo são ignoradas em vez de quebrar, e um dataset sem nenhuma linha com o campo ainda
+    devolve uma tabela vazia (mas com as colunas certas), não erro -- o chamador decide se
+    omite o gráfico nesse caso (ver generate_dashboard.py)."""
+    values = pd.Series([r["tool"]["cyclomatic_complexity"] for r in dataset if "cyclomatic_complexity" in r["tool"]])
+    if values.empty:
+        return pd.DataFrame({"estatistica": [], "complexidade_ciclomatica": []})
+    return pd.DataFrame(
+        {
+            "estatistica": ["mínimo", "p25", "mediana", "p75", "máximo", "média"],
+            "complexidade_ciclomatica": [
+                int(values.min()), int(values.quantile(0.25)), int(values.median()),
+                int(values.quantile(0.75)), int(values.max()), round(values.mean(), 1),
+            ],
+        }
+    )
+
+
 def profundidade_call_graph(dataset: list[dict]) -> pd.DataFrame:
     """Profundidade do call graph de cada tool (maior `level` alcançado).
     Limitada a {1, 2, 3} por construção -- MAX_LEVEL em call_graph_builder.py
@@ -630,6 +651,7 @@ def main() -> None:
                 "description_literal_rate": description_literal_rate(dataset),
                 "top_repos_por_tools": top_repos_por_tools(dataset),
                 "distribuicao_loc": distribuicao_loc(dataset),
+                "distribuicao_complexidade_ciclomatica": distribuicao_complexidade_ciclomatica(dataset),
                 "profundidade_call_graph": profundidade_call_graph(dataset),
             }
         )
