@@ -35,7 +35,7 @@ jobs:
         run: uv sync --frozen
 
       - name: Generate dashboard
-        run: uv run python scripts/generate_dashboard.py --output site/index.html
+        run: uv run python -m scripts.generate_dashboard --output site/index.html
 
       - uses: actions/upload-pages-artifact@v3
         with:

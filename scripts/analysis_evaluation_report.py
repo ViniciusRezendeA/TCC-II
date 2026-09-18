@@ -90,8 +90,20 @@ def tool_key_for(record: dict) -> str:
     então incluí-lo aqui não muda nenhum agrupamento que já estava correto. Não requer
     reprocessar nenhuma avaliação: tool.name já é gravado em cada registro por
     pipeline/run_step3.py::_base_record.
+
+    Independente de safra do dado: pipeline/run_step3.py::tool_uid_for() também passou a
+    gravar ::{name} no próprio tool_uid para os padrões lowlevel (avaliações novas), enquanto
+    avaliações coletadas antes dessa correção guardam o tool_uid sem esse sufixo -- sem
+    normalizar, a mesma tool real acabaria com duas chaves diferentes (uma por safra),
+    quebrando o merge entre juízes quando um avaliou antes da correção e outro depois. Faz um
+    strip do sufixo se ele já estiver lá antes de reanexar, para as duas safras convergirem
+    na mesma chave.
     """
-    return f"{record['tool_uid']}::{record['tool']['name']}"
+    tool_uid = record["tool_uid"]
+    name = record["tool"]["name"]
+    suffix = f"::{name}"
+    base = tool_uid[: -len(suffix)] if tool_uid.endswith(suffix) else tool_uid
+    return f"{base}{suffix}"
 
 
 def scores_long(records: list[dict]) -> pd.DataFrame:

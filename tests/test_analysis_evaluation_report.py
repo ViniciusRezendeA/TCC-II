@@ -21,6 +21,19 @@ def test_tool_key_for_disambiguates_colliding_tool_uid():
     assert tool_key_for(record_a) != tool_key_for(record_b)
 
 
+def test_tool_key_for_agrees_across_pre_and_post_fix_vintages():
+    """pipeline/run_step3.py::tool_uid_for() now bakes ::{name} into tool_uid itself for
+    lowlevel patterns (evaluations collected after the fix); evaluations collected before it
+    still have the un-suffixed tool_uid. The same real tool must land on the same key
+    regardless of which vintage produced the record, or a tool evaluated by one judge before
+    the fix and another judge after it would wrongly look like two different tools.
+    """
+    pre_fix = {"tool_uid": "acme/x::handle_list_tools::server.py:10", "tool": {"name": "search_datasets"}}
+    post_fix = {"tool_uid": "acme/x::handle_list_tools::server.py:10::search_datasets", "tool": {"name": "search_datasets"}}
+
+    assert tool_key_for(pre_fix) == tool_key_for(post_fix)
+
+
 def test_benjamini_hochberg_matches_known_reference():
     # 5 p-valores, m=5: q(i) = min_{j>=i} (m/j * p(j)) sobre os p-valores ordenados
     # [0.01, 0.03, 0.04, 0.20, 0.50] -> raw [0.05, 0.075, 0.0667, 0.25, 0.50] -> step-up

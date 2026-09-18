@@ -23,6 +23,7 @@ import argparse
 import datetime
 import json
 from pathlib import Path
+from statistics import mean
 
 from mcp_pipeline.config import DATA_DIR
 from mcp_pipeline.evaluation.prompts import PROMPT_VERSION, RUBRIC_COMPONENTS
@@ -185,7 +186,7 @@ def build_dashboard_data(records: list[dict], prompt_version: str | None = None)
             "flag": f"N={len(judge_ok)} — amostra insuficiente" if len(judge_ok) < MIN_TRUSTWORTHY_N else None,
         })
 
-    tools_evaluated = len({r["tool_uid"] for r in ok_records})
+    tools_evaluated = len({tool_key_for(r) for r in ok_records})
 
     return {
         "meta": {
@@ -203,9 +204,16 @@ def build_dashboard_data(records: list[dict], prompt_version: str | None = None)
 
 
 def build_tools_data(records: list[dict]) -> list[dict]:
-    """One row per tool_uid, with per-scenario scores averaged across whichever judge(s)
-    evaluated it -- most tools right now only have one judge's worth of data, but this
-    stays correct once a second judge's results land on the same tool/scenario.
+    """One row per tool (keyed by tool_key_for(), not the raw tool_uid), with per-scenario
+    scores averaged across whichever judge(s) evaluated it -- most tools right now only have
+    one judge's worth of data, but this stays correct once a second judge's results land on
+    the same tool/scenario.
+
+    tool_key_for() (scripts/analysis_evaluation_report.py) instead of raw tool_uid: for the
+    "lowlevel" SDK patterns, several distinct tools (different tool.name/description) share
+    one tool_uid because they all inherit the location of the handler that registers them --
+    grouping by the raw tool_uid here would silently merge those distinct tools into one row,
+    displayed under whichever one's name happened to be inserted first.
 
     Technical failures (status=error, e.g. the 429s a judge hit before the rate limiter
     fix) are dropped entirely here rather than surfaced as a row -- a transient API error
@@ -218,7 +226,7 @@ def build_tools_data(records: list[dict]) -> list[dict]:
     for r in records:
         if r.get("status") != "ok" or not r.get("scores"):
             continue
-        entry = by_tool.setdefault(r["tool_uid"], {
+        entry = by_tool.setdefault(tool_key_for(r), {
             "tool_uid": r["tool_uid"],
             "name": r["tool"]["name"],
             "qualified_name": r["tool"]["qualified_name"],
@@ -473,6 +481,17 @@ HTML_TEMPLATE = """<title>Rubrica MCP</title>
       <div class="chart" id="chart-scenarios"></div>
     </section>
 
+    <section id="section-wilcoxon">
+      <h2>Significância (Teste de Wilcoxon)</h2>
+      <p class="section-note">Diferença pareada with_source − description_only por tool, componente a componente, só para este juiz. p-valor corrigido por Benjamini-Hochberg entre os 6 componentes (não disponível na visão "Todos", que mistura juízes -- o teste é sempre por modelo).</p>
+      <div class="overflow-x">
+        <table>
+          <thead><tr><th>Componente</th><th class="num">N pareado</th><th class="num">% empates</th><th class="num">p-valor (BH)</th><th>Significativo (α=0,05)</th></tr></thead>
+          <tbody id="wilcoxon-rows"></tbody>
+        </table>
+      </div>
+    </section>
+
     <section>
       <h2>Por juiz</h2>
       <p class="section-note">Juízes com poucas avaliações concluídas têm a média sinalizada como não confiável.</p>
@@ -488,7 +507,7 @@ HTML_TEMPLATE = """<title>Rubrica MCP</title>
   <div id="tab-tools" role="tabpanel" aria-labelledby="tab-btn-tools" hidden>
     <section style="margin-bottom: 0;">
       <h2>Todas as tools</h2>
-      <p class="section-note">Uma linha por tool avaliada com sucesso (chave <code>tool_uid</code>), com a média por cenário e, se houver mais de um juiz na mesma tool/cenário, a média entre eles. Avaliações com erro técnico não aparecem aqui -- contam só no resumo geral. Clique numa linha para ver o detalhe por componente.</p>
+      <p class="section-note">Uma linha por tool avaliada com sucesso, com a média por cenário e, se houver mais de um juiz na mesma tool/cenário, a média entre eles. Avaliações com erro técnico não aparecem aqui -- contam só no resumo geral. Clique numa linha para ver o detalhe por componente.</p>
       <div class="tools-toolbar">
         <input type="text" id="tools-search" class="tools-search" placeholder="Buscar por nome ou repositório…" autocomplete="off">
         <select id="tools-filter-language" class="tools-filter"><option value="">Toda linguagem</option></select>
@@ -651,6 +670,30 @@ HTML_TEMPLATE = """<title>Rubrica MCP</title>
     });
   }
 
+  function renderWilcoxonSection(breakdown) {
+    const section = document.getElementById("section-wilcoxon");
+    const wilcoxon = breakdown.wilcoxon || [];
+    if (wilcoxon.length === 0) {
+      section.style.display = "none";
+      return;
+    }
+    section.style.display = "";
+    const tbody = document.getElementById("wilcoxon-rows");
+    tbody.innerHTML = "";
+    wilcoxon.forEach(w => {
+      const tr = document.createElement("tr");
+      const pValorHTML = w.p_valor_bh === null ? "—" : w.p_valor_bh.toFixed(4);
+      const empatesHTML = w.proporcao_empates_percentual === null ? "—" : w.proporcao_empates_percentual.toFixed(1) + "%";
+      tr.innerHTML = `
+        <td>${w.label}</td>
+        <td class="num tabular">${w.n_pareado}</td>
+        <td class="num tabular">${empatesHTML}</td>
+        <td class="num tabular">${pValorHTML}</td>
+        <td>${w.significativo ? `<span class="pill ok">sim</span>` : `<span class="pill">não</span>`}</td>`;
+      tbody.appendChild(tr);
+    });
+  }
+
   function selectAiTab(key, label) {
     document.querySelectorAll(".ai-tab-btn").forEach(b => b.setAttribute("aria-selected", String(b.dataset.key === key)));
     document.getElementById("components-note").textContent = key === "__all__"
@@ -658,6 +701,7 @@ HTML_TEMPLATE = """<title>Rubrica MCP</title>
       : `Média das avaliações de ${label}, nos cenários combinados. Ordenado do melhor para o pior.`;
     renderComponentsChart(DATA.breakdowns[key]);
     renderScenariosChart(DATA.breakdowns[key]);
+    renderWilcoxonSection(DATA.breakdowns[key]);
   }
 
   const aiTabsEl = document.getElementById("ai-tabs");
