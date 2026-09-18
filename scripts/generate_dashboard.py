@@ -194,13 +194,83 @@ def build_dashboard_data(records: list[dict], prompt_version: str | None = None)
             "prompt_version": PROMPT_VERSION,
             "active_prompt_version": active_version,
             "tools_evaluated": tools_evaluated,
+            "divergence_threshold": DIVERGENCE_THRESHOLD,
         },
         "overall": overall,
         "breakdowns": breakdowns,
         "judges": judges,
         "tools": build_tools_data(scoped),
+        "divergences": build_divergences_data(scoped),
         "prompt_versions": version_summary,
     }
+
+
+# Escala Likert 1-5 -- diferença > 2 já é, no mínimo, "nota baixa" virando "nota alta" (ex:
+# 1 -> 4), grande o bastante para não ser ruído normal de julgamento entre dois envios.
+DIVERGENCE_THRESHOLD = 2.0
+
+
+def build_divergences_data(records: list[dict], threshold: float = DIVERGENCE_THRESHOLD) -> list[dict]:
+    """Pares (tool, componente, juiz) onde a nota mudou por mais de `threshold` pontos entre
+    with_source e description_only -- os casos mais úteis para inspeção manual: ou o código
+    revelou uma omissão/contradição real que a descrição escondia (o efeito que a rubrica
+    pretende capturar), ou o juiz está reagindo à mera presença/tamanho do código em vez de
+    validar a descrição contra ele (halo effect -- ver changelog do PROMPT_VERSION em
+    evaluation/prompts.py). O reasoning de cada cenário vem lado a lado para permitir essa
+    leitura sem reabrir o jsonl bruto.
+
+    Chave por (tool_key_for(r), judge_id, componente) -- mesma identidade corrigida usada no
+    resto do dashboard (ver build_tools_data()), não a tool_uid bruta do registro.
+    """
+    labels = {key: label for key, label, _ in RUBRIC_COMPONENTS}
+    by_key: dict[tuple[str, str, str], dict] = {}
+    for r in records:
+        if r.get("status") != "ok" or not r.get("scores"):
+            continue
+        entry_key = (tool_key_for(r), r["judge"]["id"], "")
+        for component_key, component in r["scores"].items():
+            if not component:
+                continue
+            key = (entry_key[0], entry_key[1], component_key)
+            entry = by_key.setdefault(key, {
+                "tool_name": r["tool"]["name"],
+                "qualified_name": r["tool"]["qualified_name"],
+                "repo": r["repo"]["name_with_owner"],
+                "language": r["repo"].get("primary_language") or "—",
+                "judge_id": r["judge"]["id"],
+                "componente": component_key,
+                "componente_label": labels.get(component_key, component_key),
+                "scenarios": {},
+            })
+            entry["scenarios"][r["scenario"]] = {
+                "score": component["score"],
+                "reasoning": component.get("reasoning") or "",
+            }
+
+    rows = []
+    for entry in by_key.values():
+        desc = entry["scenarios"].get("description_only")
+        src = entry["scenarios"].get("with_source")
+        if desc is None or src is None:
+            continue
+        diff = src["score"] - desc["score"]
+        if abs(diff) <= threshold:
+            continue
+        rows.append({
+            "tool_name": entry["tool_name"],
+            "qualified_name": entry["qualified_name"],
+            "repo": entry["repo"],
+            "language": entry["language"],
+            "judge_id": entry["judge_id"],
+            "componente": entry["componente"],
+            "componente_label": entry["componente_label"],
+            "description_only": desc,
+            "with_source": src,
+            "diff": diff,
+        })
+
+    rows.sort(key=lambda row: abs(row["diff"]), reverse=True)
+    return rows
 
 
 def build_tools_data(records: list[dict]) -> list[dict]:
@@ -338,6 +408,11 @@ HTML_TEMPLATE = """<title>Rubrica MCP</title>
   section { margin-bottom: 52px; }
   section > h2 { font-size: 22px; font-weight: 600; margin-bottom: 4px; }
   section > .section-note { color: var(--text-secondary); font-size: 14px; max-width: 68ch; margin: 0 0 22px; }
+  .narrative-summary { background: var(--surface-1); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; margin-bottom: 16px; font-size: 14.5px; color: var(--text-primary); line-height: 1.6; }
+  .narrative-sections { display: flex; flex-direction: column; gap: 14px; }
+  .narrative-item { border-left: 2px solid var(--accent-1); padding: 2px 0 2px 14px; }
+  .narrative-item h4 { margin: 0 0 4px; font-family: "IBM Plex Sans", sans-serif; font-size: 13px; font-weight: 600; color: var(--text-secondary); }
+  .narrative-item p { margin: 0; font-size: 14px; color: var(--text-primary); line-height: 1.6; }
   .legend { display: flex; gap: 18px; margin-bottom: 16px; font-size: 13px; color: var(--text-secondary); }
   .legend .key { display: inline-flex; align-items: center; gap: 7px; }
   .legend .swatch { width: 10px; height: 10px; border-radius: 3px; }
@@ -454,6 +529,7 @@ HTML_TEMPLATE = """<title>Rubrica MCP</title>
     <div class="tabs" role="tablist">
       <button class="tab-btn" role="tab" id="tab-btn-overview" aria-controls="tab-overview" aria-selected="true">Visão geral</button>
       <button class="tab-btn" role="tab" id="tab-btn-tools" aria-controls="tab-tools" aria-selected="false">Tools</button>
+      <button class="tab-btn" role="tab" id="tab-btn-divergences" aria-controls="tab-divergences" aria-selected="false">Divergências</button>
       <button class="tab-btn" role="tab" id="tab-btn-versions" aria-controls="tab-versions" aria-selected="false">Versões do prompt</button>
     </div>
   </header>
@@ -465,6 +541,13 @@ HTML_TEMPLATE = """<title>Rubrica MCP</title>
       <div class="tile error"><span class="label">Erro</span><span class="value tabular" id="tile-error">—</span><span class="sub" id="tile-error-pct">—</span></div>
       <div class="tile"><span class="label">Recusas</span><span class="value tabular" id="tile-refused">—</span><span class="sub">segurança</span></div>
     </div>
+
+    <section id="section-narrative" hidden>
+      <h2>Análise (Gemini)</h2>
+      <p class="section-note">Leitura em prosa dos dados abaixo, gerada por <code id="narrative-model">—</code> a partir dos mesmos números mostrados nesta página (ver <code>scripts/generate_narrative_analysis.py</code>) -- não é uma fonte independente, é a mesma tabela em texto corrido. Conferir sempre contra os números antes de citar.</p>
+      <div class="narrative-summary" id="narrative-summary"></div>
+      <div class="narrative-sections" id="narrative-sections"></div>
+    </section>
 
     <div class="ai-tabs" id="ai-tabs" role="tablist" aria-label="Filtrar rubrica por juiz"></div>
 
@@ -539,6 +622,31 @@ HTML_TEMPLATE = """<title>Rubrica MCP</title>
     </section>
   </div>
 
+  <div id="tab-divergences" role="tabpanel" aria-labelledby="tab-btn-divergences" hidden>
+    <section style="margin-bottom: 0;">
+      <h2>Maiores divergências entre cenários</h2>
+      <p class="section-note">Pares tool × componente × juiz em que a nota mudou por mais de <b id="divergence-threshold" class="tabular"></b> pontos (escala 1-5) entre <code>description_only</code> e <code>with_source</code> -- candidatos a inspeção manual: ou o código revelou algo que a descrição escondia, ou o juiz reagiu à presença do código em vez de validar a descrição contra ele. Clique numa linha para ver a justificativa dos dois cenários lado a lado.</p>
+      <span class="tools-count" id="divergences-count"></span>
+      <div class="overflow-x">
+        <table>
+          <thead>
+            <tr>
+              <th>Componente</th>
+              <th>Tool</th>
+              <th>Repositório</th>
+              <th>Juiz</th>
+              <th class="num">description_only</th>
+              <th class="num">with_source</th>
+              <th class="num">Diferença</th>
+            </tr>
+          </thead>
+          <tbody id="divergences-rows"></tbody>
+        </table>
+      </div>
+      <div class="empty-state" id="divergences-empty" hidden>Nenhum par passou do limiar configurado.</div>
+    </section>
+  </div>
+
   <div id="tab-versions" role="tabpanel" aria-labelledby="tab-btn-versions" hidden>
     <section>
       <h2>Versões do prompt</h2>
@@ -608,6 +716,25 @@ HTML_TEMPLATE = """<title>Rubrica MCP</title>
   document.getElementById("tile-error").textContent = DATA.overall.error;
   document.getElementById("tile-error-pct").textContent = (100 * DATA.overall.error / DATA.overall.total).toFixed(1) + "%";
   document.getElementById("tile-refused").textContent = DATA.overall.refused;
+
+  // ---- narrative analysis (Gemini), only rendered when the cache file existed at
+  // generation time (scripts/generate_narrative_analysis.py) -- section stays hidden
+  // otherwise, this is never an error state ----
+  if (DATA.narrative) {
+    const n = DATA.narrative;
+    document.getElementById("section-narrative").hidden = false;
+    document.getElementById("narrative-model").textContent = n.model;
+    document.getElementById("narrative-summary").textContent = n.overall_summary;
+    const sectionsEl = document.getElementById("narrative-sections");
+    sectionsEl.innerHTML = "";
+    (n.sections || []).forEach(s => {
+      const label = (n.section_labels && n.section_labels[s.section]) || s.section;
+      const item = document.createElement("div");
+      item.className = "narrative-item";
+      item.innerHTML = `<h4>${escapeHtml(label)}</h4><p>${escapeHtml(s.analysis)}</p>`;
+      sectionsEl.appendChild(item);
+    });
+  }
 
   // ---- rubric-by-component / scenario-comparison charts, parameterized by which
   // breakdown (combined "__all__" or a single judge_id) is currently selected ----
@@ -884,6 +1011,71 @@ HTML_TEMPLATE = """<title>Rubrica MCP</title>
 
   renderToolsTable();
 
+  // ---- divergences tab ----
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  }
+
+  function renderDivergencesTable() {
+    document.getElementById("divergence-threshold").textContent = DATA.meta.divergence_threshold;
+    const tbody = document.getElementById("divergences-rows");
+    const emptyEl = document.getElementById("divergences-empty");
+    const countEl = document.getElementById("divergences-count");
+    tbody.innerHTML = "";
+
+    const rows = DATA.divergences;
+    countEl.textContent = `${rows.length} par(es) acima do limiar`;
+    emptyEl.hidden = rows.length > 0;
+
+    rows.forEach(d => {
+      const tr = document.createElement("tr");
+      tr.className = "tool-row";
+      tr.tabIndex = 0;
+      tr.setAttribute("aria-expanded", "false");
+      const diffClass = d.diff > 0 ? "" : "err";
+      tr.innerHTML = `
+        <td><span class="expand-icon">▸</span>${escapeHtml(d.componente_label)}</td>
+        <td><span class="name">${escapeHtml(d.tool_name)}</span><span class="qualified">${escapeHtml(d.qualified_name)}</span></td>
+        <td>${escapeHtml(d.repo)}</td>
+        <td>${escapeHtml(d.judge_id)}</td>
+        <td class="num score-cell tabular">${d.description_only.score}</td>
+        <td class="num score-cell tabular">${d.with_source.score}</td>
+        <td class="num score-cell tabular ${diffClass}">${d.diff > 0 ? "+" : ""}${d.diff}</td>`;
+
+      const detailTr = document.createElement("tr");
+      detailTr.className = "tool-detail";
+      detailTr.hidden = true;
+      const detailCell = document.createElement("td");
+      detailCell.colSpan = 7;
+      detailCell.innerHTML = `
+        <div class="detail-grid">
+          <div class="detail-scenario">
+            <h4>description_only (nota ${d.description_only.score})</h4>
+            <div class="comp-row" style="display:block; white-space:pre-wrap;">${escapeHtml(d.description_only.reasoning) || "<em>sem justificativa registrada</em>"}</div>
+          </div>
+          <div class="detail-scenario">
+            <h4>with_source (nota ${d.with_source.score})</h4>
+            <div class="comp-row" style="display:block; white-space:pre-wrap;">${escapeHtml(d.with_source.reasoning) || "<em>sem justificativa registrada</em>"}</div>
+          </div>
+        </div>`;
+      detailTr.appendChild(detailCell);
+
+      const toggle = () => {
+        const expanded = tr.getAttribute("aria-expanded") === "true";
+        tr.setAttribute("aria-expanded", String(!expanded));
+        detailTr.hidden = expanded;
+      };
+      tr.addEventListener("click", toggle);
+      tr.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggle(); }
+      });
+
+      tbody.appendChild(tr);
+      tbody.appendChild(detailTr);
+    });
+  }
+  renderDivergencesTable();
+
   // ---- versions tab ----
   function renderVersionsTable() {
     const tbody = document.getElementById("version-rows");
@@ -916,6 +1108,18 @@ def render_html(data: dict) -> str:
     return HTML_TEMPLATE.replace("__DASHBOARD_DATA__", json.dumps(data, ensure_ascii=False))
 
 
+def load_narrative_analysis(path: Path) -> dict | None:
+    """Lê o cache escrito por scripts/generate_narrative_analysis.py, se existir -- esta
+    função NUNCA chama a API do Gemini (essa chamada é cara/rate-limited/de rede, então fica
+    isolada num script separado, rodado manualmente). Sem o arquivo, o dashboard renderiza
+    normalmente com a seção de análise narrativa oculta, não como um erro.
+    """
+    if not path.exists():
+        logger.info("%s não encontrado -- dashboard sem seção de análise narrativa (rode scripts.generate_narrative_analysis para gerá-la).", path)
+        return None
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Gera dashboard HTML dos resultados da Etapa 3.")
     parser.add_argument("--judge", type=str, default=None, help="judge_id único (default: todos em data/evaluations/).")
@@ -923,6 +1127,10 @@ def main() -> None:
     parser.add_argument(
         "--prompt-version", type=str, default=None,
         help="Restringe Visão geral/Tools a este prompt_version (default: o mais recente presente nos dados -- ver aba Versões).",
+    )
+    parser.add_argument(
+        "--narrative", type=Path, default=None,
+        help="Caminho do cache de análise narrativa (default: data/analysis/narrative_analysis.json, se existir -- ver scripts.generate_narrative_analysis).",
     )
     args = parser.parse_args()
 
@@ -938,6 +1146,7 @@ def main() -> None:
     records = deduped
 
     data = build_dashboard_data(records, prompt_version=args.prompt_version)
+    data["narrative"] = load_narrative_analysis(args.narrative or (DATA_DIR / "analysis" / "narrative_analysis.json"))
     html = render_html(data)
 
     output_path = args.output or (DATA_DIR / "analysis" / "dashboard.html")

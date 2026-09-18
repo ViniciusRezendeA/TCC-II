@@ -6,6 +6,7 @@ on:
     paths:
       - "data/evaluations/**"
       - "scripts/generate_dashboard.py"
+      - "scripts/generate_narrative_analysis.py"
       - "src/mcp_pipeline/evaluation/prompts.py"
       - ".github/workflows/dashboard.yml"
   workflow_dispatch:
@@ -33,6 +34,17 @@ jobs:
 
       - name: Install dependencies
         run: uv sync --frozen
+
+      # Chamada externa (Gemini) -- separada da geração do dashboard em si e não pode
+      # travar o deploy: sem o secret configurado ainda, ou numa falha transitória da API
+      # (quota, rede), o dashboard deve publicar normalmente, só sem a seção de análise
+      # narrativa (ver generate_dashboard.py::load_narrative_analysis, que trata o cache
+      # ausente como estado normal, não erro).
+      - name: Generate narrative analysis (Gemini)
+        env:
+          GOOGLE_API_KEY_NARRATIVE: ${{ secrets.GOOGLE_API_KEY_NARRATIVE }}
+        run: uv run python -m scripts.generate_narrative_analysis
+        continue-on-error: true
 
       - name: Generate dashboard
         run: uv run python -m scripts.generate_dashboard --output site/index.html

@@ -6,6 +6,7 @@ from mcp_pipeline.extraction.call_graph_builder import (
     CallSite,
     build_call_graph,
     call_graph_depth,
+    collect_reachable_definitions,
     resolve_call,
 )
 from mcp_pipeline.extraction.definition_index import (
@@ -258,3 +259,110 @@ class WeatherServer:
 def test_call_graph_depth_of_leaf_only_node_is_one():
     leaf = CallGraphNode(level=1, resolved=True, external=False, ambiguous=False)
     assert call_graph_depth(leaf) == 1
+
+
+# --- collect_reachable_definitions: unbounded closure for loc/complexity ----
+
+
+def _fn_with_marker(name: str) -> FunctionDef:
+    # body_node doubles as a lookup key into the fake extract_calls below --
+    # real callers pass a tree-sitter Node here, but nothing in
+    # collect_reachable_definitions itself inspects body_node's type, only
+    # extract_calls(body_node, source_bytes) does, so a plain string marker
+    # is enough for a resolver-focused test like this one.
+    return FunctionDef(qualified_name=name, bare_name=name, file="server.py", start_line=1, end_line=2, body_node=name)
+
+
+def _fake_extract_calls(edges: dict[str, list[str]]):
+    def extract_calls(body_node, source_bytes):
+        return [CallSite(callee_name=callee, receiver=None, raw_text=f"{callee}()") for callee in edges.get(body_node, [])]
+
+    return extract_calls
+
+
+def test_collect_reachable_definitions_dedupes_diamond_shaped_calls():
+    a, b, c, d = (_fn_with_marker(n) for n in "abcd")
+    definitions = DefinitionIndex.build([a, b, c, d])
+    extract_calls = _fake_extract_calls({"a": ["b", "c"], "b": ["d"], "c": ["d"]})
+
+    reachable = collect_reachable_definitions(
+        a, definitions, imports_by_file={}, source_bytes_by_file={"server.py": b""}, extract_calls=extract_calls,
+    )
+
+    assert {d.qualified_name for d in reachable} == {"a", "b", "c", "d"}  # d reached via both b and c, counted once
+
+
+def test_collect_reachable_definitions_terminates_on_mutual_recursion():
+    a, b = (_fn_with_marker(n) for n in "ab")
+    definitions = DefinitionIndex.build([a, b])
+    extract_calls = _fake_extract_calls({"a": ["b"], "b": ["a"]})
+
+    reachable = collect_reachable_definitions(
+        a, definitions, imports_by_file={}, source_bytes_by_file={"server.py": b""}, extract_calls=extract_calls,
+    )
+
+    assert {d.qualified_name for d in reachable} == {"a", "b"}
+
+
+def test_collect_reachable_definitions_includes_start_def_alone_when_no_calls():
+    a = _fn_with_marker("a")
+    definitions = DefinitionIndex.build([a])
+    extract_calls = _fake_extract_calls({})
+
+    reachable = collect_reachable_definitions(
+        a, definitions, imports_by_file={}, source_bytes_by_file={"server.py": b""}, extract_calls=extract_calls,
+    )
+
+    assert reachable == [a]
+
+
+def _fn_with_marker_in(name: str, file: str) -> FunctionDef:
+    return FunctionDef(qualified_name=name, bare_name=name, file=file, start_line=1, end_line=2, body_node=name)
+
+
+def _fake_extract_calls_with_receiver(edges: dict[str, list[tuple[str, str]]]):
+    def extract_calls(body_node, source_bytes):
+        return [
+            CallSite(callee_name=callee, receiver=receiver, raw_text=f"{receiver}.{callee}()")
+            for receiver, callee in edges.get(body_node, [])
+        ]
+
+    return extract_calls
+
+
+def test_collect_reachable_definitions_ignores_repo_wide_fallback_for_receiver_qualified_calls():
+    # `obj.helper()` where `obj` isn't self/this and isn't a tracked import
+    # alias must NOT be resolved just because `helper` happens to be unique
+    # repo-wide -- real case: Accenture/mcp-bench's
+    # `client.p.submission.fetch(post_id)` (an external PRAW call) got
+    # wrongly matched this way to an unrelated bundled server's own `fetch`
+    # tool, exploding the unbounded closure.
+    start = _fn_with_marker_in("start", "server.py")
+    unrelated = _fn_with_marker_in("helper", "other.py")
+    definitions = DefinitionIndex.build([start, unrelated])
+    extract_calls = _fake_extract_calls_with_receiver({"start": [("obj", "helper")]})
+
+    reachable = collect_reachable_definitions(
+        start, definitions, imports_by_file={}, source_bytes_by_file={"server.py": b"", "other.py": b""},
+        extract_calls=extract_calls,
+    )
+
+    assert {d.qualified_name for d in reachable} == {"start"}  # helper NOT pulled in
+
+
+def test_collect_reachable_definitions_still_uses_repo_wide_fallback_for_receiver_less_calls():
+    # Unlike the qualified-call case above, a bare `helper()` call still
+    # falls back to the repo-wide unique match -- this is the documented,
+    # intentional way JS/TS's CommonJS `const { helper } = require(...)`
+    # gets resolved at all (extract_imports doesn't track require() bindings).
+    start = _fn_with_marker_in("start", "server.py")
+    helper = _fn_with_marker_in("helper", "other.py")
+    definitions = DefinitionIndex.build([start, helper])
+    extract_calls = _fake_extract_calls({"start": ["helper"]})
+
+    reachable = collect_reachable_definitions(
+        start, definitions, imports_by_file={}, source_bytes_by_file={"server.py": b"", "other.py": b""},
+        extract_calls=extract_calls,
+    )
+
+    assert {d.qualified_name for d in reachable} == {"start", "helper"}

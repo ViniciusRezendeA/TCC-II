@@ -130,6 +130,15 @@ def collect_reachable_definitions(
     keeps direct/mutual recursion from looping forever here, and also
     naturally dedupes diamond-shaped call graphs (two callees sharing one
     helper) so shared helpers aren't double-counted into loc/complexity.
+
+    Only resolutions resolve_call marks unambiguous, AND that don't rely on
+    its step-4 repo-wide-by-bare-name fallback (see resolve_call's
+    `allow_repo_wide_fallback` docstring), are followed/counted here. Without
+    this, a single wrong "only one function in the whole repo happens to be
+    named this" guess snowballs: every further call made from that unrelated
+    function is itself expanded with no depth limit to catch it, unlike
+    build_call_graph's capped tree where the same wrong guess is a bounded,
+    visible, discardable curiosity in one JSON node.
     """
     visited: dict[str, FunctionDef] = {start_def.qualified_name: start_def}
     queue: list[FunctionDef] = [start_def]
@@ -142,11 +151,12 @@ def collect_reachable_definitions(
                 continue
             seen_raw_texts.add(call_site.raw_text)
 
-            resolved_def, _ambiguous = resolve_call(
+            resolved_def, ambiguous = resolve_call(
                 call_site, current_file=current.file, current_class=current.class_name,
                 definitions=definitions, imports_by_file=imports_by_file,
+                allow_repo_wide_fallback=call_site.receiver is None,
             )
-            if resolved_def is None or resolved_def.qualified_name in visited:
+            if resolved_def is None or ambiguous or resolved_def.qualified_name in visited:
                 continue
             visited[resolved_def.qualified_name] = resolved_def
             queue.append(resolved_def)
@@ -160,11 +170,37 @@ def resolve_call(
     current_class: str | None,
     definitions: DefinitionIndex,
     imports_by_file: dict[str, ImportIndex],
+    allow_repo_wide_fallback: bool = True,
 ) -> tuple[FunctionDef | None, bool]:
     """Implements the plan's 5-step resolution heuristic, first match wins.
     Returns (resolved_def_or_None, ambiguous). This is explicitly a
     best-effort heuristic (name-based, not type-resolved) — see the plan's
     accepted trade-offs.
+
+    `allow_repo_wide_fallback=False` disables step 4 (below) for calls that
+    have a receiver (`obj.method(...)`). build_call_graph (bounded to 3
+    levels) always leaves this True, its original behavior.
+    collect_reachable_definitions passes False for receiver-qualified calls
+    only -- a receiver that didn't already match self/this or a tracked
+    import (steps 1/3) is weak evidence the callee is a local function at
+    all, and real case Accenture/mcp-bench (a repo bundling dozens of
+    unrelated demo MCP servers under one src/) showed step 4 actively wrong
+    here, not just imprecise: `client.p.submission.fetch(post_id)` (a PRAW
+    library call) "resolved" to an unrelated local `fetch` tool defined in a
+    completely different bundled server, purely because it's the only
+    repo-wide function literally named `fetch`. Under the 3-level cap this
+    is a bounded, visible curiosity in one JSON node; in an unbounded
+    transitive closure the same mistake pulls that unrelated server's entire
+    call graph in, and repeats at every further hop -- one tool's aggregate
+    exploded to loc=11295/cc=1591 before this was disabled.
+
+    Receiver-less calls (`helper(x)`) still get step 4 in the unbounded
+    closure, unlike qualified calls: it's the documented, intentional way
+    JS/TS's CommonJS `const { getCached } = require(...); getCached()` gets
+    resolved at all (see extract_imports's docstring in
+    patterns/ecmascript_common.py -- it doesn't track require() bindings),
+    and an unqualified bare name colliding repo-wide is a much rarer failure
+    mode than a receiver being silently misread as a local module.
     """
     name = call_site.callee_name
 
@@ -202,6 +238,8 @@ def resolve_call(
                 return nearest_by_directory(module_candidates, current_file), True
 
     # 4. repo-wide bare-name lookup.
+    if not allow_repo_wide_fallback:
+        return None, False
     all_candidates = definitions.by_bare_name.get(name, [])
     if len(all_candidates) == 1:
         return all_candidates[0], False

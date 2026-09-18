@@ -133,7 +133,14 @@ def cyclomatic_complexity(body_node: Node, language: str, source_bytes: bytes) -
 
     def walk(node: Node) -> None:
         nonlocal decision_points
-        if node.type in simple_types or _is_extra_decision(node, language, source_bytes):
+        # is_named excludes anonymous keyword tokens -- necessary because some
+        # grammars (Ruby in particular) name a real clause node with the bare
+        # keyword itself (e.g. the `if` clause's node type is literally "if"),
+        # which is the exact same type string as the anonymous `if` keyword
+        # token that is itself a child of that clause node. Without this
+        # check, walking that child would silently double-count every one of
+        # Ruby's if/elsif/unless/for/while/until/when/rescue constructs.
+        if node.is_named and (node.type in simple_types or _is_extra_decision(node, language, source_bytes)):
             decision_points += 1
         for child in node.children:
             if child.type in boundary_types:
