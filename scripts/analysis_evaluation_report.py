@@ -74,6 +74,24 @@ def load_evaluations(evaluations_dir: Path) -> list[dict]:
     return records
 
 
+def registros_versao_ativa(records: list[dict]) -> list[dict]:
+    """Restringe records à versão mais recente de prompt_version presente neles -- mesma lógica
+    que generate_dashboard.py::build_dashboard_data() já usa para as abas Visão Geral/Tools/
+    Divergências (fatorada aqui para as duas pontas compartilharem uma só implementação).
+
+    Necessário para qualquer análise que dependa da regra "SOURCE_CODE só pode abaixar a nota,
+    nomeando o problema" (ver changelog do PROMPT_VERSION em evaluation/prompts.py): essa regra só
+    vale a partir da v3/v4. Antes disso, o código podia subir a nota livremente, o que tornaria
+    tanto classificar_motivos() (o motivo de fallback assume que subir sem justificativa é
+    irregular) quanto veredito_custo_beneficio() sem sentido se avaliações de versões diferentes
+    do prompt fossem misturadas na mesma tabela.
+    """
+    if not records:
+        return []
+    active_version = max(r.get("prompt_version") or "(sem versão)" for r in records)
+    return [r for r in records if (r.get("prompt_version") or "(sem versão)") == active_version]
+
+
 def tool_key_for(record: dict) -> str:
     """Chave de pareamento por tool, corrigida para colisões de tool_uid vindas dos padrões
     "lowlevel" de SDK (python.list_tools_lowlevel, *.set_request_handler_lowlevel): nesses
@@ -360,6 +378,115 @@ def migracao_quartil_por_componente(long_df: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(rows).sort_values(["componente", "juiz"]).reset_index(drop=True)
 
 
+# --- Motivos de divergência (junção por palavra-chave) -----------------------
+
+# Termos em inglês porque o reasoning das avaliações é sempre em inglês (ver
+# evaluation/prompts.py). Derivado das definições dos 6 componentes da rubrica
+# (RUBRIC_COMPONENTS em prompts.py) e do vocabulário do próprio changelog do PROMPT_VERSION
+# v3/v4 (contradição, omissão, halo/leniência). Uma divergência pode casar mais de uma
+# categoria -- é uma junção por palavra-chave, não uma classificação exclusiva.
+MOTIVO_KEYWORDS: dict[str, list[str]] = {
+    "parametro": ["parameter", "argument", "data type", "type hint"],
+    "limitacao_erro": ["error", "exception", "raise", "constraint", "edge case", "corner case", "fail"],
+    "exemplo": ["example", "usage", "demonstrat"],
+    "contradicao": ["contradict", "inconsistent", "mismatch", "does not match", "does not align", "conflicts with"],
+    "omissao": ["omit", "missing", "does not mention", "lacks", "no mention of", "fails to mention", "not disclosed", "undisclosed"],
+    "escopo_proposito": ["actually does", "actually performs", "purpose is", "the code reveals", "the implementation shows"],
+}
+
+# Retornado quando nenhuma categoria de MOTIVO_KEYWORDS casa -- ver classificar_motivos().
+MOTIVO_FALLBACK = "sem_justificativa_especifica"
+
+
+def classificar_motivos(reasoning: str) -> list[str]:
+    """Junção por palavra-chave: casa o texto de reasoning contra MOTIVO_KEYWORDS,
+    case-insensitive, por substring. Retorna TODAS as categorias que casarem (ex: "the
+    parameter's type is missing" casa tanto "parametro" quanto "omissao"), não uma
+    classificação exclusiva.
+
+    Quando nenhuma categoria casa, retorna [MOTIVO_FALLBACK]: a partir do PROMPT_VERSION v3/v4,
+    a regra é que SOURCE_CODE só pode abaixar a nota e a reasoning deve nomear o problema
+    específico encontrado -- uma divergência sem nenhum termo de problema reconhecível é
+    candidata a efeito halo/leniência em vez de correção genuína (ver
+    registros_versao_ativa()).
+    """
+    texto = (reasoning or "").lower()
+    motivos = [motivo for motivo, termos in MOTIVO_KEYWORDS.items() if any(termo in texto for termo in termos)]
+    return motivos or [MOTIVO_FALLBACK]
+
+
+def motivos_por_divergencia(records: list[dict]) -> pd.DataFrame:
+    """Aplica classificar_motivos() a cada divergência (ver migracao_quartil_por_tool()): para
+    cada (juiz, componente, tool_uid) cuja nota migrou pelo menos MUDANCA_MINIMA_QUARTIS faixas
+    de quartil, busca a reasoning do with_source diretamente nos records brutos (mesma técnica
+    de lookup por chave usada em generate_dashboard.py::build_divergences_data()) e classifica.
+    Usa só a reasoning do with_source, não a do description_only: é nela que a regra do prompt
+    v3/v4 exige o problema nomeado.
+
+    Uma linha por (divergência x motivo casado) -- fan-out proposital de uma junção real, não
+    uma classificação 1:1. `records` deve já ter passado por registros_versao_ativa(); esta
+    função não filtra por conta própria (para poder ser testada isoladamente com fixtures de
+    uma só versão).
+    """
+    long_df = scores_long(records)
+    migracao = migracao_quartil_por_tool(long_df)
+    divergentes = migracao[migracao["diverge"]]
+    if divergentes.empty:
+        return pd.DataFrame(columns=["juiz", "componente", "tool_uid", "motivo", "diff_quartil", "subiu"])
+
+    reasoning_with_source: dict[tuple[str, str, str], str] = {}
+    for r in records:
+        if r.get("status") != "ok" or not r.get("scores") or r.get("scenario") != "with_source":
+            continue
+        tool_uid = tool_key_for(r)
+        juiz = r["judge"]["id"]
+        for componente, dados in r["scores"].items():
+            if dados:
+                reasoning_with_source[(juiz, componente, tool_uid)] = dados.get("reasoning") or ""
+
+    rows = []
+    for row in divergentes.to_dict("records"):
+        chave = (row["juiz"], row["componente"], row["tool_uid"])
+        reasoning = reasoning_with_source.get(chave, "")
+        for motivo in classificar_motivos(reasoning):
+            rows.append(
+                {
+                    "juiz": row["juiz"],
+                    "componente": row["componente"],
+                    "tool_uid": row["tool_uid"],
+                    "motivo": motivo,
+                    "diff_quartil": row["diff_quartil"],
+                    "subiu": row["diff_quartil"] > 0,
+                }
+            )
+    return pd.DataFrame(rows)
+
+
+def resumo_motivos_por_componente(motivos_df: pd.DataFrame) -> pd.DataFrame:
+    """Agrega motivos_por_divergencia() por juiz/componente/motivo -- responde "quais são os
+    motivos da mudança de nota": quantas divergências cada motivo cobre, quantas foram subida
+    vs descida de quartil. Granularidade por juiz incluída porque veredito_custo_beneficio()
+    precisa dela nesse nível; uma visão agregada entre juízes pode somar esta tabela por
+    (componente, motivo) na camada de apresentação (ex: dashboard).
+
+    `ocorrencias` conta linhas já explodidas por motivo (uma divergência com 2 motivos conta 2
+    vezes aqui) -- correto para responder "quantas vezes esse motivo apareceu", mas não deve ser
+    somado entre motivos para estimar o total de divergências (ver n_diverge em
+    migracao_quartil_por_componente() para isso).
+    """
+    if motivos_df.empty:
+        return pd.DataFrame(columns=["juiz", "componente", "motivo", "ocorrencias", "n_subiu", "n_desceu", "pct_subiu"])
+
+    grouped = (
+        motivos_df.groupby(["juiz", "componente", "motivo"])
+        .agg(ocorrencias=("subiu", "size"), n_subiu=("subiu", "sum"))
+        .reset_index()
+    )
+    grouped["n_desceu"] = grouped["ocorrencias"] - grouped["n_subiu"]
+    grouped["pct_subiu"] = (grouped["n_subiu"] / grouped["ocorrencias"] * 100).round(1)
+    return grouped.sort_values(["componente", "juiz", "ocorrencias"], ascending=[True, True, False]).reset_index(drop=True)
+
+
 def concordancia_entre_juizes(long_df: pd.DataFrame) -> pd.DataFrame:
     """Concordância par-a-par entre juízes: correlação de Pearson e diferença média
     absoluta das notas dadas ao mesmo (tool, cenário, componente) -- indica se o júri
@@ -422,6 +549,165 @@ def custo_latencia_por_juiz(records: list[dict]) -> pd.DataFrame:
         .reset_index()
     )
     return grouped
+
+
+def custo_latencia_por_juiz_e_cenario(records: list[dict]) -> pd.DataFrame:
+    """Como custo_latencia_por_juiz(), mas separado por cenário -- necessário para isolar o
+    custo extra especificamente atribuível a mandar SOURCE_CODE (with_source vs
+    description_only), que a tabela agregada por juiz não distingue. Insumo de
+    _delta_custo_com_codigo() e, por extensão, de veredito_custo_beneficio().
+    """
+    rows = [
+        {
+            "juiz": r["judge"]["id"],
+            "cenario": r["scenario"],
+            "input_tokens": r["usage"]["input_tokens"],
+            "output_tokens": r["usage"]["output_tokens"],
+            "latency_ms": r["latency_ms"],
+        }
+        for r in records
+        if r["status"] == "ok"
+    ]
+    df = pd.DataFrame(rows)
+    if df.empty:
+        return pd.DataFrame(
+            columns=["juiz", "cenario", "avaliacoes", "media_input_tokens", "media_output_tokens", "media_latencia_ms"]
+        )
+    grouped = (
+        df.groupby(["juiz", "cenario"])
+        .agg(
+            avaliacoes=("latency_ms", "count"),
+            media_input_tokens=("input_tokens", "mean"),
+            media_output_tokens=("output_tokens", "mean"),
+            media_latencia_ms=("latency_ms", "mean"),
+        )
+        .round(1)
+        .reset_index()
+    )
+    return grouped
+
+
+def _delta_custo_com_codigo(custo_por_cenario: pd.DataFrame) -> pd.DataFrame:
+    """Custo extra (with_source menos description_only) por juiz, a partir de
+    custo_latencia_por_juiz_e_cenario() -- o preço específico de mandar SOURCE_CODE, isolado do
+    custo-base de avaliar só a description. Helper interno de veredito_custo_beneficio(), não
+    uma tabela exportada por conta própria.
+    """
+    colunas = ["juiz", "delta_input_tokens", "delta_latencia_ms", "custo_percentual_extra"]
+    if custo_por_cenario.empty:
+        return pd.DataFrame(columns=colunas)
+
+    desc = custo_por_cenario[custo_por_cenario["cenario"] == "description_only"].set_index("juiz")
+    src = custo_por_cenario[custo_por_cenario["cenario"] == "with_source"].set_index("juiz")
+    juizes_comuns = desc.index.intersection(src.index)
+    if juizes_comuns.empty:
+        return pd.DataFrame(columns=colunas)
+
+    delta_tokens = (src.loc[juizes_comuns, "media_input_tokens"] - desc.loc[juizes_comuns, "media_input_tokens"]).round(1)
+    delta_latencia = (src.loc[juizes_comuns, "media_latencia_ms"] - desc.loc[juizes_comuns, "media_latencia_ms"]).round(1)
+    custo_percentual = (delta_tokens / desc.loc[juizes_comuns, "media_input_tokens"] * 100).round(1)
+
+    return pd.DataFrame(
+        {
+            "juiz": juizes_comuns,
+            "delta_input_tokens": delta_tokens.values,
+            "delta_latencia_ms": delta_latencia.values,
+            "custo_percentual_extra": custo_percentual.values,
+        }
+    ).reset_index(drop=True)
+
+
+# Limiar usado por veredito_custo_beneficio() para separar "melhoria genuína" de "melhoria
+# majoritariamente halo effect": abaixo de 50% de divergências sem justificativa específica
+# (MOTIVO_FALLBACK), a melhoria é considerada confiável o bastante para justificar o custo.
+LIMIAR_HALO_PERCENTUAL = 50.0
+
+
+def veredito_custo_beneficio(records: list[dict]) -> pd.DataFrame:
+    """Veredito por (juiz, componente): vale a pena pagar o custo extra de mandar SOURCE_CODE
+    ao juiz? Cruza significância estatística (wilcoxon_por_componente), direção e volume da
+    migração de quartil (migracao_quartil_por_componente), a proporção de divergências sem
+    justificativa específica (resumo_motivos_por_componente -- proxy de efeito halo/leniência,
+    ver classificar_motivos()) e o custo extra do with_source (_delta_custo_com_codigo()).
+
+    Filtra por registros_versao_ativa() internamente -- não confia em quem chama já ter
+    filtrado, porque misturar prompt_version quebraria tanto a regra "código só abaixa nota" (só
+    vale a partir da v3/v4) quanto a comparabilidade dos p-valores entre componentes.
+
+    O custo extra é por juiz, não por componente (uma chamada ao juiz avalia os 6 componentes de
+    uma vez) -- por isso o mesmo delta_input_tokens/delta_latencia_ms se repete em todas as
+    linhas de componente daquele juiz; não é um erro de junção.
+
+    `pct_halo` usa `n_diverge` de migracao_quartil_por_componente() como denominador -- não a
+    soma de `ocorrencias` de resumo_motivos_por_componente(), que infla o total ao contar uma
+    mesma divergência uma vez por motivo casado quando ela bate em mais de uma categoria.
+
+    `direcao`: "melhoria" se a mediana das diferenças pareadas for positiva e significativa
+    (p_valor_bh < 0.05), "piora" se negativa e significativa, "neutro" caso contrário.
+    `vale_a_pena`: "sim" só quando a direção for melhoria E menos de LIMIAR_HALO_PERCENTUAL das
+    divergências daquele juiz/componente ficarem sem justificativa específica -- caso contrário
+    a "melhoria" pode ser majoritariamente halo effect, não correção genuína. "não" quando a
+    direção for piora OU a maioria das divergências for halo. "inconclusivo" nos demais casos
+    (ex: direção neutra).
+    """
+    scoped = registros_versao_ativa(records)
+    long_df = scores_long(scoped)
+
+    wilcoxon_df = wilcoxon_por_componente(long_df)
+    migracao_df = migracao_quartil_por_componente(long_df)
+    motivos_df = resumo_motivos_por_componente(motivos_por_divergencia(scoped))
+    custo_df = custo_latencia_por_juiz_e_cenario(scoped)
+    delta_df = _delta_custo_com_codigo(custo_df).set_index("juiz")
+
+    halo_por_chave = (
+        motivos_df[motivos_df["motivo"] == MOTIVO_FALLBACK].set_index(["juiz", "componente"])["ocorrencias"]
+        if not motivos_df.empty
+        else pd.Series(dtype=float)
+    )
+
+    base = wilcoxon_df.merge(migracao_df, on=["juiz", "componente"])
+
+    rows = []
+    for row in base.to_dict("records"):
+        n_halo = int(halo_por_chave.get((row["juiz"], row["componente"]), 0))
+        n_total_diverg = int(row["n_diverge"])
+        pct_halo = round(n_halo / n_total_diverg * 100, 1) if n_total_diverg else None
+
+        significativo = bool(row.get("significativo_bh_0.05"))
+        mediana = row.get("mediana_diferenca")
+        if significativo and mediana is not None and mediana > 0:
+            direcao = "melhoria"
+        elif significativo and mediana is not None and mediana < 0:
+            direcao = "piora"
+        else:
+            direcao = "neutro"
+
+        if direcao == "melhoria" and (pct_halo is None or pct_halo < LIMIAR_HALO_PERCENTUAL):
+            vale_a_pena = "sim"
+        elif direcao == "piora" or (pct_halo is not None and pct_halo >= LIMIAR_HALO_PERCENTUAL):
+            vale_a_pena = "não"
+        else:
+            vale_a_pena = "inconclusivo"
+
+        delta = delta_df.loc[row["juiz"]] if row["juiz"] in delta_df.index else None
+        rows.append(
+            {
+                "juiz": row["juiz"],
+                "componente": row["componente"],
+                "mediana_diferenca": mediana,
+                "significativo_bh_0.05": significativo,
+                "n_diverge_subiu": row["n_diverge_subiu"],
+                "n_diverge_desceu": row["n_diverge_desceu"],
+                "pct_halo": pct_halo,
+                "delta_input_tokens": float(delta["delta_input_tokens"]) if delta is not None else None,
+                "delta_latencia_ms": float(delta["delta_latencia_ms"]) if delta is not None else None,
+                "custo_percentual_extra": float(delta["custo_percentual_extra"]) if delta is not None else None,
+                "direcao": direcao,
+                "vale_a_pena": vale_a_pena,
+            }
+        )
+
+    return pd.DataFrame(rows).sort_values(["componente", "juiz"]).reset_index(drop=True)
 
 
 def notas_por_linguagem(long_df: pd.DataFrame) -> pd.DataFrame:
@@ -565,6 +851,11 @@ def main() -> None:
 
     long_df = scores_long(records)
 
+    # Tabelas de motivo/veredito ficam restritas à versão vigente do prompt (ver
+    # registros_versao_ativa()): as tabelas legadas acima continuam com todos os records, sem
+    # esse filtro, para não mudar números já publicados no TCC.
+    scoped = registros_versao_ativa(records)
+
     tables = {
         "status_por_juiz_cenario": status_por_juiz_cenario(records),
         "notas_por_componente": notas_por_componente(long_df),
@@ -574,6 +865,10 @@ def main() -> None:
         "concordancia_entre_juizes": concordancia_entre_juizes(long_df),
         "custo_latencia_por_juiz": custo_latencia_por_juiz(records),
         "notas_por_linguagem": notas_por_linguagem(long_df),
+        "motivos_por_divergencia": motivos_por_divergencia(scoped),
+        "resumo_motivos_por_componente": resumo_motivos_por_componente(motivos_por_divergencia(scoped)),
+        "custo_latencia_por_juiz_e_cenario": custo_latencia_por_juiz_e_cenario(scoped),
+        "veredito_custo_beneficio": veredito_custo_beneficio(scoped),
     }
 
     export_tables(tables, output_dir / "tables", workbook_name="resumo_etapa_3.xlsx")

@@ -29,10 +29,15 @@ from mcp_pipeline.config import DATA_DIR
 from mcp_pipeline.evaluation.prompts import PROMPT_VERSION, RUBRIC_COMPONENTS
 from mcp_pipeline.logging_setup import setup_logging
 from scripts.analysis_evaluation_report import (
+    MOTIVO_FALLBACK,
     MUDANCA_MINIMA_QUARTIS,
+    classificar_motivos,
     migracao_quartil_por_tool,
+    motivos_por_divergencia,
+    resumo_motivos_por_componente,
     scores_long,
     tool_key_for,
+    veredito_custo_beneficio,
     wilcoxon_por_componente,
 )
 from scripts.analysis_report import (
@@ -58,6 +63,19 @@ logger = setup_logging("generate_dashboard")
 # instead of presented at face value -- avoids the dashboard implying a 2- or 3-sample mean
 # is comparable to one backed by hundreds of evaluations.
 MIN_TRUSTWORTHY_N = 30
+
+# Rótulos de exibição para as chaves de MOTIVO_KEYWORDS/MOTIVO_FALLBACK (analysis_evaluation_
+# report.py) -- mantidos aqui, não lá, porque são só apresentação (a chave em si é o que os
+# CSVs/testes usam).
+MOTIVO_LABELS: dict[str, str] = {
+    "parametro": "Parâmetro",
+    "limitacao_erro": "Limitação/Erro",
+    "exemplo": "Exemplo",
+    "contradicao": "Contradição",
+    "omissao": "Omissão",
+    "escopo_proposito": "Escopo/Propósito",
+    MOTIVO_FALLBACK: "Sem justificativa específica",
+}
 
 
 def load_records(eval_dir: Path, judge_id: str | None) -> list[dict]:
@@ -245,6 +263,7 @@ def build_dashboard_data(records: list[dict], prompt_version: str | None = None)
             "n": len(judge_records),
             "ok": len(judge_ok),
             "error": sum(1 for r in judge_records if r.get("status") == "error"),
+            "refused": sum(1 for r in judge_records if r.get("status") == "refused"),
             "mean": overall_mean,
             "flag": f"N={len(judge_ok)} — amostra insuficiente" if len(judge_ok) < MIN_TRUSTWORTHY_N else None,
         })
@@ -259,13 +278,17 @@ def build_dashboard_data(records: list[dict], prompt_version: str | None = None)
             "tools_evaluated": tools_evaluated,
             "divergence_method": f"Migração de pelo menos {MUDANCA_MINIMA_QUARTIS} faixas de quartil da nota entre cenários, por componente e juiz, após descarte de empates",
             "divergence_min_quartile_change": MUDANCA_MINIMA_QUARTIS,
+            "motivo_labels": MOTIVO_LABELS,
+            "motivo_fallback": MOTIVO_FALLBACK,
         },
         "overall": overall,
         "breakdowns": breakdowns,
         "judges": judges,
         "tools": build_tools_data(scoped),
         "divergences": build_divergences_data(scoped),
-        "divergences_matrix": build_quartile_matrix_data(scoped),
+        "divergences_boxplot": build_boxplot_data(scoped),
+        "motivos_summary": build_motivos_summary_data(scoped),
+        "tradeoff": build_tradeoff_data(scoped),
         "prompt_versions": version_summary,
     }
 
@@ -342,41 +365,110 @@ def build_divergences_data(records: list[dict]) -> list[dict]:
             "quartil_description_only": migracao_tool["quartil_description_only"],
             "quartil_with_source": migracao_tool["quartil_with_source"],
             "diff_quartil": migracao_tool["diff_quartil"],
+            # Junção por palavra-chave (classificar_motivos()) sobre a reasoning do with_source
+            # já buscada acima -- ver MOTIVO_KEYWORDS em analysis_evaluation_report.py.
+            "motivos": classificar_motivos(src["reasoning"]),
         })
 
     rows.sort(key=lambda row: (abs(row["diff_quartil"]), abs(row["diff"])), reverse=True)
     return rows
 
 
-def build_quartile_matrix_data(records: list[dict]) -> list[dict]:
-    """Matriz de transição (quartil em description_only x quartil em with_source, 4x4) por
-    componente da rubrica, somando os dois juízes -- panorama completo de para onde cada tool
-    migrou (inclui migrações de 1 faixa e tools que ficaram no mesmo quartil), diferente da
-    tabela de build_divergences_data() que já vem filtrada só nas migrações >= 2 faixas.
-    Pares empatados (mesma nota nos dois cenários) ficam de fora, mesmo critério do resto da
-    aba Divergências.
+def build_boxplot_data(records: list[dict]) -> list[dict]:
+    """Sumário de cinco números (mínimo, Q1, mediana, Q3, máximo) por componente da rubrica x
+    cenário, somando os dois juízes -- alimenta o boxplot da aba Divergências, que mostra a
+    forma completa da distribuição de notas em description_only vs. with_source (diferente da
+    tabela de build_divergences_data(), que já vem filtrada só nas migrações de tool
+    individuais >= 2 faixas de quartil).
+
+    Quantis calculados por pd.Series.quantile() (interpolação linear, o default do pandas),
+    sobre a mesma base long (scores_long()) usada pelo resto do arquivo, para não introduzir
+    um segundo critério de quantil dentro do mesmo dashboard (ver migracao_quartil_por_tool(),
+    que usa rank percentual -- métodos diferentes por servirem perguntas diferentes: aqui é a
+    distribuição agregada, lá é o quartil de uma tool individual dentro dela).
     """
-    migracao = migracao_quartil_por_tool(scores_long(records))
-    nao_empatados = migracao[~migracao["empate"]]
+    long_df = scores_long(records)
+    if long_df.empty:
+        return []
 
     labels = {key: label for key, label, _ in RUBRIC_COMPONENTS}
     order = [key for key, _, _ in RUBRIC_COMPONENTS]
-    matrices: dict[str, list[list[int]]] = {}
-    for row in nao_empatados.to_dict("records"):
-        componente = row["componente"]
-        matrix = matrices.setdefault(componente, [[0] * 4 for _ in range(4)])
-        matrix[row["quartil_description_only"] - 1][row["quartil_with_source"] - 1] += 1
-
-    return [
-        {
+    result = []
+    for componente in order:
+        notas_por_cenario = long_df[long_df["componente"] == componente].groupby("cenario")["nota"]
+        if notas_por_cenario.ngroups == 0:
+            continue
+        scenarios = {
+            cenario: {
+                "min": float(notas.min()),
+                "q1": float(notas.quantile(0.25)),
+                "median": float(notas.quantile(0.5)),
+                "q3": float(notas.quantile(0.75)),
+                "max": float(notas.max()),
+                "mean": float(notas.mean()),
+                "n": int(notas.count()),
+            }
+            for cenario, notas in notas_por_cenario
+        }
+        result.append({
             "componente": componente,
             "componente_label": labels.get(componente, componente),
-            "total": sum(sum(linha) for linha in matrices[componente]),
-            "matrix": matrices[componente],
-        }
-        for componente in order
-        if componente in matrices
-    ]
+            "scenarios": scenarios,
+        })
+    return result
+
+
+def build_motivos_summary_data(records: list[dict]) -> list[dict]:
+    """Envelopa resumo_motivos_por_componente(motivos_por_divergencia()) em JSON -- alimenta a
+    seção "Motivos de mudança" da aba Divergências: responde "quais são os motivos" agregando
+    entre juízes (a granularidade por juiz completa, usada por veredito_custo_beneficio(), fica
+    nos CSVs gerados por analysis_evaluation_report.py).
+    """
+    resumo = resumo_motivos_por_componente(motivos_por_divergencia(records))
+    if resumo.empty:
+        return []
+
+    agregado = (
+        resumo.groupby(["componente", "motivo"])
+        .agg(ocorrencias=("ocorrencias", "sum"), n_subiu=("n_subiu", "sum"), n_desceu=("n_desceu", "sum"))
+        .reset_index()
+    )
+    agregado["pct_subiu"] = (agregado["n_subiu"] / agregado["ocorrencias"] * 100).round(1)
+
+    labels = {key: label for key, label, _ in RUBRIC_COMPONENTS}
+    agregado["componente_label"] = agregado["componente"].map(lambda k: labels.get(k, k))
+    agregado["motivo_label"] = agregado["motivo"].map(lambda k: MOTIVO_LABELS.get(k, k))
+    return agregado.sort_values(["componente", "ocorrencias"], ascending=[True, False]).to_dict("records")
+
+
+def build_tradeoff_data(records: list[dict]) -> list[dict]:
+    """Envelopa veredito_custo_beneficio() em JSON -- alimenta a seção "Custo-benefício: vale a
+    pena o código?" da aba Divergências. `records` não precisa vir pré-filtrado por
+    registros_versao_ativa(): veredito_custo_beneficio() já filtra internamente (ver seu
+    docstring), então passar `scoped` (já filtrado em build_dashboard_data()) é redundante mas
+    inofensivo -- mantido por consistência com o resto das chamadas desta função.
+    """
+    df = veredito_custo_beneficio(records)
+    if df.empty:
+        return []
+
+    labels = {key: label for key, label, _ in RUBRIC_COMPONENTS}
+    df = df.copy()
+    df["componente_label"] = df["componente"].map(lambda k: labels.get(k, k))
+    # Todas essas colunas passam por pd.DataFrame(rows) dentro de veredito_custo_beneficio() e
+    # de wilcoxon_por_componente() -- qualquer None de origem (ex: sem par suficiente para o
+    # teste, ou juiz sem custo_latencia_por_juiz_e_cenario nos dois cenários) já virou NaN
+    # nesse ponto, porque uma coluna float64 do pandas não distingue None de NaN. Sem essa
+    # normalização, o NaN cru vazaria como o literal JS NaN no HTML gerado, em vez de null --
+    # mesmo cuidado que compute_breakdown()::_or_none() já toma para wilcoxon_por_componente()
+    # no resto do dashboard.
+    campos_nullable = ["mediana_diferenca", "pct_halo", "delta_input_tokens", "delta_latencia_ms", "custo_percentual_extra"]
+    rows = df.sort_values(["componente", "juiz"]).to_dict("records")
+    for row in rows:
+        for campo in campos_nullable:
+            if row[campo] != row[campo]:
+                row[campo] = None
+    return rows
 
 
 def build_tools_data(records: list[dict]) -> list[dict]:
@@ -467,12 +559,8 @@ HTML_TEMPLATE = """<meta charset="UTF-8">
     --status-critical: #d03b3b;
     --status-critical-soft: #fbe4e1;
     --status-warning: #b8790a;
+    --status-warning-soft: #faf0dd;
     --shadow: 0 1px 2px rgba(23,22,15,.06), 0 8px 24px -12px rgba(23,22,15,.16);
-    /* Ramp sequencial (mesma família de --accent-1), claro->escuro = pouca->muita migração. */
-    --seq-1: #cde2fb; --seq-1-text: #17160f;
-    --seq-2: #86b6ef; --seq-2-text: #17160f;
-    --seq-3: #3987e5; --seq-3-text: #fcfcfb;
-    --seq-4: #184f95; --seq-4-text: #fcfcfb;
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
@@ -481,14 +569,8 @@ HTML_TEMPLATE = """<meta charset="UTF-8">
       --text-primary: #f4f2ea; --text-secondary: #c7c3ac; --text-muted: #8f8b71;
       --accent-1: #3987e5; --accent-2: #d95926;
       --status-good: #29c229; --status-good-soft: #163318;
-      --status-critical: #e66767; --status-critical-soft: #3a1c1c; --status-warning: #d99a2b;
+      --status-critical: #e66767; --status-critical-soft: #3a1c1c; --status-warning: #d99a2b; --status-warning-soft: #3a2c12;
       --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px -12px rgba(0,0,0,.5);
-      /* Ramp invertido: no fundo escuro, pouca migração recua (step escuro) e muita migração
-         se destaca (step claro) -- oposto do claro, onde o step escuro é que se destaca. */
-      --seq-1: #184f95; --seq-1-text: #f4f2ea;
-      --seq-2: #3987e5; --seq-2-text: #f4f2ea;
-      --seq-3: #86b6ef; --seq-3-text: #17160f;
-      --seq-4: #cde2fb; --seq-4-text: #17160f;
     }
   }
   :root[data-theme="dark"] {
@@ -497,12 +579,8 @@ HTML_TEMPLATE = """<meta charset="UTF-8">
     --text-primary: #f4f2ea; --text-secondary: #c7c3ac; --text-muted: #8f8b71;
     --accent-1: #3987e5; --accent-2: #d95926;
     --status-good: #29c229; --status-good-soft: #163318;
-    --status-critical: #e66767; --status-critical-soft: #3a1c1c; --status-warning: #d99a2b;
+    --status-critical: #e66767; --status-critical-soft: #3a1c1c; --status-warning: #d99a2b; --status-warning-soft: #3a2c12;
     --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px -12px rgba(0,0,0,.5);
-    --seq-1: #184f95; --seq-1-text: #f4f2ea;
-    --seq-2: #3987e5; --seq-2-text: #f4f2ea;
-    --seq-3: #86b6ef; --seq-3-text: #17160f;
-    --seq-4: #cde2fb; --seq-4-text: #17160f;
   }
   * { box-sizing: border-box; }
   html { -webkit-text-size-adjust: 100%; }
@@ -552,6 +630,12 @@ HTML_TEMPLATE = """<meta charset="UTF-8">
   .bar-row.grouped .bar-track { display: flex; flex-direction: column; gap: 3px; background: none; height: auto; }
   .bar-row.grouped .bar-track .sub-track { position: relative; height: 15px; background: var(--surface-2); border-radius: 4px; }
   .bar-row.grouped .bar-fill { top: 1px; bottom: 1px; }
+  @media (max-width: 640px) {
+    .bar-row { grid-template-columns: 96px 1fr; gap: 10px; }
+    .bar-row .row-label { font-size: 12.5px; }
+    .bar-track, .bar-row.grouped .bar-track { margin-right: 34px; }
+    .bar-fill .val { font-size: 11.5px; }
+  }
   #tooltip { position: fixed; pointer-events: none; z-index: 50; background: var(--text-primary); color: var(--surface-0); font-family: "IBM Plex Mono", monospace; font-size: 12px; line-height: 1.5; padding: 7px 10px; border-radius: 7px; box-shadow: var(--shadow); opacity: 0; transform: translate(-50%, -100%); transition: opacity .1s ease; white-space: nowrap; }
   #tooltip.show { opacity: 1; }
   #tooltip b { font-weight: 600; }
@@ -565,23 +649,21 @@ HTML_TEMPLATE = """<meta charset="UTF-8">
   .pill { display: inline-flex; align-items: center; gap: 5px; padding: 2px 8px; border-radius: 100px; font-family: "IBM Plex Mono", monospace; font-size: 12px; font-weight: 500; }
   .pill.ok { background: var(--status-good-soft); color: var(--status-good); }
   .pill.error { background: var(--status-critical-soft); color: var(--status-critical); }
+  .pill.warn { background: var(--status-warning-soft); color: var(--status-warning); }
+  .motivo-badges { display: flex; flex-wrap: wrap; gap: 4px; }
   .n-flag { font-size: 11.5px; color: var(--status-warning); font-family: "IBM Plex Mono", monospace; }
   .overflow-x { overflow-x: auto; }
-  .quartile-matrix-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; margin-bottom: 40px; }
-  .quartile-matrix h3 { font-size: 13.5px; font-weight: 500; margin: 0 0 2px; }
-  .quartile-matrix .matrix-total { font-family: "IBM Plex Mono", monospace; font-size: 11.5px; color: var(--text-muted); margin: 0 0 10px; }
-  .quartile-matrix table { font-size: 12px; }
-  .quartile-matrix th, .quartile-matrix td { text-align: center; padding: 6px; }
-  .quartile-matrix thead th { font-size: 10px; padding-bottom: 4px; border-bottom: none; color: var(--text-muted); }
-  .quartile-matrix tbody th { font-family: "IBM Plex Mono", monospace; font-size: 10px; font-weight: 500; color: var(--text-muted); text-align: right; padding-right: 8px; white-space: nowrap; }
-  .quartile-matrix td { border-radius: 6px; font-family: "IBM Plex Mono", monospace; font-variant-numeric: tabular-nums; }
-  .quartile-matrix .axis-label { font-size: 10px; color: var(--text-muted); text-align: center; }
-  .qcell-0 { background: var(--surface-2); color: var(--text-muted); }
-  .qcell-1 { background: var(--seq-1); color: var(--seq-1-text); }
-  .qcell-2 { background: var(--seq-2); color: var(--seq-2-text); }
-  .qcell-3 { background: var(--seq-3); color: var(--seq-3-text); }
-  .qcell-4 { background: var(--seq-4); color: var(--seq-4-text); }
-  td.qcell-0, td.qcell-1, td.qcell-2, td.qcell-3, td.qcell-4 { font-weight: 500; }
+  .boxplot-row { display: grid; grid-template-columns: 168px 1fr; align-items: center; gap: 14px; margin-bottom: 16px; }
+  .boxplot-row .row-label { font-size: 13.5px; color: var(--text-secondary); text-align: right; }
+  .boxplot-tracks { display: flex; flex-direction: column; gap: 5px; }
+  .boxplot-track { position: relative; height: 20px; }
+  .boxplot-track .grid-tick { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--line); }
+  .boxplot-track .grid-tick.major { background: var(--text-muted); opacity: .35; }
+  .boxplot-whisker { position: absolute; top: 50%; height: 1px; background: currentColor; opacity: .55; }
+  .boxplot-whisker-cap { position: absolute; top: 25%; bottom: 25%; width: 1.5px; background: currentColor; opacity: .65; }
+  .boxplot-box { position: absolute; top: 2px; bottom: 2px; border-radius: 4px; background: currentColor; opacity: .25; border: 1.5px solid currentColor; }
+  .boxplot-median { position: absolute; top: 0; bottom: 0; width: 2px; background: currentColor; }
+  @media (max-width: 640px) { .boxplot-row { grid-template-columns: 100px 1fr; } }
   footer { border-top: 1px solid var(--line); padding-top: 24px; font-size: 13px; color: var(--text-muted); }
   footer p { max-width: 68ch; margin: 0 0 10px; }
   footer code { font-family: "IBM Plex Mono", monospace; background: var(--surface-1); padding: 1px 5px; border-radius: 4px; font-size: 12px; color: var(--text-secondary); }
@@ -676,7 +758,7 @@ HTML_TEMPLATE = """<meta charset="UTF-8">
 
   <div id="tab-overview" role="tabpanel" aria-labelledby="tab-btn-overview">
     <div class="tiles">
-      <div class="tile"><span class="label">Avaliações</span><span class="value tabular" id="tile-total">—</span><span class="sub">tool × cenário × juiz</span></div>
+      <div class="tile"><span class="label">Avaliações</span><span class="value tabular" id="tile-total">—</span><span class="sub" id="tile-total-sub">tool × cenário × juiz</span></div>
       <div class="tile ok"><span class="label">Sucesso</span><span class="value tabular" id="tile-ok">—</span><span class="sub" id="tile-ok-pct">—</span></div>
       <div class="tile error"><span class="label">Erro</span><span class="value tabular" id="tile-error">—</span><span class="sub" id="tile-error-pct">—</span></div>
       <div class="tile"><span class="label">Recusas</span><span class="value tabular" id="tile-refused">—</span><span class="sub">segurança</span></div>
@@ -869,9 +951,10 @@ HTML_TEMPLATE = """<meta charset="UTF-8">
 
   <div id="tab-divergences" role="tabpanel" aria-labelledby="tab-btn-divergences" hidden>
     <section>
-      <h2>Migração de quartil entre cenários</h2>
-      <p class="section-note">Para cada componente da rubrica, o quartil (Q1 = 25% piores notas, Q4 = 25% melhores) de cada tool em <code>description_only</code> (linha) contra o quartil em <code>with_source</code> (coluna), somando os dois juízes. Pares empatados (mesma nota nos dois cenários) ficam de fora. Células fora da diagonal mostram migração; quanto mais escura, mais tools fizeram aquele percurso.</p>
-      <div class="quartile-matrix-grid" id="quartile-matrices"></div>
+      <h2>Distribuição das notas por cenário</h2>
+      <p class="section-note">Para cada componente da rubrica, boxplot (mínimo, Q1, mediana, Q3, máximo) da nota em <code>description_only</code> contra <code>with_source</code>, somando os dois juízes -- a forma completa da distribuição em cada cenário, não só a média.</p>
+      <div class="legend" id="boxplot-legend"></div>
+      <div class="chart" id="chart-divergences-boxplot"></div>
     </section>
 
     <section style="margin-bottom: 0;">
@@ -891,12 +974,56 @@ HTML_TEMPLATE = """<meta charset="UTF-8">
               <th class="num">with_source</th>
               <th class="num">Diferença</th>
               <th class="num">Quartil</th>
+              <th>Motivo(s)</th>
             </tr>
           </thead>
           <tbody id="divergences-rows"></tbody>
         </table>
       </div>
       <div class="empty-state" id="divergences-empty" hidden>Nenhuma tool migrou quartil o suficiente para aparecer aqui.</div>
+    </section>
+
+    <section>
+      <h2>Motivos de mudança</h2>
+      <p class="section-note">Junção por palavra-chave (ver <code>MOTIVO_KEYWORDS</code> em <code>analysis_evaluation_report.py</code>) sobre a justificativa do <code>with_source</code> de cada divergência acima: quantas vezes cada motivo aparece, e se acompanhou subida ou descida de quartil. "Sem justificativa específica" é candidato a efeito halo -- a partir do prompt v3/v4 a regra é que o código só deveria abaixar a nota, e só quando um problema concreto for nomeado.</p>
+      <div class="overflow-x">
+        <table>
+          <thead>
+            <tr>
+              <th>Componente</th>
+              <th>Motivo</th>
+              <th class="num">Ocorrências</th>
+              <th class="num">Subiu</th>
+              <th class="num">Desceu</th>
+            </tr>
+          </thead>
+          <tbody id="motivos-summary-rows"></tbody>
+        </table>
+      </div>
+      <div class="empty-state" id="motivos-summary-empty" hidden>Nenhuma divergência para classificar.</div>
+    </section>
+
+    <section style="margin-bottom: 0;">
+      <h2>Custo-benefício: vale a pena o código?</h2>
+      <p class="section-note">Por juiz e componente da rubrica: direção e significância do efeito de mandar <code>with_source</code> (Wilcoxon), % das divergências sem justificativa específica (proxy de efeito halo) e o custo extra de tokens/latência de mandar o código-fonte. "Vale a pena" só quando a direção for melhoria significativa E menos da metade das divergências forem halo -- ver docstring de <code>veredito_custo_beneficio()</code> para a regra completa.</p>
+      <div class="overflow-x">
+        <table>
+          <thead>
+            <tr>
+              <th>Juiz</th>
+              <th>Componente</th>
+              <th>Direção</th>
+              <th>Significativo</th>
+              <th class="num">% halo</th>
+              <th class="num">Custo extra (tokens)</th>
+              <th class="num">Custo extra (%)</th>
+              <th>Vale a pena?</th>
+            </tr>
+          </thead>
+          <tbody id="tradeoff-rows"></tbody>
+        </table>
+      </div>
+      <div class="empty-state" id="tradeoff-empty" hidden>Sem dados suficientes para um veredito.</div>
     </section>
   </div>
 
@@ -1060,12 +1187,20 @@ HTML_TEMPLATE = """<meta charset="UTF-8">
   document.getElementById("meta-tools").textContent = DATA.meta.tools_evaluated;
   document.getElementById("meta-prompt-version").textContent = DATA.meta.active_prompt_version;
 
-  document.getElementById("tile-total").textContent = DATA.overall.total;
-  document.getElementById("tile-ok").textContent = DATA.overall.ok;
-  document.getElementById("tile-ok-pct").textContent = (100 * DATA.overall.ok / DATA.overall.total).toFixed(1) + "%";
-  document.getElementById("tile-error").textContent = DATA.overall.error;
-  document.getElementById("tile-error-pct").textContent = (100 * DATA.overall.error / DATA.overall.total).toFixed(1) + "%";
-  document.getElementById("tile-refused").textContent = DATA.overall.refused;
+  // ---- top tiles: re-rendered per selected AI (judge) tab by selectAiTab() below, so
+  // "Avaliações"/"Sucesso"/"Erro"/"Recusas" reflect whichever judge is currently in view
+  // instead of always the combined total. ----
+  function renderTiles(key) {
+    const judge = key === "__all__" ? null : DATA.judges.find(j => j.id === key);
+    const stats = judge ? { total: judge.n, ok: judge.ok, error: judge.error, refused: judge.refused } : DATA.overall;
+    document.getElementById("tile-total").textContent = stats.total;
+    document.getElementById("tile-total-sub").textContent = judge ? "tool × cenário" : "tool × cenário × juiz";
+    document.getElementById("tile-ok").textContent = stats.ok;
+    document.getElementById("tile-ok-pct").textContent = stats.total ? (100 * stats.ok / stats.total).toFixed(1) + "%" : "—";
+    document.getElementById("tile-error").textContent = stats.error;
+    document.getElementById("tile-error-pct").textContent = stats.total ? (100 * stats.error / stats.total).toFixed(1) + "%" : "—";
+    document.getElementById("tile-refused").textContent = stats.refused;
+  }
 
   // ---- narrative analysis (Gemini), only rendered when the cache file existed at
   // generation time (scripts/generate_narrative_analysis.py) -- every narrative-* element
@@ -1185,6 +1320,7 @@ HTML_TEMPLATE = """<meta charset="UTF-8">
     document.getElementById("components-note").textContent = key === "__all__"
       ? "Média de todas as avaliações concluídas com sucesso, nos cenários combinados. Ordenado do melhor para o pior."
       : `Média das avaliações de ${label}, nos cenários combinados. Ordenado do melhor para o pior.`;
+    renderTiles(key);
     renderComponentsChart(DATA.breakdowns[key]);
     renderScenariosChart(DATA.breakdowns[key]);
     renderWilcoxonSection(DATA.breakdowns[key]);
@@ -1393,6 +1529,9 @@ HTML_TEMPLATE = """<meta charset="UTF-8">
       tr.tabIndex = 0;
       tr.setAttribute("aria-expanded", "false");
       const diffClass = d.diff > 0 ? "" : "err";
+      const motivosHTML = d.motivos.map(m =>
+        `<span class="pill ${m === DATA.meta.motivo_fallback ? "warn" : ""}">${escapeHtml(DATA.meta.motivo_labels[m] || m)}</span>`
+      ).join("");
       tr.innerHTML = `
         <td><span class="expand-icon">▸</span>${escapeHtml(d.componente_label)}</td>
         <td><span class="name">${escapeHtml(d.tool_name)}</span><span class="qualified">${escapeHtml(d.qualified_name)}</span></td>
@@ -1401,13 +1540,14 @@ HTML_TEMPLATE = """<meta charset="UTF-8">
         <td class="num score-cell tabular">${d.description_only.score}</td>
         <td class="num score-cell tabular">${d.with_source.score}</td>
         <td class="num score-cell tabular ${diffClass}">${d.diff > 0 ? "+" : ""}${d.diff}</td>
-        <td class="num score-cell tabular">Q${d.quartil_description_only} → Q${d.quartil_with_source}</td>`;
+        <td class="num score-cell tabular">Q${d.quartil_description_only} → Q${d.quartil_with_source}</td>
+        <td><div class="motivo-badges">${motivosHTML}</div></td>`;
 
       const detailTr = document.createElement("tr");
       detailTr.className = "tool-detail";
       detailTr.hidden = true;
       const detailCell = document.createElement("td");
-      detailCell.colSpan = 8;
+      detailCell.colSpan = 9;
       detailCell.innerHTML = `
         <div class="detail-grid">
           <div class="detail-scenario">
@@ -1437,33 +1577,98 @@ HTML_TEMPLATE = """<meta charset="UTF-8">
   }
   renderDivergencesTable();
 
-  // ---- quartile transition matrices ----
-  function renderQuartileMatrices() {
-    const container = document.getElementById("quartile-matrices");
-    container.innerHTML = "";
-    DATA.divergences_matrix.forEach(m => {
-      const maxCell = Math.max(1, ...m.matrix.flat());
-      const bucket = (v) => v === 0 ? 0 : Math.min(4, Math.ceil((v / maxCell) * 4));
+  // ---- divergences boxplot: score distribution per component, description_only vs
+  // with_source, mapped to a fixed 1-5 domain (the Likert scale itself, not 0-5 like the
+  // mean bars above -- a boxplot's whole point is showing spread within the scale, so
+  // anchoring at 1 instead of 0 uses the space that actually holds data). ----
+  function boxplotTrackHTML(stats, color) {
+    if (!stats) return `<div class="boxplot-track"></div>`;
+    const x = v => ((v - 1) / 4) * 100;
+    const whiskerLeft = x(stats.min), whiskerWidth = x(stats.max) - x(stats.min);
+    const boxLeft = x(stats.q1), boxWidth = x(stats.q3) - x(stats.q1);
+    return `
+      <div class="boxplot-track" tabindex="0" style="color:${color}">
+        <div class="grid-tick" style="left:25%"></div>
+        <div class="grid-tick major" style="left:50%"></div>
+        <div class="grid-tick" style="left:75%"></div>
+        <div class="boxplot-whisker" style="left:${whiskerLeft}%; width:${whiskerWidth}%"></div>
+        <div class="boxplot-whisker-cap" style="left:${x(stats.min)}%"></div>
+        <div class="boxplot-whisker-cap" style="left:${x(stats.max)}%"></div>
+        <div class="boxplot-box" style="left:${boxLeft}%; width:${boxWidth}%"></div>
+        <div class="boxplot-median" style="left:${x(stats.median)}%"></div>
+      </div>`;
+  }
 
-      const wrap = document.createElement("div");
-      wrap.className = "quartile-matrix";
-      const rowsHtml = m.matrix.map((row, i) => `
-        <tr>
-          <th>Q${i + 1}</th>
-          ${row.map(v => `<td class="qcell-${bucket(v)}" title="${v} tool(s)">${v}</td>`).join("")}
-        </tr>`).join("");
-      wrap.innerHTML = `
-        <h3>${escapeHtml(m.componente_label)}</h3>
-        <p class="matrix-total">${m.total} tool(s) não-empatada(s)</p>
-        <table>
-          <thead><tr><th></th><th colspan="4" class="axis-label">with_source →</th></tr>
-          <tr><th></th><th class="axis-label">Q1</th><th class="axis-label">Q2</th><th class="axis-label">Q3</th><th class="axis-label">Q4</th></tr></thead>
-          <tbody>${rowsHtml}</tbody>
-        </table>`;
-      container.appendChild(wrap);
+  function renderDivergencesBoxplot() {
+    const legendEl = document.getElementById("boxplot-legend");
+    legendEl.innerHTML = scenarioKeys.map((s, i) =>
+      `<span class="key"><span class="swatch" style="background:${SERIES_COLORS[i]}"></span>${s}</span>`
+    ).join("");
+
+    const container = document.getElementById("chart-divergences-boxplot");
+    container.innerHTML = "";
+    DATA.divergences_boxplot.forEach(c => {
+      const row = document.createElement("div");
+      row.className = "boxplot-row";
+      const tracks = scenarioKeys.map((s, i) => boxplotTrackHTML(c.scenarios[s], SERIES_COLORS[i])).join("");
+      row.innerHTML = `<div class="row-label">${escapeHtml(c.componente_label)}</div><div class="boxplot-tracks">${tracks}</div>`;
+      row.querySelectorAll(".boxplot-track").forEach((track, i) => {
+        const stats = c.scenarios[scenarioKeys[i]];
+        if (!stats) return;
+        wireTooltip(track, `<b>${escapeHtml(c.componente_label)}</b> · ${scenarioKeys[i]}<br>mín ${stats.min} · Q1 ${stats.q1.toFixed(2)} · mediana ${stats.median.toFixed(2)} · Q3 ${stats.q3.toFixed(2)} · máx ${stats.max} · N=${stats.n}`);
+      });
+      container.appendChild(row);
     });
   }
-  renderQuartileMatrices();
+  renderDivergencesBoxplot();
+
+  // ---- motivos de mudança (junção por palavra-chave) ----
+  function renderMotivosSummary() {
+    const tbody = document.getElementById("motivos-summary-rows");
+    const emptyEl = document.getElementById("motivos-summary-empty");
+    tbody.innerHTML = "";
+    const rows = DATA.motivos_summary;
+    emptyEl.hidden = rows.length > 0;
+    rows.forEach(m => {
+      const tr = document.createElement("tr");
+      const motivoClass = m.motivo === DATA.meta.motivo_fallback ? "warn" : "";
+      tr.innerHTML = `
+        <td>${escapeHtml(m.componente_label)}</td>
+        <td><span class="pill ${motivoClass}">${escapeHtml(m.motivo_label)}</span></td>
+        <td class="num tabular">${m.ocorrencias}</td>
+        <td class="num tabular">${m.n_subiu}</td>
+        <td class="num tabular">${m.n_desceu}</td>`;
+      tbody.appendChild(tr);
+    });
+  }
+  renderMotivosSummary();
+
+  // ---- custo-benefício: vale a pena o código? ----
+  function renderTradeoffTable() {
+    const tbody = document.getElementById("tradeoff-rows");
+    const emptyEl = document.getElementById("tradeoff-empty");
+    tbody.innerHTML = "";
+    const rows = DATA.tradeoff;
+    emptyEl.hidden = rows.length > 0;
+
+    const direcaoClass = { melhoria: "ok", piora: "error", neutro: "" };
+    const valeAPenaClass = { "sim": "ok", "não": "error", "inconclusivo": "" };
+
+    rows.forEach(v => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${escapeHtml(v.juiz)}</td>
+        <td>${escapeHtml(v.componente_label)}</td>
+        <td><span class="pill ${direcaoClass[v.direcao] || ""}">${escapeHtml(v.direcao)}</span></td>
+        <td><span class="pill ${v["significativo_bh_0.05"] ? "ok" : ""}">${v["significativo_bh_0.05"] ? "sim" : "não"}</span></td>
+        <td class="num tabular">${v.pct_halo === null ? "—" : v.pct_halo.toFixed(1) + "%"}</td>
+        <td class="num tabular">${v.delta_input_tokens === null ? "—" : (v.delta_input_tokens > 0 ? "+" : "") + v.delta_input_tokens.toFixed(0)}</td>
+        <td class="num tabular">${v.custo_percentual_extra === null ? "—" : v.custo_percentual_extra.toFixed(1) + "%"}</td>
+        <td><span class="pill ${valeAPenaClass[v.vale_a_pena] || ""}">${escapeHtml(v.vale_a_pena)}</span></td>`;
+      tbody.appendChild(tr);
+    });
+  }
+  renderTradeoffTable();
 
   // ---- versions tab ----
   function renderVersionsTable() {

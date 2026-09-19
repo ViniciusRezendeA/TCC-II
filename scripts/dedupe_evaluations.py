@@ -38,7 +38,7 @@ logger = setup_logging("dedupe_evaluations")
 _STATUS_RANK = {"ok": 2, "refused": 2, "error": 1}
 
 
-def _dedupe_key(record: dict) -> tuple[str, str, str]:
+def _dedupe_key(record: dict) -> tuple[str, str, str, str]:
     """tool_key_for() (não o tool_uid bruto do registro) porque tool_uid sozinho colide para
     os padrões de SDK "lowlevel" (python.list_tools_lowlevel, *.set_request_handler_lowlevel):
     várias tools distintas compartilham um tool_uid por herdarem a localização do handler que
@@ -46,8 +46,15 @@ def _dedupe_key(record: dict) -> tuple[str, str, str]:
     trataria essas tools diferentes como duplicatas umas das outras e apagaria todas menos
     uma -- perda de dado real, não limpeza. Mesma chave usada por
     scripts/generate_dashboard.py (via dedupe_records() abaixo), para as duas ferramentas
-    nunca divergirem sobre o que conta como "a mesma avaliação"."""
-    return (tool_key_for(record), record["scenario"], record.get("prompt_version", ""))
+    nunca divergirem sobre o que conta como "a mesma avaliação".
+
+    Inclui judge_id: generate_dashboard.py chama dedupe_records() sobre os jsonl de todos os
+    juízes combinados num único list (load_records() com judge_id=None). Sem o judge_id na
+    chave, uma avaliação de deepseek-flash e uma de gemini para a mesma tool/cenário colidiam
+    na mesma chave e uma sobrescrevia a outra (a de evaluated_at mais recente vencia) -- juiz
+    nenhum é duplicata do outro, então essa colisão apagava avaliações reais e não duplicatas.
+    """
+    return (tool_key_for(record), record["scenario"], record.get("prompt_version", ""), record["judge"]["id"])
 
 
 def _better(candidate: dict, current: dict) -> bool:
@@ -66,8 +73,8 @@ def dedupe_records(records: list[dict]) -> list[dict]:
     scripts/generate_dashboard.py (só para montar o dashboard, nunca grava nada). Preserva a
     ordem de primeira aparição de cada chave.
     """
-    order: list[tuple[str, str, str]] = []
-    kept: dict[tuple[str, str, str], dict] = {}
+    order: list[tuple[str, str, str, str]] = []
+    kept: dict[tuple[str, str, str, str], dict] = {}
     for record in records:
         key = _dedupe_key(record)
         if key not in kept:
