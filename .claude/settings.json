@@ -10,7 +10,8 @@
       "Bash(bash -c 'i=0; last=$\\(tail -n1 logs/step3.log\\); while [ $i -lt 12 ]; do sleep 5; cur=$\\(tail -n1 logs/step3.log\\); if [ \"$cur\" != \"$last\" ]; then echo \"MUDOU: $cur\"; exit 0; fi; i=$\\(\\(i+1\\)\\); done; echo \"SEM MUDANCA em 60s. Ultima linha: $last\"')",
       "Bash(sample 94991 2 -f /tmp/sample_94991.txt)",
       "Bash(kill 94991 94987)",
-      "Bash(disown)"
+      "Bash(disown)",
+      "Bash(.venv/bin/python3 -c ' *)"
     ]
   }
 }
