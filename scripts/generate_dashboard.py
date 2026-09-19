@@ -958,6 +958,49 @@ HTML_TEMPLATE = """<meta charset="UTF-8">
 
   <div id="tab-divergences" role="tabpanel" aria-labelledby="tab-btn-divergences" hidden>
     <section>
+      <h2>Custo-benefício: vale a pena o código?</h2>
+      <p class="section-note">Por juiz e componente da rubrica: direção e significância do efeito de mandar <code>with_source</code> (Wilcoxon), % das divergências sem justificativa específica (proxy de efeito halo) e o custo extra de tokens/latência de mandar o código-fonte. A regra do prompt (v3/v4) é que o código só deveria abaixar a nota, nunca subir -- por isso "correção" (nota desceu) é o comportamento esperado e "viés" (nota subiu) já é, por definição, uma violação dessa regra. "Vale a pena" só quando a direção for correção significativa E menos da metade das divergências forem sem justificativa específica -- ver docstring de <code>veredito_custo_beneficio()</code> para a regra completa.</p>
+      <div class="overflow-x">
+        <table>
+          <thead>
+            <tr>
+              <th>Juiz</th>
+              <th>Componente</th>
+              <th>Direção</th>
+              <th>Significativo</th>
+              <th class="num">% halo</th>
+              <th class="num">Custo extra (tokens)</th>
+              <th class="num">Custo extra (%)</th>
+              <th>Vale a pena?</th>
+            </tr>
+          </thead>
+          <tbody id="tradeoff-rows"></tbody>
+        </table>
+      </div>
+      <div class="empty-state" id="tradeoff-empty" hidden>Sem dados suficientes para um veredito.</div>
+    </section>
+
+    <section>
+      <h2>Motivos de mudança</h2>
+      <p class="section-note">Junção por palavra-chave (ver <code>MOTIVO_KEYWORDS</code> em <code>analysis_evaluation_report.py</code>) sobre a justificativa do <code>with_source</code> de cada divergência (tabela "Maiores divergências" abaixo): quantas vezes cada motivo aparece, e se acompanhou subida ou descida de quartil. "Sem justificativa específica" é candidato a efeito halo -- a partir do prompt v3/v4 a regra é que o código só deveria abaixar a nota, e só quando um problema concreto for nomeado.</p>
+      <div class="overflow-x">
+        <table>
+          <thead>
+            <tr>
+              <th>Componente</th>
+              <th>Motivo</th>
+              <th class="num">Ocorrências</th>
+              <th class="num">Subiu</th>
+              <th class="num">Desceu</th>
+            </tr>
+          </thead>
+          <tbody id="motivos-summary-rows"></tbody>
+        </table>
+      </div>
+      <div class="empty-state" id="motivos-summary-empty" hidden>Nenhuma divergência para classificar.</div>
+    </section>
+
+    <section>
       <h2>Distribuição das notas por cenário</h2>
       <p class="section-note">Para cada componente da rubrica, boxplot (mínimo, Q1, mediana, Q3, máximo) da nota em <code>description_only</code> contra <code>with_source</code>, somando os dois juízes -- a forma completa da distribuição em cada cenário, não só a média.</p>
       <div class="legend" id="boxplot-legend"></div>
@@ -988,49 +1031,6 @@ HTML_TEMPLATE = """<meta charset="UTF-8">
         </table>
       </div>
       <div class="empty-state" id="divergences-empty" hidden>Nenhuma tool migrou quartil o suficiente para aparecer aqui.</div>
-    </section>
-
-    <section>
-      <h2>Motivos de mudança</h2>
-      <p class="section-note">Junção por palavra-chave (ver <code>MOTIVO_KEYWORDS</code> em <code>analysis_evaluation_report.py</code>) sobre a justificativa do <code>with_source</code> de cada divergência acima: quantas vezes cada motivo aparece, e se acompanhou subida ou descida de quartil. "Sem justificativa específica" é candidato a efeito halo -- a partir do prompt v3/v4 a regra é que o código só deveria abaixar a nota, e só quando um problema concreto for nomeado.</p>
-      <div class="overflow-x">
-        <table>
-          <thead>
-            <tr>
-              <th>Componente</th>
-              <th>Motivo</th>
-              <th class="num">Ocorrências</th>
-              <th class="num">Subiu</th>
-              <th class="num">Desceu</th>
-            </tr>
-          </thead>
-          <tbody id="motivos-summary-rows"></tbody>
-        </table>
-      </div>
-      <div class="empty-state" id="motivos-summary-empty" hidden>Nenhuma divergência para classificar.</div>
-    </section>
-
-    <section style="margin-bottom: 0;">
-      <h2>Custo-benefício: vale a pena o código?</h2>
-      <p class="section-note">Por juiz e componente da rubrica: direção e significância do efeito de mandar <code>with_source</code> (Wilcoxon), % das divergências sem justificativa específica (proxy de efeito halo) e o custo extra de tokens/latência de mandar o código-fonte. A regra do prompt (v3/v4) é que o código só deveria abaixar a nota, nunca subir -- por isso "correção" (nota desceu) é o comportamento esperado e "viés" (nota subiu) já é, por definição, uma violação dessa regra. "Vale a pena" só quando a direção for correção significativa E menos da metade das divergências forem sem justificativa específica -- ver docstring de <code>veredito_custo_beneficio()</code> para a regra completa.</p>
-      <div class="overflow-x">
-        <table>
-          <thead>
-            <tr>
-              <th>Juiz</th>
-              <th>Componente</th>
-              <th>Direção</th>
-              <th>Significativo</th>
-              <th class="num">% halo</th>
-              <th class="num">Custo extra (tokens)</th>
-              <th class="num">Custo extra (%)</th>
-              <th>Vale a pena?</th>
-            </tr>
-          </thead>
-          <tbody id="tradeoff-rows"></tbody>
-        </table>
-      </div>
-      <div class="empty-state" id="tradeoff-empty" hidden>Sem dados suficientes para um veredito.</div>
     </section>
   </div>
 
