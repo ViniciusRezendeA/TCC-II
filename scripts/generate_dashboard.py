@@ -154,7 +154,7 @@ def compute_breakdown(ok_records: list[dict]) -> dict:
     labels = {key: label for key, label, _ in RUBRIC_COMPONENTS}
     long_df = scores_long(ok_records)
     if long_df.empty:
-        return {"rubric_components": [], "scenario_comparison": [], "scenario_keys": [], "wilcoxon": []}
+        return {"rubric_components": [], "scenario_comparison": [], "scenario_keys": [], "wilcoxon": [], "boxplot": []}
 
     overall = long_df.groupby("componente")["nota"].agg(["mean", "std", "count"])
     ranked_keys = overall["mean"].sort_values(ascending=False).index.tolist()
@@ -204,6 +204,10 @@ def compute_breakdown(ok_records: list[dict]) -> dict:
         "scenario_comparison": scenario_comparison,
         "scenario_keys": scenarios,
         "wilcoxon": wilcoxon,
+        # Mesma fatia de ok_records desta breakdown (combinada ou de um único juiz) alimentando
+        # build_boxplot_data() -- dá à aba Divergências a mesma segmentação "Todos"/por juiz que
+        # o resto da Visão geral já tem, sem duplicar a lógica de quartil/quantil em outro lugar.
+        "boxplot": build_boxplot_data(ok_records),
     }
 
 
@@ -286,7 +290,6 @@ def build_dashboard_data(records: list[dict], prompt_version: str | None = None)
         "judges": judges,
         "tools": build_tools_data(scoped),
         "divergences": build_divergences_data(scoped),
-        "divergences_boxplot": build_boxplot_data(scoped),
         "motivos_summary": build_motivos_summary_data(scoped),
         "tradeoff": build_tradeoff_data(scoped),
         "prompt_versions": version_summary,
@@ -462,7 +465,7 @@ def build_tradeoff_data(records: list[dict]) -> list[dict]:
     # normalização, o NaN cru vazaria como o literal JS NaN no HTML gerado, em vez de null --
     # mesmo cuidado que compute_breakdown()::_or_none() já toma para wilcoxon_por_componente()
     # no resto do dashboard.
-    campos_nullable = ["mediana_diferenca_efetiva", "pct_halo", "delta_input_tokens", "delta_latencia_ms", "custo_percentual_extra"]
+    campos_nullable = ["mediana_diferenca_efetiva", "pct_sem_motivo", "delta_input_tokens", "delta_latencia_ms", "custo_percentual_extra"]
     rows = df.sort_values(["componente", "juiz"]).to_dict("records")
     for row in rows:
         for campo in campos_nullable:
@@ -957,9 +960,11 @@ HTML_TEMPLATE = """<meta charset="UTF-8">
   </div>
 
   <div id="tab-divergences" role="tabpanel" aria-labelledby="tab-btn-divergences" hidden>
+    <div class="ai-tabs" id="divergences-ai-tabs" role="tablist" aria-label="Filtrar divergências por juiz"></div>
+
     <section>
       <h2>Custo-benefício: vale a pena o código?</h2>
-      <p class="section-note">Por juiz e componente da rubrica: direção e significância do efeito de mandar <code>with_source</code> (Wilcoxon), % das divergências sem justificativa específica (proxy de efeito halo) e o custo extra de tokens/latência de mandar o código-fonte. A regra do prompt (v3/v4) é que o código só deveria abaixar a nota, nunca subir -- por isso "correção" (nota desceu) é o comportamento esperado e "viés" (nota subiu) já é, por definição, uma violação dessa regra. "Vale a pena" só quando a direção for correção significativa E menos da metade das divergências forem sem justificativa específica -- ver docstring de <code>veredito_custo_beneficio()</code> para a regra completa.</p>
+      <p class="section-note">Por juiz e componente da rubrica: direção e significância do efeito de mandar <code>with_source</code> (Wilcoxon), % das divergências sem justificativa específica na reasoning e o custo extra de tokens/latência de mandar o código-fonte. A direção ("sobe"/"desce") é só descritiva -- o texto ativo do prompt não restringe para qual lado a nota pode mudar, só diz que o ajuste deve vir de uma inconsistência identificada. "Vale a pena" quando há um efeito estatisticamente significativo (em qualquer direção) E menos da metade das divergências ficam sem justificativa específica -- ver docstring de <code>veredito_custo_beneficio()</code> para a regra completa.</p>
       <div class="overflow-x">
         <table>
           <thead>
@@ -968,7 +973,7 @@ HTML_TEMPLATE = """<meta charset="UTF-8">
               <th>Componente</th>
               <th>Direção</th>
               <th>Significativo</th>
-              <th class="num">% halo</th>
+              <th class="num">% sem motivo</th>
               <th class="num">Custo extra (tokens)</th>
               <th class="num">Custo extra (%)</th>
               <th>Vale a pena?</th>
@@ -982,7 +987,7 @@ HTML_TEMPLATE = """<meta charset="UTF-8">
 
     <section>
       <h2>Motivos de mudança</h2>
-      <p class="section-note">Junção por palavra-chave (ver <code>MOTIVO_KEYWORDS</code> em <code>analysis_evaluation_report.py</code>) sobre a justificativa do <code>with_source</code> de cada divergência (tabela "Maiores divergências" abaixo): quantas vezes cada motivo aparece, e se acompanhou subida ou descida de quartil. "Sem justificativa específica" é candidato a efeito halo -- a partir do prompt v3/v4 a regra é que o código só deveria abaixar a nota, e só quando um problema concreto for nomeado.</p>
+      <p class="section-note">Junção por palavra-chave (ver <code>MOTIVO_KEYWORDS</code> em <code>analysis_evaluation_report.py</code>) sobre a justificativa do <code>with_source</code> de cada divergência (tabela "Maiores divergências" abaixo): quantas vezes cada motivo aparece, e se acompanhou subida ou descida de quartil. "Sem justificativa específica" marca divergências cuja reasoning não nomeia nenhum problema concreto encontrado no código, independente da nota ter subido ou descido.</p>
       <div class="overflow-x">
         <table>
           <thead>
@@ -1002,7 +1007,7 @@ HTML_TEMPLATE = """<meta charset="UTF-8">
 
     <section>
       <h2>Distribuição das notas por cenário</h2>
-      <p class="section-note">Para cada componente da rubrica, boxplot (mínimo, Q1, mediana, Q3, máximo) da nota em <code>description_only</code> contra <code>with_source</code>, somando os dois juízes -- a forma completa da distribuição em cada cenário, não só a média.</p>
+      <p class="section-note" id="boxplot-note">Para cada componente da rubrica, boxplot (mínimo, Q1, mediana, Q3, máximo) da nota em <code>description_only</code> contra <code>with_source</code>, somando os dois juízes -- a forma completa da distribuição em cada cenário, não só a média.</p>
       <div class="legend" id="boxplot-legend"></div>
       <div class="chart" id="chart-divergences-boxplot"></div>
     </section>
@@ -1011,7 +1016,17 @@ HTML_TEMPLATE = """<meta charset="UTF-8">
       <h2>Maiores divergências entre cenários</h2>
       <p class="section-note">Pares tool × componente × juiz cuja nota migrou pelo menos <b id="divergence-min-change" class="tabular"></b> faixas de quartil entre <code>description_only</code> e <code>with_source</code> (ex: Q1 → Q3), após descartar empates -- candidatos a inspeção manual: ou o código revelou algo que a descrição escondia, ou o juiz reagiu à presença do código em vez de validar a descrição contra ele. Clique numa linha para ver a justificativa dos dois cenários lado a lado.</p>
       <p class="narrative-text" id="narrative-divergences"></p>
-      <span class="tools-count" id="divergences-count"></span>
+      <div class="tools-toolbar">
+        <input type="text" id="divergences-search" class="tools-search" placeholder="Buscar por nome ou repositório…" autocomplete="off">
+        <select id="divergences-filter-language" class="tools-filter"><option value="">Toda linguagem</option></select>
+        <select id="divergences-filter-componente" class="tools-filter"><option value="">Todo componente</option></select>
+        <select id="divergences-filter-direction" class="tools-filter">
+          <option value="">Toda direção</option>
+          <option value="subiu">Nota subiu</option>
+          <option value="desceu">Nota desceu</option>
+        </select>
+        <span class="tools-count" id="divergences-count"></span>
+      </div>
       <div class="overflow-x">
         <table>
           <thead>
@@ -1519,6 +1534,32 @@ HTML_TEMPLATE = """<meta charset="UTF-8">
     return String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   }
 
+  // ---- divergences table filters (mirrors the Tools tab toolbar) + AI (judge)
+  // segmentation (mirrors Visão geral's Todos/por-juiz tabs) -- activeDivJudge is shared
+  // with the boxplot and the cost-benefit table below it, so all three move together. ----
+  let divergencesFilter = "";
+  let activeDivLanguage = "";
+  let activeDivComponente = "";
+  let activeDivDirection = "";
+  let activeDivJudge = "__all__";
+
+  const divLanguageSelect = document.getElementById("divergences-filter-language");
+  const divComponenteSelect = document.getElementById("divergences-filter-componente");
+  const divDirectionSelect = document.getElementById("divergences-filter-direction");
+
+  [...new Set(DATA.divergences.map(d => d.language))].sort().forEach(lang => {
+    const opt = document.createElement("option");
+    opt.value = lang;
+    opt.textContent = lang;
+    divLanguageSelect.appendChild(opt);
+  });
+  [...new Set(DATA.divergences.map(d => d.componente_label))].sort().forEach(label => {
+    const opt = document.createElement("option");
+    opt.value = label;
+    opt.textContent = label;
+    divComponenteSelect.appendChild(opt);
+  });
+
   function renderDivergencesTable() {
     document.getElementById("divergence-min-change").textContent = DATA.meta.divergence_min_quartile_change;
     const tbody = document.getElementById("divergences-rows");
@@ -1526,8 +1567,15 @@ HTML_TEMPLATE = """<meta charset="UTF-8">
     const countEl = document.getElementById("divergences-count");
     tbody.innerHTML = "";
 
-    const rows = DATA.divergences;
-    countEl.textContent = `${rows.length} tool(s) que migraram de quartil`;
+    const q = divergencesFilter.trim().toLowerCase();
+    const rows = DATA.divergences.filter(d =>
+      (activeDivJudge === "__all__" || d.judge_id === activeDivJudge) &&
+      (!q || d.tool_name.toLowerCase().includes(q) || d.repo.toLowerCase().includes(q) || d.qualified_name.toLowerCase().includes(q)) &&
+      (!activeDivLanguage || d.language === activeDivLanguage) &&
+      (!activeDivComponente || d.componente_label === activeDivComponente) &&
+      (!activeDivDirection || (activeDivDirection === "subiu" ? d.diff > 0 : d.diff < 0))
+    );
+    countEl.textContent = `${rows.length} de ${DATA.divergences.length} divergência(s)`;
     emptyEl.hidden = rows.length > 0;
 
     rows.forEach(d => {
@@ -1582,7 +1630,6 @@ HTML_TEMPLATE = """<meta charset="UTF-8">
       tbody.appendChild(detailTr);
     });
   }
-  renderDivergencesTable();
 
   // ---- divergences boxplot: score distribution per component, description_only vs
   // with_source, mapped to a fixed 1-5 domain (the Likert scale itself, not 0-5 like the
@@ -1606,15 +1653,18 @@ HTML_TEMPLATE = """<meta charset="UTF-8">
       </div>`;
   }
 
-  function renderDivergencesBoxplot() {
+  function renderDivergencesBoxplot(key) {
     const legendEl = document.getElementById("boxplot-legend");
     legendEl.innerHTML = scenarioKeys.map((s, i) =>
       `<span class="key"><span class="swatch" style="background:${SERIES_COLORS[i]}"></span>${s}</span>`
     ).join("");
+    document.getElementById("boxplot-note").textContent = key === "__all__"
+      ? "Para cada componente da rubrica, boxplot (mínimo, Q1, mediana, Q3, máximo) da nota em description_only contra with_source, somando os dois juízes -- a forma completa da distribuição em cada cenário, não só a média."
+      : `O mesmo boxplot, só para as avaliações de ${key}.`;
 
     const container = document.getElementById("chart-divergences-boxplot");
     container.innerHTML = "";
-    DATA.divergences_boxplot.forEach(c => {
+    (DATA.breakdowns[key].boxplot || []).forEach(c => {
       const row = document.createElement("div");
       row.className = "boxplot-row";
       const tracks = scenarioKeys.map((s, i) => boxplotTrackHTML(c.scenarios[s], SERIES_COLORS[i])).join("");
@@ -1627,9 +1677,11 @@ HTML_TEMPLATE = """<meta charset="UTF-8">
       container.appendChild(row);
     });
   }
-  renderDivergencesBoxplot();
 
-  // ---- motivos de mudança (junção por palavra-chave) ----
+  // ---- motivos de mudança (junção por palavra-chave) -- combinado entre juízes só; a
+  // granularidade por juiz completa fica nos CSVs de analysis_evaluation_report.py (ver
+  // build_motivos_summary_data()), então esta seção não participa da segmentação por AI tab
+  // abaixo. ----
   function renderMotivosSummary() {
     const tbody = document.getElementById("motivos-summary-rows");
     const emptyEl = document.getElementById("motivos-summary-empty");
@@ -1655,10 +1707,9 @@ HTML_TEMPLATE = """<meta charset="UTF-8">
     const tbody = document.getElementById("tradeoff-rows");
     const emptyEl = document.getElementById("tradeoff-empty");
     tbody.innerHTML = "";
-    const rows = DATA.tradeoff;
+    const rows = DATA.tradeoff.filter(v => activeDivJudge === "__all__" || v.juiz === activeDivJudge);
     emptyEl.hidden = rows.length > 0;
 
-    const direcaoClass = { "correção": "ok", "viés": "error", "neutro": "" };
     const valeAPenaClass = { "sim": "ok", "não": "error", "inconclusivo": "" };
 
     rows.forEach(v => {
@@ -1666,16 +1717,44 @@ HTML_TEMPLATE = """<meta charset="UTF-8">
       tr.innerHTML = `
         <td>${escapeHtml(v.juiz)}</td>
         <td>${escapeHtml(v.componente_label)}</td>
-        <td><span class="pill ${direcaoClass[v.direcao] || ""}">${escapeHtml(v.direcao)}</span></td>
+        <td><span class="pill">${escapeHtml(v.direcao)}</span></td>
         <td><span class="pill ${v["significativo_bh_0.05"] ? "ok" : ""}">${v["significativo_bh_0.05"] ? "sim" : "não"}</span></td>
-        <td class="num tabular">${v.pct_halo === null ? "—" : v.pct_halo.toFixed(1) + "%"}</td>
+        <td class="num tabular">${v.pct_sem_motivo === null ? "—" : v.pct_sem_motivo.toFixed(1) + "%"}</td>
         <td class="num tabular">${v.delta_input_tokens === null ? "—" : (v.delta_input_tokens > 0 ? "+" : "") + v.delta_input_tokens.toFixed(0)}</td>
         <td class="num tabular">${v.custo_percentual_extra === null ? "—" : v.custo_percentual_extra.toFixed(1) + "%"}</td>
         <td><span class="pill ${valeAPenaClass[v.vale_a_pena] || ""}">${escapeHtml(v.vale_a_pena)}</span></td>`;
       tbody.appendChild(tr);
     });
   }
-  renderTradeoffTable();
+
+  function selectDivergencesAiTab(key, label) {
+    document.querySelectorAll(".div-ai-tab-btn").forEach(b => b.setAttribute("aria-selected", String(b.dataset.key === key)));
+    activeDivJudge = key;
+    renderDivergencesBoxplot(key);
+    renderDivergencesTable();
+    renderTradeoffTable();
+  }
+
+  const divAiTabsEl = document.getElementById("divergences-ai-tabs");
+  const divAiTabDefs = [{ key: "__all__", label: "Todos" }, ...DATA.judges.map(j => ({ key: j.id, label: j.id }))];
+  divAiTabDefs.forEach(({ key, label }) => {
+    const btn = document.createElement("button");
+    btn.className = "ai-tab-btn div-ai-tab-btn";
+    btn.type = "button";
+    btn.dataset.key = key;
+    btn.setAttribute("role", "tab");
+    btn.setAttribute("aria-selected", key === "__all__" ? "true" : "false");
+    btn.textContent = label;
+    btn.addEventListener("click", () => selectDivergencesAiTab(key, label));
+    divAiTabsEl.appendChild(btn);
+  });
+
+  document.getElementById("divergences-search").addEventListener("input", (e) => { divergencesFilter = e.target.value; renderDivergencesTable(); });
+  divLanguageSelect.addEventListener("change", (e) => { activeDivLanguage = e.target.value; renderDivergencesTable(); });
+  divComponenteSelect.addEventListener("change", (e) => { activeDivComponente = e.target.value; renderDivergencesTable(); });
+  divDirectionSelect.addEventListener("change", (e) => { activeDivDirection = e.target.value; renderDivergencesTable(); });
+
+  selectDivergencesAiTab("__all__", "Todos");
 
   // ---- versions tab ----
   function renderVersionsTable() {

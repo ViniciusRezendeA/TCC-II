@@ -79,12 +79,14 @@ def registros_versao_ativa(records: list[dict]) -> list[dict]:
     que generate_dashboard.py::build_dashboard_data() já usa para as abas Visão Geral/Tools/
     Divergências (fatorada aqui para as duas pontas compartilharem uma só implementação).
 
-    Necessário para qualquer análise que dependa da regra "SOURCE_CODE só pode abaixar a nota,
-    nomeando o problema" (ver changelog do PROMPT_VERSION em evaluation/prompts.py): essa regra só
-    vale a partir da v3/v4. Antes disso, o código podia subir a nota livremente, o que tornaria
-    tanto classificar_motivos() (o motivo de fallback assume que subir sem justificativa é
-    irregular) quanto veredito_custo_beneficio() sem sentido se avaliações de versões diferentes
-    do prompt fossem misturadas na mesma tabela.
+    Necessário porque cada prompt_version pode ter um texto de rubrica/instruções diferente para
+    o juiz (ver RUBRIC_SYSTEM_PROMPT em evaluation/prompts.py, que muda a cada bump de
+    PROMPT_VERSION) -- misturar avaliações de versões diferentes do prompt na mesma tabela
+    compararia respostas a instruções distintas como se fossem a mesma coisa. Esta função (e
+    tudo que se baseia nela, como motivos_por_divergencia() e veredito_custo_beneficio())
+    considera só a instrução que está de fato ativa hoje (a versão mais recente presente nos
+    dados) -- versões anteriores do prompt, mesmo que documentadas no changelog de
+    PROMPT_VERSION, não entram em nenhuma conta.
     """
     if not records:
         return []
@@ -382,9 +384,11 @@ def migracao_quartil_por_componente(long_df: pd.DataFrame) -> pd.DataFrame:
 
 # Termos em inglês porque o reasoning das avaliações é sempre em inglês (ver
 # evaluation/prompts.py). Derivado das definições dos 6 componentes da rubrica
-# (RUBRIC_COMPONENTS em prompts.py) e do vocabulário do próprio changelog do PROMPT_VERSION
-# v3/v4 (contradição, omissão, halo/leniência). Uma divergência pode casar mais de uma
-# categoria -- é uma junção por palavra-chave, não uma classificação exclusiva.
+# (RUBRIC_COMPONENTS em prompts.py) e do próprio texto de "Handling SOURCE_CODE" do prompt
+# ativo (RUBRIC_SYSTEM_PROMPT): a nota só deveria ser ajustada "based on ... findings" de
+# inconsistências entre descrição e código, então contradição/omissão são os motivos mais
+# diretamente ligados à instrução em vigor. Uma divergência pode casar mais de uma categoria
+# -- é uma junção por palavra-chave, não uma classificação exclusiva.
 MOTIVO_KEYWORDS: dict[str, list[str]] = {
     "parametro": ["parameter", "argument", "data type", "type hint"],
     "limitacao_erro": ["error", "exception", "raise", "constraint", "edge case", "corner case", "fail"],
@@ -404,11 +408,11 @@ def classificar_motivos(reasoning: str) -> list[str]:
     parameter's type is missing" casa tanto "parametro" quanto "omissao"), não uma
     classificação exclusiva.
 
-    Quando nenhuma categoria casa, retorna [MOTIVO_FALLBACK]: a partir do PROMPT_VERSION v3/v4,
-    a regra é que SOURCE_CODE só pode abaixar a nota e a reasoning deve nomear o problema
-    específico encontrado -- uma divergência sem nenhum termo de problema reconhecível é
-    candidata a efeito halo/leniência em vez de correção genuína (ver
-    registros_versao_ativa()).
+    Quando nenhuma categoria casa, retorna [MOTIVO_FALLBACK]: o texto ativo de "Handling
+    SOURCE_CODE" (RUBRIC_SYSTEM_PROMPT, ver registros_versao_ativa()) diz que o ajuste de nota
+    deve ser feito "based on ... findings" de inconsistências entre descrição e código -- uma
+    divergência cuja reasoning não nomeia nenhum termo de problema reconhecível não está
+    claramente fundamentada nesses termos, independente de a nota ter subido ou descido.
     """
     texto = (reasoning or "").lower()
     motivos = [motivo for motivo, termos in MOTIVO_KEYWORDS.items() if any(termo in texto for termo in termos)]
@@ -420,8 +424,8 @@ def motivos_por_divergencia(records: list[dict]) -> pd.DataFrame:
     cada (juiz, componente, tool_uid) cuja nota migrou pelo menos MUDANCA_MINIMA_QUARTIS faixas
     de quartil, busca a reasoning do with_source diretamente nos records brutos (mesma técnica
     de lookup por chave usada em generate_dashboard.py::build_divergences_data()) e classifica.
-    Usa só a reasoning do with_source, não a do description_only: é nela que a regra do prompt
-    v3/v4 exige o problema nomeado.
+    Usa só a reasoning do with_source, não a do description_only: é nela que o juiz, seguindo o
+    texto ativo de "Handling SOURCE_CODE", deveria registrar a inconsistência encontrada.
 
     Uma linha por (divergência x motivo casado) -- fan-out proposital de uma junção real, não
     uma classificação 1:1. `records` deve já ter passado por registros_versao_ativa(); esta
@@ -650,49 +654,51 @@ def _mediana_diferenca_efetiva_por_componente(long_df: pd.DataFrame) -> pd.DataF
     return pd.DataFrame(rows)
 
 
-# Limiar usado por veredito_custo_beneficio() para separar "correção genuína" de "correção
-# majoritariamente halo effect": abaixo de 50% de divergências sem justificativa específica
-# (MOTIVO_FALLBACK), a correção é considerada confiável o bastante para justificar o custo.
-LIMIAR_HALO_PERCENTUAL = 50.0
+# Limiar usado por veredito_custo_beneficio() para separar mudanças de nota bem fundamentadas
+# de mudanças sem justificativa clara: abaixo de 50% de divergências no motivo de fallback
+# (MOTIVO_FALLBACK, "sem_justificativa_especifica"), o efeito é considerado confiável o
+# bastante para justificar o custo extra de mandar o código.
+LIMIAR_SEM_MOTIVO_PERCENTUAL = 50.0
 
 
 def veredito_custo_beneficio(records: list[dict]) -> pd.DataFrame:
     """Veredito por (juiz, componente): vale a pena pagar o custo extra de mandar SOURCE_CODE
     ao juiz? Cruza significância estatística (wilcoxon_por_componente), direção e volume da
     migração de quartil (migracao_quartil_por_componente), a proporção de divergências sem
-    justificativa específica (resumo_motivos_por_componente -- proxy de efeito halo/leniência,
-    ver classificar_motivos()) e o custo extra do with_source (_delta_custo_com_codigo()).
+    justificativa específica (resumo_motivos_por_componente, ver classificar_motivos()) e o
+    custo extra do with_source (_delta_custo_com_codigo()).
 
     Filtra por registros_versao_ativa() internamente -- não confia em quem chama já ter
-    filtrado, porque misturar prompt_version quebraria tanto a regra "código só abaixa nota" (só
-    vale a partir da v3/v4) quanto a comparabilidade dos p-valores entre componentes.
+    filtrado, porque misturar prompt_version misturaria respostas a textos de rubrica
+    diferentes (ver docstring de registros_versao_ativa()) e quebraria a comparabilidade dos
+    p-valores entre componentes.
 
     O custo extra é por juiz, não por componente (uma chamada ao juiz avalia os 6 componentes de
     uma vez) -- por isso o mesmo delta_input_tokens/delta_latencia_ms se repete em todas as
     linhas de componente daquele juiz; não é um erro de junção.
 
-    `pct_halo` usa `n_diverge` de migracao_quartil_por_componente() como denominador -- não a
+    `pct_sem_motivo` usa `n_diverge` de migracao_quartil_por_componente() como denominador -- não a
     soma de `ocorrencias` de resumo_motivos_por_componente(), que infla o total ao contar uma
     mesma divergência uma vez por motivo casado quando ela bate em mais de uma categoria.
 
-    IMPORTANTE: "nota subiu" não é "melhorou". A regra do prompt v3/v4 (ver changelog em
-    evaluation/prompts.py) é que SOURCE_CODE só pode ABAIXAR a nota, nunca subir -- uma subida
-    estatisticamente significativa é, por definição do próprio desenho metodológico do TCC, uma
-    violação dessa regra (leniência/halo effect), não uma correção legítima. Por isso `direcao`
-    usa "correção" para a nota descer (o comportamento esperado: código revelou um problema
-    real) e "viés" para a nota subir (o comportamento indevido), em vez dos rótulos genéricos
-    "melhoria"/"piora" que sugeririam o oposto.
+    IMPORTANTE: esta função não assume qualquer direção como "certa" ou "errada". O texto ativo
+    de "Handling SOURCE_CODE" (RUBRIC_SYSTEM_PROMPT, prompt_version vigente) só diz que a nota
+    "pode ser ajustada" a partir de inconsistências encontradas -- não restringe a direção desse
+    ajuste. (Um changelog de uma versão anterior do prompt, não mais em vigor, chegou a
+    restringir a direção; como essa versão não é a que está ativa hoje, ela não entra em
+    nenhuma conta aqui -- ver registros_versao_ativa().) Por isso `direcao` usa rótulos
+    puramente descritivos ("sobe"/"desce"), sem juízo de valor sobre qual é a legítima.
 
-    `direcao`: "correção" se a mediana das diferenças pareadas NÃO-NULAS (ver
+    `direcao`: "sobe" se a mediana das diferenças pareadas NÃO-NULAS (ver
     _mediana_diferenca_efetiva_por_componente() -- exclui empates, a mesma base que o teste de
-    Wilcoxon usa) for negativa e significativa (p_valor_bh < 0.05), "viés" se positiva e
+    Wilcoxon usa) for positiva e significativa (p_valor_bh < 0.05), "desce" se negativa e
     significativa, "neutro" caso contrário.
-    `vale_a_pena`: "sim" só quando a direção for correção E menos de LIMIAR_HALO_PERCENTUAL das
-    divergências daquele juiz/componente ficarem sem justificativa específica -- caso contrário
-    a correção pode ser majoritariamente halo effect, não genuína. "não" quando a direção for
-    viés (subida de nota é presumivelmente ilegítima, independente de pct_halo) OU a maioria das
-    correções for sem justificativa específica. "inconclusivo" nos demais casos (ex: direção
-    neutra).
+    `vale_a_pena`: "sim" quando houver um efeito significativo (direção "sobe" ou "desce") E
+    menos de LIMIAR_SEM_MOTIVO_PERCENTUAL das divergências daquele juiz/componente ficarem sem
+    justificativa específica -- um efeito real e majoritariamente explicado pelo juiz. "não"
+    quando houver efeito significativo mas a maioria das divergências não tiver justificativa
+    específica (efeito real, mas mal fundamentado). "inconclusivo" quando não houver efeito
+    significativo (direção "neutro").
     """
     scoped = registros_versao_ativa(records)
     long_df = scores_long(scoped)
@@ -704,7 +710,7 @@ def veredito_custo_beneficio(records: list[dict]) -> pd.DataFrame:
     custo_df = custo_latencia_por_juiz_e_cenario(scoped)
     delta_df = _delta_custo_com_codigo(custo_df).set_index("juiz")
 
-    halo_por_chave = (
+    sem_motivo_por_chave = (
         motivos_df[motivos_df["motivo"] == MOTIVO_FALLBACK].set_index(["juiz", "componente"])["ocorrencias"]
         if not motivos_df.empty
         else pd.Series(dtype=float)
@@ -714,25 +720,25 @@ def veredito_custo_beneficio(records: list[dict]) -> pd.DataFrame:
 
     rows = []
     for row in base.to_dict("records"):
-        n_halo = int(halo_por_chave.get((row["juiz"], row["componente"]), 0))
+        n_sem_motivo = int(sem_motivo_por_chave.get((row["juiz"], row["componente"]), 0))
         n_total_diverg = int(row["n_diverge"])
-        pct_halo = round(n_halo / n_total_diverg * 100, 1) if n_total_diverg else None
+        pct_sem_motivo = round(n_sem_motivo / n_total_diverg * 100, 1) if n_total_diverg else None
 
         significativo = bool(row.get("significativo_bh_0.05"))
         mediana = row.get("mediana_diferenca_efetiva")
-        if significativo and mediana is not None and mediana < 0:
-            direcao = "correção"
-        elif significativo and mediana is not None and mediana > 0:
-            direcao = "viés"
+        if significativo and mediana is not None and mediana > 0:
+            direcao = "sobe"
+        elif significativo and mediana is not None and mediana < 0:
+            direcao = "desce"
         else:
             direcao = "neutro"
 
-        if direcao == "correção" and (pct_halo is None or pct_halo < LIMIAR_HALO_PERCENTUAL):
-            vale_a_pena = "sim"
-        elif direcao == "viés" or (pct_halo is not None and pct_halo >= LIMIAR_HALO_PERCENTUAL):
-            vale_a_pena = "não"
-        else:
+        if direcao == "neutro":
             vale_a_pena = "inconclusivo"
+        elif pct_sem_motivo is None or pct_sem_motivo < LIMIAR_SEM_MOTIVO_PERCENTUAL:
+            vale_a_pena = "sim"
+        else:
+            vale_a_pena = "não"
 
         delta = delta_df.loc[row["juiz"]] if row["juiz"] in delta_df.index else None
         rows.append(
@@ -743,7 +749,7 @@ def veredito_custo_beneficio(records: list[dict]) -> pd.DataFrame:
                 "significativo_bh_0.05": significativo,
                 "n_diverge_subiu": row["n_diverge_subiu"],
                 "n_diverge_desceu": row["n_diverge_desceu"],
-                "pct_halo": pct_halo,
+                "pct_sem_motivo": pct_sem_motivo,
                 "delta_input_tokens": float(delta["delta_input_tokens"]) if delta is not None else None,
                 "delta_latencia_ms": float(delta["delta_latencia_ms"]) if delta is not None else None,
                 "custo_percentual_extra": float(delta["custo_percentual_extra"]) if delta is not None else None,

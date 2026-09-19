@@ -280,37 +280,73 @@ def _uniform_shift_records(desc_group_a, desc_group_b, src_group_a, src_group_b,
     return records
 
 
-def test_veredito_custo_beneficio_flags_correcao_as_vale_a_pena_when_no_divergences():
-    """with_source consistentemente 3 pontos ABAIXO (4->1, 5->2): o comportamento esperado pela
-    regra do prompt v3/v4 (código só deveria abaixar a nota) -- diferença pareada uniforme e
+def test_veredito_custo_beneficio_flags_sim_when_significant_with_no_divergences_to_doubt():
+    """with_source consistentemente 3 pontos ABAIXO (4->1, 5->2): diferença pareada uniforme e
     forte o bastante para dar Wilcoxon significativo, mas sem nenhuma migração de quartil (ver
-    _uniform_shift_records()) -- pct_halo fica None, e a regra de vale_a_pena trata None como
-    "não há divergência para desconfiar", não como halo.
+    _uniform_shift_records()) -- pct_sem_motivo fica None, e a regra de vale_a_pena trata None
+    como "não há divergência para desconfiar da justificativa", não como sinal negativo.
     """
     records = _uniform_shift_records(desc_group_a=4, desc_group_b=5, src_group_a=1, src_group_b=2)
 
     result = veredito_custo_beneficio(records)
 
     row = result[result["componente"] == "purpose"].iloc[0]
-    assert row["direcao"] == "correção"
+    assert row["direcao"] == "desce"
     assert row["significativo_bh_0.05"]
-    assert row["pct_halo"] is None
+    assert row["pct_sem_motivo"] is None
     assert row["vale_a_pena"] == "sim"
     assert row["delta_input_tokens"] == pytest.approx(300.0)
     assert row["delta_latencia_ms"] == pytest.approx(600.0)
 
 
-def test_veredito_custo_beneficio_flags_vies_as_nao_vale_a_pena():
-    """with_source consistentemente ACIMA da description_only viola a regra do prompt v3/v4
-    (código só pode abaixar a nota) -- "viés", não "correção", e vale_a_pena "não"
-    independente de pct_halo (ver docstring de veredito_custo_beneficio())."""
-    records = _uniform_shift_records(desc_group_a=1, desc_group_b=2, src_group_a=4, src_group_b=5)
+def _records_single_divergent_tool_biased_up(reasoning_do_divergente, juiz="j", prompt_version="v4"):
+    """8 tools, componente "purpose": description_only com ranks exatos 1..8 (sem empates,
+    quartis limpos [Q1,Q1,Q2,Q2,Q3,Q3,Q4,Q4] -- ver quartil_notas()); with_source preserva a
+    ordem relativa de 7 delas (+10 cada, sem migração de quartil) e só t0 salta para o topo
+    (Q1->Q4, diverge=True, subiu=True) -- isola exatamente 1 divergência, cujo motivo depende
+    só de `reasoning_do_divergente`. Os 8 diffs pareados são todos positivos (+10 ou +99), o
+    bastante (n_efetivo=8) para dar Wilcoxon significativo.
+    """
+    desc_scores = list(range(1, 9))
+    src_scores = [100] + [d + 10 for d in desc_scores[1:]]
+    records = []
+    for i, (desc, src) in enumerate(zip(desc_scores, src_scores)):
+        reasoning = reasoning_do_divergente if i == 0 else "fine"
+        records.append(_record(tool_uid=f"t{i}", cenario="description_only", juiz=juiz, prompt_version=prompt_version,
+                                scores=_scores({"purpose": {"score": desc, "reasoning": "n/a"}})))
+        records.append(_record(tool_uid=f"t{i}", cenario="with_source", juiz=juiz, prompt_version=prompt_version,
+                                scores=_scores({"purpose": {"score": src, "reasoning": reasoning}})))
+    return records
+
+
+def test_veredito_custo_beneficio_flags_nao_when_significant_but_unjustified():
+    """Direção sozinha não decide mais o veredito (o texto ativo do prompt não restringe para
+    qual lado a nota pode mudar, ver docstring de veredito_custo_beneficio()) -- quem decide é
+    a justificativa. Único tool divergente com reasoning genérica (sem motivo casado) ->
+    pct_sem_motivo=100% -> "não", mesmo com efeito significativo."""
+    records = _records_single_divergent_tool_biased_up("Looks fine overall.")
 
     result = veredito_custo_beneficio(records)
 
     row = result[result["componente"] == "purpose"].iloc[0]
-    assert row["direcao"] == "viés"
+    assert row["direcao"] == "sobe"
+    assert row["significativo_bh_0.05"]
+    assert row["pct_sem_motivo"] == 100.0
     assert row["vale_a_pena"] == "não"
+
+
+def test_veredito_custo_beneficio_flags_sim_when_significant_and_justified():
+    """Mesmo desenho do teste acima, mas a reasoning do único tool divergente nomeia um
+    problema concreto -> pct_sem_motivo=0% -> "sim", apesar de ser a mesma direção "sobe" do
+    teste anterior -- prova que a direção sozinha não determina o veredito."""
+    records = _records_single_divergent_tool_biased_up("The parameter type is missing.")
+
+    result = veredito_custo_beneficio(records)
+
+    row = result[result["componente"] == "purpose"].iloc[0]
+    assert row["direcao"] == "sobe"
+    assert row["pct_sem_motivo"] == 0.0
+    assert row["vale_a_pena"] == "sim"
 
 
 def test_veredito_custo_beneficio_excludes_older_prompt_versions():
