@@ -9,12 +9,19 @@ gera 429 (GenerateRequestsPerMinutePerProjectPerModel) numa taxa que sobe com o 
 somado entre as chaves, não com o volume de cada uma isolada -- e que some por completo
 quando só uma chave está ativa por vez (--max-parallel 1 bateu 100% de sucesso). Este script
 é a versão que aproveita isso: zero simultaneidade (então nada do throttling agregado
-observado), mas sem desperdiçar o tempo parado de uma chave só -- ao primeiro 429
-(JudgeRateLimited) troca imediatamente para a próxima chave da lista e tenta a MESMA tarefa
-de novo, em vez de registrar erro e deixar para a próxima rodada. Cota diária confirmada
-(JudgeQuotaExhausted) tira a chave do rodízio pelo resto da execução (não adianta tentar de
-novo hoje); uma chave rate-limited (JudgeRateLimited) só é pulada para esta tarefa, continua
-no rodízio para as próximas.
+observado), mas sem desperdiçar o tempo parado de uma chave só.
+
+JudgeRateLimited (429 por minuto) é teto DE CONTA, agregado entre as 20 chaves -- confirmado
+ao vivo (ver acima) que qualquer chave tentada durante uma janela de throttle leva o mesmo
+429, então trocar de chave na hora não escapa dele, só paga de novo a espera do rate limiter
+daquela chave e o round-trip HTTP para nada. Visto isso acontecer ao vivo: uma única tarefa
+varrendo as 20 chaves em sequência, todas rejeitadas, cada uma já gastando ~5-14s de espera
+do próprio limiter antes de confirmar o 429 -- até ~1-2min perdidos numa tarefa só. A correção
+é honrar retry_after_seconds (ou um default curto quando o provedor não manda um) antes de
+tentar de novo, e desistir depois de algumas tentativas seguidas em vez de rodar para sempre
+se a conta inteira estiver throttled por um tempo mais longo. Cota diária confirmada
+(JudgeQuotaExhausted) É por chave/projeto -- essa sim tira a chave do rodízio pelo resto da
+execução (não adianta tentar de novo hoje).
 
 Reaproveita quase tudo de pipeline/run_step3.py (tool_uid_for, checkpoint_key, should_skip,
 _base_record) e o mesmo checkpoint/jsonl de saída de uma rodada normal de uma chave só --
@@ -35,6 +42,7 @@ import hashlib
 import json
 import os
 import sys
+import time
 from pathlib import Path
 
 from mcp_pipeline.collection.checkpoint import Checkpoint
@@ -58,6 +66,14 @@ logger = setup_logging("run_sequential_step3")
 _PROVIDER_API_KEY_ENV = {
     "google": "GOOGLE_API_KEY",
 }
+
+# Gemini nem sempre manda RetryInfo.retryDelay num 429 por minuto (visto ao vivo: boa parte
+# vem com retry_after_seconds=None) -- este é o backoff usado nesse caso.
+_DEFAULT_RATE_LIMIT_BACKOFF_SECONDS = 5.0
+# Tentativas seguidas de JudgeRateLimited antes de desistir da tarefa por agora (fica pendente
+# para a próxima rodada) -- evita rodar para sempre se a conta inteira estiver throttled por
+# um tempo mais longo que alguns backoffs curtos resolvem.
+_MAX_RATE_LIMIT_RETRIES = 5
 
 
 def build_pending(rows: list[dict], scenarios: tuple[str, ...], judge: Judge, checkpoint: Checkpoint, retry_failed: bool) -> list[tuple[dict, dict, str]]:
@@ -117,7 +133,10 @@ def run_with_key_rotation(
                 break
 
             resolved = False
-            for _ in range(n):
+            rate_limit_attempts = 0
+            for _ in range(n + _MAX_RATE_LIMIT_RETRIES):
+                if len(daily_exhausted) == n:
+                    break
                 if current in daily_exhausted:
                     current = (current + 1) % n
                     continue
@@ -149,7 +168,19 @@ def run_with_key_rotation(
                     continue
                 except JudgeRateLimited as e:
                     rate_limited_hits += 1
-                    logger.info("[%s] chave %s rate-limited (retry_after=%ss), trocando para a próxima", judge_id, current, e.retry_after_seconds)
+                    rate_limit_attempts += 1
+                    if rate_limit_attempts > _MAX_RATE_LIMIT_RETRIES:
+                        logger.error(
+                            "[%s] %s 429s de conta seguidos -- desistindo desta tarefa por agora (fica pendente para a próxima rodada)",
+                            judge_id, rate_limit_attempts,
+                        )
+                        break
+                    backoff = e.retry_after_seconds or _DEFAULT_RATE_LIMIT_BACKOFF_SECONDS
+                    logger.info(
+                        "[%s] rate-limited (teto de conta, não da chave %s), aguardando %.1fs antes de tentar de novo",
+                        judge_id, current, backoff,
+                    )
+                    time.sleep(backoff)
                     current = (current + 1) % n
                     continue
                 except Exception as e:  # noqa: BLE001 -- não é problema de chave, não adianta rodiziar

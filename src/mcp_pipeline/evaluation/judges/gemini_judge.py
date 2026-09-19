@@ -101,6 +101,13 @@ def _retry_after_seconds(e: genai_errors.APIError) -> float | None:
 # opt-in via HttpOptions.retry_options, configured natively instead of via a tenacity wrapper.
 _DEFAULT_RETRY_OPTIONS = genai_types.HttpRetryOptions(attempts=3)
 
+# HttpOptions.timeout default is None (no timeout at all) -- confirmed live: a dead TCP
+# connection (network drop, laptop sleep, ...) left generate_content() blocked on a raw
+# socket read for 7+ hours with no exception ever raised, stalling scripts/run_sequential_
+# step3.py's whole single-flight queue behind it. Value is milliseconds (HttpOptions' own
+# unit, not seconds).
+_REQUEST_TIMEOUT_MS = 60_000
+
 
 class GeminiJudge:
     """Google Gemini judge via `models.generate_content()` structured output -- verified
@@ -148,7 +155,10 @@ class GeminiJudge:
         # design sidesteps a different way, by never having two Judge instances in the same
         # process at all).
         self._client = genai.Client(
-            api_key=api_key, http_options=genai_types.HttpOptions(retry_options=_DEFAULT_RETRY_OPTIONS)
+            api_key=api_key,
+            http_options=genai_types.HttpOptions(
+                retry_options=_DEFAULT_RETRY_OPTIONS, timeout=_REQUEST_TIMEOUT_MS
+            ),
         )
 
     def evaluate(self, payload: dict) -> JudgeEvaluation:
