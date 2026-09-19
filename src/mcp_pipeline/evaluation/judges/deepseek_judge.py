@@ -52,7 +52,11 @@ class DeepSeekJudge(OpenAICompatibleJudge):
         self._base_url = None
         self._bearer_token = None
         self._max_tokens = 16_000
-        self._timeout_seconds = None
+        # None (sem timeout) travou ao vivo: uma conexão morta deixa requests.post() bloqueado
+        # num socket read para sempre -- mesma classe de bug já corrigida em gemini_judge.py
+        # (ver GeminiJudge._REQUEST_TIMEOUT_MS). requests.Timeout já cai no branch de erro
+        # comum logo abaixo, então isso só limita o tempo de espera, não muda o tratamento.
+        self._timeout_seconds = 90
         self._response_format_type = "json_object"
 
     def _ensure_initialized(self) -> None:
