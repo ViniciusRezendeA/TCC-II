@@ -7,8 +7,11 @@ from scripts.analysis_evaluation_report import (
     MOTIVO_FALLBACK,
     _benjamini_hochberg,
     _delta_custo_com_codigo,
+    _deepseek_em_horario_peak_utc,
     classificar_motivos,
     custo_latencia_por_juiz_e_cenario,
+    custo_real_por_juiz,
+    custo_real_usd,
     motivos_por_divergencia,
     registros_versao_ativa,
     resumo_motivos_por_componente,
@@ -242,10 +245,86 @@ def test_custo_latencia_por_juiz_e_cenario_separates_by_scenario():
     assert src["media_input_tokens"] == 300
 
 
+def _usage_record(juiz, *, status="ok", input_tokens=0, cache_read_input_tokens=0, output_tokens=0,
+                   evaluated_at="2026-09-14T12:00:00+00:00"):
+    """Fixture mínima para as funções de custo real (custo_real_usd/custo_real_por_juiz), que só
+    leem judge.id, status, usage e evaluated_at -- não precisam do schema completo de _record()
+    (scores/tool/repo). Default de evaluated_at é uma segunda-feira (2026-09-14) fora das
+    janelas de peak da DeepSeek (ver _deepseek_em_horario_peak_utc()).
+    """
+    return {
+        "judge": {"id": juiz},
+        "status": status,
+        "usage": {"input_tokens": input_tokens, "cache_read_input_tokens": cache_read_input_tokens, "output_tokens": output_tokens},
+        "evaluated_at": evaluated_at,
+    }
+
+
+def test_deepseek_em_horario_peak_utc_true_on_weekday_peak_window():
+    assert _deepseek_em_horario_peak_utc("2026-09-14T02:00:00+00:00")  # segunda, 02h UTC (janela 01h-04h)
+
+
+def test_deepseek_em_horario_peak_utc_false_outside_peak_windows():
+    assert not _deepseek_em_horario_peak_utc("2026-09-14T12:00:00+00:00")  # segunda, meio-dia
+    assert not _deepseek_em_horario_peak_utc("2026-09-14T05:00:00+00:00")  # segunda, entre as duas janelas de peak
+
+
+def test_deepseek_em_horario_peak_utc_false_on_weekend_even_in_peak_window():
+    assert not _deepseek_em_horario_peak_utc("2026-09-19T02:00:00+00:00")  # sábado, 02h UTC
+
+
+def test_custo_real_usd_is_zero_for_free_tier_judges():
+    record = _usage_record("gemini-3.5-flash-lite", input_tokens=100_000, output_tokens=50_000)
+    assert custo_real_usd(record) == 0.0
+
+
+def test_custo_real_usd_is_none_for_unmodeled_paid_judge():
+    """Um juiz pago sem preço definido em DEEPSEEK_FLASH_PRICING_USD_POR_1M/
+    JUDGES_SEM_CUSTO_DIRETO deve virar None, não $0.0 -- ver docstring de custo_real_usd()."""
+    record = _usage_record("some-future-paid-judge", input_tokens=1000, output_tokens=500)
+    assert custo_real_usd(record) is None
+
+
+def test_custo_real_usd_computes_deepseek_off_peak_price():
+    record = _usage_record(
+        "deepseek-flash", input_tokens=1000, cache_read_input_tokens=200, output_tokens=500,
+        evaluated_at="2026-09-14T12:00:00+00:00",  # segunda, off-peak
+    )
+    # cache_miss=800: 800*0.15 (input cache-miss) + 200*0.003 (input cache-hit) + 500*0.60 (output) = 420.6, por 1M tokens.
+    assert custo_real_usd(record) == pytest.approx(420.6 / 1_000_000)
+
+
+def test_custo_real_usd_computes_deepseek_peak_price_as_double_off_peak():
+    record = _usage_record(
+        "deepseek-flash", input_tokens=1000, cache_read_input_tokens=200, output_tokens=500,
+        evaluated_at="2026-09-14T02:00:00+00:00",  # segunda, peak
+    )
+    assert custo_real_usd(record) == pytest.approx(2 * (420.6 / 1_000_000))
+
+
+def test_custo_real_por_juiz_aggregates_and_flags_gratuito_e_nao_modelado():
+    records = [
+        _usage_record("deepseek-flash", input_tokens=1000, output_tokens=500, evaluated_at="2026-09-14T12:00:00+00:00"),
+        _usage_record("deepseek-flash", input_tokens=1000, output_tokens=500, evaluated_at="2026-09-14T12:00:00+00:00"),
+        _usage_record("gemini-3.5-flash-lite", input_tokens=999_999, output_tokens=999_999),
+        _usage_record("some-future-paid-judge", input_tokens=1000, output_tokens=500),
+        _usage_record("deepseek-flash", status="error", input_tokens=1000, output_tokens=500),  # ignorado (não "ok")
+    ]
+
+    result = custo_real_por_juiz(records).set_index("juiz")
+
+    assert result.loc["deepseek-flash", "avaliacoes"] == 2
+    assert result.loc["deepseek-flash", "custo_total_usd"] == pytest.approx(2 * 450 / 1_000_000)
+    assert not result.loc["deepseek-flash", "gratuito"]
+    assert result.loc["gemini-3.5-flash-lite", "custo_total_usd"] == 0.0
+    assert result.loc["gemini-3.5-flash-lite", "gratuito"]
+    assert result.loc["some-future-paid-judge", "custo_nao_modelado"] == 1
+
+
 def test_delta_custo_com_codigo_computes_extra_cost_of_with_source():
     custo_df = pd.DataFrame([
-        {"juiz": "j", "cenario": "description_only", "avaliacoes": 2, "media_input_tokens": 100.0, "media_output_tokens": 50.0, "media_latencia_ms": 1000.0},
-        {"juiz": "j", "cenario": "with_source", "avaliacoes": 2, "media_input_tokens": 300.0, "media_output_tokens": 50.0, "media_latencia_ms": 1500.0},
+        {"juiz": "j", "cenario": "description_only", "avaliacoes": 2, "media_input_tokens": 100.0, "media_output_tokens": 50.0, "media_latencia_ms": 1000.0, "media_custo_usd": 0.01},
+        {"juiz": "j", "cenario": "with_source", "avaliacoes": 2, "media_input_tokens": 300.0, "media_output_tokens": 50.0, "media_latencia_ms": 1500.0, "media_custo_usd": 0.04},
     ])
 
     result = _delta_custo_com_codigo(custo_df)
@@ -254,6 +333,7 @@ def test_delta_custo_com_codigo_computes_extra_cost_of_with_source():
     assert row["delta_input_tokens"] == 200.0
     assert row["delta_latencia_ms"] == 500.0
     assert row["custo_percentual_extra"] == 200.0
+    assert row["delta_custo_usd"] == pytest.approx(0.03)
 
 
 def _uniform_shift_records(desc_group_a, desc_group_b, src_group_a, src_group_b, juiz="j", prompt_version="v4", input_tokens_desc=100, input_tokens_src=400, latency_desc=1000.0, latency_src=1600.0):
