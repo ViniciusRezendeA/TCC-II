@@ -8,7 +8,9 @@ authors = [
 requires-python = ">=3.12"
 dependencies = [
     "anthropic>=0.124.0",
+    "fastapi>=0.115.0",
     "google-genai>=2.18.1",
+    "httpx>=0.27.0",
     "matplotlib>=3.11.1",
     "openai>=3.3.1",
     "openpyxl>=3.1.5",
@@ -31,6 +33,7 @@ dependencies = [
     "tree-sitter-ruby==0.23.1",
     "tree-sitter-rust==0.24.2",
     "tree-sitter-typescript==0.23.2",
+    "uvicorn>=0.30.0",
 ]
 
 [project.scripts]

@@ -9,6 +9,7 @@ from mcp_pipeline.evaluation.judges.base import Judge
 from mcp_pipeline.evaluation.judges.deepseek_judge import DeepSeekJudge
 from mcp_pipeline.evaluation.judges.gemini_judge import GeminiJudge
 from mcp_pipeline.evaluation.judges.llama_judge import LlamaJudge
+from mcp_pipeline.evaluation.judges.ollama_judge import OllamaJudge
 from mcp_pipeline.evaluation.judges.qwen_judge import QwenJudge
 
 # Same "registry dict keyed by a short label" idiom as extraction/tool_detector.py's
@@ -18,6 +19,7 @@ PROVIDER_CLASSES: dict[str, type] = {
     "deepseek": DeepSeekJudge,
     "google": GeminiJudge,
     "llama": LlamaJudge,
+    "ollama": OllamaJudge,
     "qwen": QwenJudge,
 }
 

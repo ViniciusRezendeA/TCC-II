@@ -50,6 +50,14 @@ judges:
     model_id: qwen2.5-14b-instruct
     enabled: true
 
+  # Qwen3 rodando pelo wrapper FastAPI em ollhama/main.py, que encaminha para o Ollama.
+  - id: qwen3-8b-ollama
+    provider: ollama
+    model_id: qwen3:8b
+    base_url: http://localhost:8000
+    timeout_seconds: 300
+    enabled: false
+
 # Testes (o modelo é sempre escolhido via --judges, nunca hardcoded em script):
 # python -m mcp_pipeline.pipeline.run_step3 --judges llama-uncensored --limit 5
 # python -m mcp_pipeline.pipeline.run_step3 --judges qwen2.5-14b-instruct --limit 5
