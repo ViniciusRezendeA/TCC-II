@@ -617,9 +617,42 @@ def _delta_custo_com_codigo(custo_por_cenario: pd.DataFrame) -> pd.DataFrame:
     ).reset_index(drop=True)
 
 
-# Limiar usado por veredito_custo_beneficio() para separar "melhoria genuína" de "melhoria
+def _mediana_diferenca_efetiva_por_componente(long_df: pd.DataFrame) -> pd.DataFrame:
+    """Mediana das diferenças pareadas NÃO-NULAS (with_source - description_only) por (juiz,
+    componente) -- diferente de wilcoxon_por_componente()::mediana_diferenca, que inclui pares
+    empatados (diferença 0) e por isso fica arrastada para perto de 0 sempre que a maioria dos
+    pares empata (comum na escala Likert 1-5 concentrada, ver docstring de quartil_notas()). O
+    teste de Wilcoxon também descarta os empates (zero_method="wilcox") -- esta função usa a
+    mesma base de pares efetivos, para que `direcao` em veredito_custo_beneficio() reflita a
+    direção do efeito que o teste de significância está de fato testando, não diluída pelos
+    pares que não mudaram.
+
+    Recalcula o pivot em vez de reaproveitar wilcoxon_por_componente() porque ela não expõe os
+    `diffs` intermediários -- duplica a montagem do pivot (mesmo padrão de
+    comparacao_cenarios()/migracao_quartil_por_tool()), não a lógica do teste em si.
+    """
+    pivot = long_df.pivot_table(index=["juiz", "componente", "tool_uid"], columns="cenario", values="nota")
+    rows = []
+    for (juiz, componente), group in pivot.groupby(level=["juiz", "componente"]):
+        if {"description_only", "with_source"} <= set(group.columns):
+            paired = group.dropna(subset=["description_only", "with_source"])
+        else:
+            paired = group.iloc[0:0]
+        diffs_efetivas = (paired["with_source"] - paired["description_only"]) if len(paired) else pd.Series(dtype=float)
+        diffs_efetivas = diffs_efetivas[diffs_efetivas != 0]
+        rows.append(
+            {
+                "juiz": juiz,
+                "componente": componente,
+                "mediana_diferenca_efetiva": round(diffs_efetivas.median(), 2) if len(diffs_efetivas) else None,
+            }
+        )
+    return pd.DataFrame(rows)
+
+
+# Limiar usado por veredito_custo_beneficio() para separar "correção genuína" de "correção
 # majoritariamente halo effect": abaixo de 50% de divergências sem justificativa específica
-# (MOTIVO_FALLBACK), a melhoria é considerada confiável o bastante para justificar o custo.
+# (MOTIVO_FALLBACK), a correção é considerada confiável o bastante para justificar o custo.
 LIMIAR_HALO_PERCENTUAL = 50.0
 
 
@@ -642,19 +675,31 @@ def veredito_custo_beneficio(records: list[dict]) -> pd.DataFrame:
     soma de `ocorrencias` de resumo_motivos_por_componente(), que infla o total ao contar uma
     mesma divergência uma vez por motivo casado quando ela bate em mais de uma categoria.
 
-    `direcao`: "melhoria" se a mediana das diferenças pareadas for positiva e significativa
-    (p_valor_bh < 0.05), "piora" se negativa e significativa, "neutro" caso contrário.
-    `vale_a_pena`: "sim" só quando a direção for melhoria E menos de LIMIAR_HALO_PERCENTUAL das
+    IMPORTANTE: "nota subiu" não é "melhorou". A regra do prompt v3/v4 (ver changelog em
+    evaluation/prompts.py) é que SOURCE_CODE só pode ABAIXAR a nota, nunca subir -- uma subida
+    estatisticamente significativa é, por definição do próprio desenho metodológico do TCC, uma
+    violação dessa regra (leniência/halo effect), não uma correção legítima. Por isso `direcao`
+    usa "correção" para a nota descer (o comportamento esperado: código revelou um problema
+    real) e "viés" para a nota subir (o comportamento indevido), em vez dos rótulos genéricos
+    "melhoria"/"piora" que sugeririam o oposto.
+
+    `direcao`: "correção" se a mediana das diferenças pareadas NÃO-NULAS (ver
+    _mediana_diferenca_efetiva_por_componente() -- exclui empates, a mesma base que o teste de
+    Wilcoxon usa) for negativa e significativa (p_valor_bh < 0.05), "viés" se positiva e
+    significativa, "neutro" caso contrário.
+    `vale_a_pena`: "sim" só quando a direção for correção E menos de LIMIAR_HALO_PERCENTUAL das
     divergências daquele juiz/componente ficarem sem justificativa específica -- caso contrário
-    a "melhoria" pode ser majoritariamente halo effect, não correção genuína. "não" quando a
-    direção for piora OU a maioria das divergências for halo. "inconclusivo" nos demais casos
-    (ex: direção neutra).
+    a correção pode ser majoritariamente halo effect, não genuína. "não" quando a direção for
+    viés (subida de nota é presumivelmente ilegítima, independente de pct_halo) OU a maioria das
+    correções for sem justificativa específica. "inconclusivo" nos demais casos (ex: direção
+    neutra).
     """
     scoped = registros_versao_ativa(records)
     long_df = scores_long(scoped)
 
     wilcoxon_df = wilcoxon_por_componente(long_df)
     migracao_df = migracao_quartil_por_componente(long_df)
+    mediana_df = _mediana_diferenca_efetiva_por_componente(long_df)
     motivos_df = resumo_motivos_por_componente(motivos_por_divergencia(scoped))
     custo_df = custo_latencia_por_juiz_e_cenario(scoped)
     delta_df = _delta_custo_com_codigo(custo_df).set_index("juiz")
@@ -665,7 +710,7 @@ def veredito_custo_beneficio(records: list[dict]) -> pd.DataFrame:
         else pd.Series(dtype=float)
     )
 
-    base = wilcoxon_df.merge(migracao_df, on=["juiz", "componente"])
+    base = wilcoxon_df.merge(migracao_df, on=["juiz", "componente"]).merge(mediana_df, on=["juiz", "componente"])
 
     rows = []
     for row in base.to_dict("records"):
@@ -674,17 +719,17 @@ def veredito_custo_beneficio(records: list[dict]) -> pd.DataFrame:
         pct_halo = round(n_halo / n_total_diverg * 100, 1) if n_total_diverg else None
 
         significativo = bool(row.get("significativo_bh_0.05"))
-        mediana = row.get("mediana_diferenca")
-        if significativo and mediana is not None and mediana > 0:
-            direcao = "melhoria"
-        elif significativo and mediana is not None and mediana < 0:
-            direcao = "piora"
+        mediana = row.get("mediana_diferenca_efetiva")
+        if significativo and mediana is not None and mediana < 0:
+            direcao = "correção"
+        elif significativo and mediana is not None and mediana > 0:
+            direcao = "viés"
         else:
             direcao = "neutro"
 
-        if direcao == "melhoria" and (pct_halo is None or pct_halo < LIMIAR_HALO_PERCENTUAL):
+        if direcao == "correção" and (pct_halo is None or pct_halo < LIMIAR_HALO_PERCENTUAL):
             vale_a_pena = "sim"
-        elif direcao == "piora" or (pct_halo is not None and pct_halo >= LIMIAR_HALO_PERCENTUAL):
+        elif direcao == "viés" or (pct_halo is not None and pct_halo >= LIMIAR_HALO_PERCENTUAL):
             vale_a_pena = "não"
         else:
             vale_a_pena = "inconclusivo"
@@ -694,7 +739,7 @@ def veredito_custo_beneficio(records: list[dict]) -> pd.DataFrame:
             {
                 "juiz": row["juiz"],
                 "componente": row["componente"],
-                "mediana_diferenca": mediana,
+                "mediana_diferenca_efetiva": mediana,
                 "significativo_bh_0.05": significativo,
                 "n_diverge_subiu": row["n_diverge_subiu"],
                 "n_diverge_desceu": row["n_diverge_desceu"],

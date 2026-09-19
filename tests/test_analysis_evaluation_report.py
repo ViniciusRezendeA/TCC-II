@@ -4,8 +4,16 @@ import pandas as pd
 import pytest
 
 from scripts.analysis_evaluation_report import (
+    MOTIVO_FALLBACK,
     _benjamini_hochberg,
+    _delta_custo_com_codigo,
+    classificar_motivos,
+    custo_latencia_por_juiz_e_cenario,
+    motivos_por_divergencia,
+    registros_versao_ativa,
+    resumo_motivos_por_componente,
     tool_key_for,
+    veredito_custo_beneficio,
     wilcoxon_por_componente,
 )
 
@@ -116,3 +124,204 @@ def test_wilcoxon_por_componente_bh_correction_is_scoped_per_judge():
     # BH de 2 p-valores dentro de juiz_a, calculado independente do que juiz_b tem.
     manual_bh = _benjamini_hochberg(juiz_a["p_valor"])
     pd.testing.assert_series_equal(juiz_a["p_valor_bh"], manual_bh.round(4), check_names=False)
+
+
+def test_registros_versao_ativa_keeps_only_latest_version():
+    old = {"prompt_version": "v3"}
+    new_a = {"prompt_version": "v4"}
+    new_b = {"prompt_version": "v4"}
+
+    assert registros_versao_ativa([old, new_a, new_b]) == [new_a, new_b]
+
+
+def test_registros_versao_ativa_empty_input():
+    assert registros_versao_ativa([]) == []
+
+
+def test_classificar_motivos_matches_known_keyword():
+    assert classificar_motivos("The parameter type is not documented.") == ["parametro"]
+
+
+def test_classificar_motivos_matches_multiple_categories():
+    """Uma justificativa pode casar mais de uma categoria -- é uma junção por palavra-chave,
+    não uma classificação exclusiva (ver docstring de classificar_motivos())."""
+    assert set(classificar_motivos("The parameter is missing from the description.")) == {"parametro", "omissao"}
+
+
+def test_classificar_motivos_falls_back_when_nothing_matches():
+    assert classificar_motivos("Looks fine overall.") == [MOTIVO_FALLBACK]
+
+
+def test_classificar_motivos_is_case_insensitive():
+    assert classificar_motivos("CONTRADICTS the implementation") == ["contradicao"]
+
+
+# --- Fixtures de registros brutos (schema de data/evaluations/{judge}.jsonl) -----------------
+
+_ALL_COMPONENTS = ["purpose", "guidelines", "limitations", "parameter_explanation", "length_completeness", "examples"]
+
+
+def _scores(overrides: dict[str, dict] | None = None) -> dict:
+    """Um registro bruto precisa dos 6 componentes (scores_long() itera RUBRIC_COMPONENTS sem
+    checar presença) -- os não sobrescritos ficam com nota 3 idêntica nos dois cenários, o que
+    os torna empatados (ver empate em migracao_quartil_por_tool()) e portanto invisíveis para
+    qualquer análise de divergência, sem precisar excluí-los explicitamente em cada teste.
+    """
+    base = {c: {"score": 3, "reasoning": "n/a"} for c in _ALL_COMPONENTS}
+    base.update(overrides or {})
+    return base
+
+
+def _record(*, tool_uid, cenario, scores, juiz="j", status="ok", tool_name="tool",
+            prompt_version="v4", input_tokens=100, output_tokens=50, latency_ms=1000.0):
+    return {
+        "tool_uid": tool_uid,
+        "tool": {"name": tool_name, "qualified_name": tool_name},
+        "repo": {"name_with_owner": "repo/x", "primary_language": "Python"},
+        "judge": {"id": juiz, "provider": "test"},
+        "scenario": cenario,
+        "status": status,
+        "scores": scores,
+        "usage": {"input_tokens": input_tokens, "output_tokens": output_tokens, "cache_read_input_tokens": 0},
+        "latency_ms": latency_ms,
+        "prompt_version": prompt_version,
+    }
+
+
+def test_motivos_por_divergencia_only_includes_diverging_pairs_and_classifies_with_source_reasoning():
+    """4 tools, mesmo juiz/componente, notas de description_only distintas 1..4 (ranks exatos
+    em quartis 1..4 sem empate) -- só t0 migra >=2 faixas (Q1->Q4); t1/t2/t3 migram só 1 faixa
+    cada (não contam como divergência, ver MUDANCA_MINIMA_QUARTIS)."""
+    desc_scores = {"t0": 1, "t1": 2, "t2": 3, "t3": 4}
+    src_scores = {"t0": 5, "t1": 2, "t2": 3, "t3": 4}
+    src_reasoning = {
+        "t0": "The parameter type is missing from the description.",
+        "t1": "fine", "t2": "fine", "t3": "fine",
+    }
+    records = []
+    for tool_uid, desc in desc_scores.items():
+        records.append(_record(tool_uid=tool_uid, cenario="description_only", scores=_scores({"purpose": {"score": desc, "reasoning": "n/a"}})))
+        records.append(_record(tool_uid=tool_uid, cenario="with_source", scores=_scores({"purpose": {"score": src_scores[tool_uid], "reasoning": src_reasoning[tool_uid]}})))
+
+    result = motivos_por_divergencia(records)
+
+    purpose_rows = result[result["componente"] == "purpose"]
+    assert set(purpose_rows["tool_uid"]) == {"t0::tool"}
+    assert set(purpose_rows["motivo"]) == {"parametro", "omissao"}
+    assert (purpose_rows["diff_quartil"] == 3).all()
+    assert purpose_rows["subiu"].all()
+
+
+def test_resumo_motivos_por_componente_aggregates_by_juiz_componente_motivo():
+    motivos_df = pd.DataFrame([
+        {"juiz": "j", "componente": "purpose", "tool_uid": "t0", "motivo": "omissao", "diff_quartil": 2, "subiu": True},
+        {"juiz": "j", "componente": "purpose", "tool_uid": "t1", "motivo": "omissao", "diff_quartil": -2, "subiu": False},
+        {"juiz": "j", "componente": "purpose", "tool_uid": "t2", "motivo": MOTIVO_FALLBACK, "diff_quartil": -2, "subiu": False},
+    ])
+
+    result = resumo_motivos_por_componente(motivos_df)
+
+    omissao = result[result["motivo"] == "omissao"].iloc[0]
+    assert omissao["ocorrencias"] == 2
+    assert omissao["n_subiu"] == 1
+    assert omissao["n_desceu"] == 1
+    assert omissao["pct_subiu"] == 50.0
+
+
+def test_custo_latencia_por_juiz_e_cenario_separates_by_scenario():
+    records = [
+        _record(tool_uid="t0", cenario="description_only", scores=_scores(), input_tokens=100, latency_ms=1000),
+        _record(tool_uid="t0", cenario="with_source", scores=_scores(), input_tokens=300, latency_ms=1500),
+    ]
+
+    result = custo_latencia_por_juiz_e_cenario(records)
+
+    desc = result[result["cenario"] == "description_only"].iloc[0]
+    src = result[result["cenario"] == "with_source"].iloc[0]
+    assert desc["media_input_tokens"] == 100
+    assert src["media_input_tokens"] == 300
+
+
+def test_delta_custo_com_codigo_computes_extra_cost_of_with_source():
+    custo_df = pd.DataFrame([
+        {"juiz": "j", "cenario": "description_only", "avaliacoes": 2, "media_input_tokens": 100.0, "media_output_tokens": 50.0, "media_latencia_ms": 1000.0},
+        {"juiz": "j", "cenario": "with_source", "avaliacoes": 2, "media_input_tokens": 300.0, "media_output_tokens": 50.0, "media_latencia_ms": 1500.0},
+    ])
+
+    result = _delta_custo_com_codigo(custo_df)
+
+    row = result.iloc[0]
+    assert row["delta_input_tokens"] == 200.0
+    assert row["delta_latencia_ms"] == 500.0
+    assert row["custo_percentual_extra"] == 200.0
+
+
+def _uniform_shift_records(desc_group_a, desc_group_b, src_group_a, src_group_b, juiz="j", prompt_version="v4", input_tokens_desc=100, input_tokens_src=400, latency_desc=1000.0, latency_src=1600.0):
+    """5 tools com nota description_only = desc_group_a, 5 com desc_group_b; with_source
+    correspondente em src_group_a/src_group_b -- desenhado para que o rank percentual dentro
+    de cada cenário preserve a mesma forma (2 grupos de 5 empatados) nos dois cenários, então
+    nenhuma tool migra de quartil (n_diverge=0), isolando o efeito de significância/custo do
+    efeito de divergência em veredito_custo_beneficio().
+    """
+    records = []
+    for i in range(5):
+        records.append(_record(tool_uid=f"a{i}", cenario="description_only", juiz=juiz, prompt_version=prompt_version,
+                                scores=_scores({"purpose": {"score": desc_group_a, "reasoning": "n/a"}}),
+                                input_tokens=input_tokens_desc, latency_ms=latency_desc))
+        records.append(_record(tool_uid=f"a{i}", cenario="with_source", juiz=juiz, prompt_version=prompt_version,
+                                scores=_scores({"purpose": {"score": src_group_a, "reasoning": "n/a"}}),
+                                input_tokens=input_tokens_src, latency_ms=latency_src))
+        records.append(_record(tool_uid=f"b{i}", cenario="description_only", juiz=juiz, prompt_version=prompt_version,
+                                scores=_scores({"purpose": {"score": desc_group_b, "reasoning": "n/a"}}),
+                                input_tokens=input_tokens_desc, latency_ms=latency_desc))
+        records.append(_record(tool_uid=f"b{i}", cenario="with_source", juiz=juiz, prompt_version=prompt_version,
+                                scores=_scores({"purpose": {"score": src_group_b, "reasoning": "n/a"}}),
+                                input_tokens=input_tokens_src, latency_ms=latency_src))
+    return records
+
+
+def test_veredito_custo_beneficio_flags_correcao_as_vale_a_pena_when_no_divergences():
+    """with_source consistentemente 3 pontos ABAIXO (4->1, 5->2): o comportamento esperado pela
+    regra do prompt v3/v4 (código só deveria abaixar a nota) -- diferença pareada uniforme e
+    forte o bastante para dar Wilcoxon significativo, mas sem nenhuma migração de quartil (ver
+    _uniform_shift_records()) -- pct_halo fica None, e a regra de vale_a_pena trata None como
+    "não há divergência para desconfiar", não como halo.
+    """
+    records = _uniform_shift_records(desc_group_a=4, desc_group_b=5, src_group_a=1, src_group_b=2)
+
+    result = veredito_custo_beneficio(records)
+
+    row = result[result["componente"] == "purpose"].iloc[0]
+    assert row["direcao"] == "correção"
+    assert row["significativo_bh_0.05"]
+    assert row["pct_halo"] is None
+    assert row["vale_a_pena"] == "sim"
+    assert row["delta_input_tokens"] == pytest.approx(300.0)
+    assert row["delta_latencia_ms"] == pytest.approx(600.0)
+
+
+def test_veredito_custo_beneficio_flags_vies_as_nao_vale_a_pena():
+    """with_source consistentemente ACIMA da description_only viola a regra do prompt v3/v4
+    (código só pode abaixar a nota) -- "viés", não "correção", e vale_a_pena "não"
+    independente de pct_halo (ver docstring de veredito_custo_beneficio())."""
+    records = _uniform_shift_records(desc_group_a=1, desc_group_b=2, src_group_a=4, src_group_b=5)
+
+    result = veredito_custo_beneficio(records)
+
+    row = result[result["componente"] == "purpose"].iloc[0]
+    assert row["direcao"] == "viés"
+    assert row["vale_a_pena"] == "não"
+
+
+def test_veredito_custo_beneficio_excludes_older_prompt_versions():
+    """Registros de uma versão de prompt anterior (v3) não devem aparecer no veredito, mesmo
+    vindo de um juiz que só existe nessa versão -- ver registros_versao_ativa()."""
+    v4_records = _uniform_shift_records(desc_group_a=1, desc_group_b=2, src_group_a=4, src_group_b=5)
+    v3_records = _uniform_shift_records(
+        desc_group_a=1, desc_group_b=2, src_group_a=5, src_group_b=5,
+        juiz="old_judge", prompt_version="v3",
+    )
+
+    result = veredito_custo_beneficio(v4_records + v3_records)
+
+    assert "old_judge" not in set(result["juiz"])

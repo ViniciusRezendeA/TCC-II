@@ -462,7 +462,7 @@ def build_tradeoff_data(records: list[dict]) -> list[dict]:
     # normalização, o NaN cru vazaria como o literal JS NaN no HTML gerado, em vez de null --
     # mesmo cuidado que compute_breakdown()::_or_none() já toma para wilcoxon_por_componente()
     # no resto do dashboard.
-    campos_nullable = ["mediana_diferenca", "pct_halo", "delta_input_tokens", "delta_latencia_ms", "custo_percentual_extra"]
+    campos_nullable = ["mediana_diferenca_efetiva", "pct_halo", "delta_input_tokens", "delta_latencia_ms", "custo_percentual_extra"]
     rows = df.sort_values(["componente", "juiz"]).to_dict("records")
     for row in rows:
         for campo in campos_nullable:
@@ -652,7 +652,14 @@ HTML_TEMPLATE = """<meta charset="UTF-8">
   .pill.warn { background: var(--status-warning-soft); color: var(--status-warning); }
   .motivo-badges { display: flex; flex-wrap: wrap; gap: 4px; }
   .n-flag { font-size: 11.5px; color: var(--status-warning); font-family: "IBM Plex Mono", monospace; }
+  /* width:100% on `table` above is fine for narrow tables, but a wide one (many columns,
+     long tool/repo names) would rather shrink every column to fit than trigger this
+     wrapper's scroll -- min-width:max-content lets it grow past 100% when content actually
+     needs the room, so overflow-x:auto here has something real to scroll instead of
+     silently crushing/hiding the later columns on narrow screens. */
   .overflow-x { overflow-x: auto; }
+  .overflow-x table { width: max-content; min-width: 100%; }
+  .overflow-x th, .overflow-x td { white-space: nowrap; }
   .boxplot-row { display: grid; grid-template-columns: 168px 1fr; align-items: center; gap: 14px; margin-bottom: 16px; }
   .boxplot-row .row-label { font-size: 13.5px; color: var(--text-secondary); text-align: right; }
   .boxplot-tracks { display: flex; flex-direction: column; gap: 5px; }
@@ -1005,7 +1012,7 @@ HTML_TEMPLATE = """<meta charset="UTF-8">
 
     <section style="margin-bottom: 0;">
       <h2>Custo-benefício: vale a pena o código?</h2>
-      <p class="section-note">Por juiz e componente da rubrica: direção e significância do efeito de mandar <code>with_source</code> (Wilcoxon), % das divergências sem justificativa específica (proxy de efeito halo) e o custo extra de tokens/latência de mandar o código-fonte. "Vale a pena" só quando a direção for melhoria significativa E menos da metade das divergências forem halo -- ver docstring de <code>veredito_custo_beneficio()</code> para a regra completa.</p>
+      <p class="section-note">Por juiz e componente da rubrica: direção e significância do efeito de mandar <code>with_source</code> (Wilcoxon), % das divergências sem justificativa específica (proxy de efeito halo) e o custo extra de tokens/latência de mandar o código-fonte. A regra do prompt (v3/v4) é que o código só deveria abaixar a nota, nunca subir -- por isso "correção" (nota desceu) é o comportamento esperado e "viés" (nota subiu) já é, por definição, uma violação dessa regra. "Vale a pena" só quando a direção for correção significativa E menos da metade das divergências forem sem justificativa específica -- ver docstring de <code>veredito_custo_beneficio()</code> para a regra completa.</p>
       <div class="overflow-x">
         <table>
           <thead>
@@ -1651,7 +1658,7 @@ HTML_TEMPLATE = """<meta charset="UTF-8">
     const rows = DATA.tradeoff;
     emptyEl.hidden = rows.length > 0;
 
-    const direcaoClass = { melhoria: "ok", piora: "error", neutro: "" };
+    const direcaoClass = { "correção": "ok", "viés": "error", "neutro": "" };
     const valeAPenaClass = { "sim": "ok", "não": "error", "inconclusivo": "" };
 
     rows.forEach(v => {
