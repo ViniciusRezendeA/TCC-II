@@ -34,6 +34,7 @@ Uso:
 
 import argparse
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 import numpy as np
@@ -516,6 +517,96 @@ def concordancia_entre_juizes(long_df: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
+# --- Custo real (USD) ---------------------------------------------------------
+
+# Preço público por 1M tokens (USD) do DeepSeek-V4.1-Flash (juiz "deepseek-flash") --
+# confirmado ao vivo em api-docs.deepseek.com/quick_start/pricing em 2026-09-19 (mesma fonte já
+# citada, com os mesmos valores, no comentário de config/judges.yaml sobre este juiz).
+# Off-peak é sempre metade do peak. Peak: 01:00-04:00 e 06:00-10:00 UTC, segunda a sexta,
+# exceto feriados públicos chineses -- feriados não são modelados aqui (ver
+# _deepseek_janela_preco_utc()), simplificação documentada: o efeito é só usar a tarifa peak em
+# vez da off-peak (metade do valor) num punhado de janelas isoladas do calendário, nunca custo
+# zero nem uma ordem de grandeza diferente.
+DEEPSEEK_FLASH_PRICING_USD_POR_1M = {
+    "input_cache_miss": {"off_peak": 0.15, "peak": 0.30},
+    "input_cache_hit": {"off_peak": 0.003, "peak": 0.006},
+    "output": {"off_peak": 0.60, "peak": 1.20},
+}
+
+# Juízes sem custo monetário direto: Gemini roda no free tier do Google (ver comentário sobre
+# rate limits em config/judges.yaml), Qwen/Llama são servidos localmente via llama.cpp (ver
+# qwen_judge.py/llama_judge.py) -- nenhum dos dois gera cobrança de API.
+JUDGES_SEM_CUSTO_DIRETO = frozenset({"gemini-3.5-flash-lite", "gemini-3.6-flash", "qwen2.5-14b-instruct", "llama-uncensored"})
+
+
+def _deepseek_em_horario_peak_utc(evaluated_at: str) -> bool:
+    """Peak da DeepSeek: 01:00-04:00 ou 06:00-10:00 UTC, segunda a sexta -- ver
+    DEEPSEEK_FLASH_PRICING_USD_POR_1M. Fins de semana são sempre off-peak, mesmo dentro dessas
+    janelas de horário.
+    """
+    dt = datetime.fromisoformat(evaluated_at)
+    if dt.tzinfo is not None:
+        dt = dt.astimezone(timezone.utc)
+    if dt.weekday() >= 5:  # 5=sábado, 6=domingo
+        return False
+    return (1 <= dt.hour < 4) or (6 <= dt.hour < 10)
+
+
+def custo_real_usd(record: dict) -> float | None:
+    """Custo real (USD) de UMA avaliação, pelo preço público do provedor no momento em que ela
+    rodou (`evaluated_at`) -- $0.0 para juízes de JUDGES_SEM_CUSTO_DIRETO (free tier/local).
+    Retorna None para um juiz pago que não tenha preço modelado aqui, em vez de $0.0 --
+    silenciar isso como "grátis" esconderia gasto real caso um novo juiz pago seja adicionado a
+    config/judges.yaml sem uma entrada de preço correspondente.
+    """
+    juiz = record["judge"]["id"]
+    if juiz in JUDGES_SEM_CUSTO_DIRETO:
+        return 0.0
+    if juiz != "deepseek-flash":
+        return None
+
+    usage = record["usage"]
+    cache_hit = usage["cache_read_input_tokens"]
+    cache_miss = usage["input_tokens"] - cache_hit
+    output = usage["output_tokens"]
+
+    janela = "peak" if _deepseek_em_horario_peak_utc(record["evaluated_at"]) else "off_peak"
+    preco = DEEPSEEK_FLASH_PRICING_USD_POR_1M
+    custo = (
+        cache_miss * preco["input_cache_miss"][janela]
+        + cache_hit * preco["input_cache_hit"][janela]
+        + output * preco["output"][janela]
+    ) / 1_000_000
+    return custo
+
+
+def custo_real_por_juiz(records: list[dict]) -> pd.DataFrame:
+    """Custo real (USD) já gasto, por juiz, somando os dois cenários e TODAS as versões de
+    prompt -- diferente das tabelas de motivo/veredito, que só valem para a versão vigente do
+    prompt (ver registros_versao_ativa()), dinheiro já gasto em avaliações de uma versão
+    anterior continua tendo sido gasto de verdade. `gratuito` marca juízes de
+    JUDGES_SEM_CUSTO_DIRETO; `custo_nao_modelado` conta avaliações de um juiz pago sem preço
+    definido (custo_real_usd() retornou None), para não aparecerem como "custo zero" por omissão.
+    """
+    rows = [{"juiz": r["judge"]["id"], "custo_usd": custo_real_usd(r)} for r in records if r["status"] == "ok"]
+    df = pd.DataFrame(rows)
+    if df.empty:
+        return pd.DataFrame(columns=["juiz", "avaliacoes", "custo_total_usd", "custo_nao_modelado", "gratuito"])
+
+    grouped = (
+        df.groupby("juiz")
+        .agg(
+            avaliacoes=("custo_usd", "size"),
+            custo_total_usd=("custo_usd", "sum"),
+            custo_nao_modelado=("custo_usd", lambda s: int(s.isna().sum())),
+        )
+        .reset_index()
+    )
+    grouped["custo_total_usd"] = grouped["custo_total_usd"].round(4)
+    grouped["gratuito"] = grouped["juiz"].isin(JUDGES_SEM_CUSTO_DIRETO)
+    return grouped.sort_values("juiz").reset_index(drop=True)
+
+
 def custo_latencia_por_juiz(records: list[dict]) -> pd.DataFrame:
     """Tokens e latência médios por juiz -- só entre avaliações "ok" (usage/latency não
     são preenchidos para refused/error). Insumo para a seção de metodologia/limitações do
@@ -560,6 +651,11 @@ def custo_latencia_por_juiz_e_cenario(records: list[dict]) -> pd.DataFrame:
     custo extra especificamente atribuível a mandar SOURCE_CODE (with_source vs
     description_only), que a tabela agregada por juiz não distingue. Insumo de
     _delta_custo_com_codigo() e, por extensão, de veredito_custo_beneficio().
+
+    `media_custo_usd` usa custo_real_usd() por registro (preço público do provedor no momento
+    de cada chamada, ver DEEPSEEK_FLASH_PRICING_USD_POR_1M) -- $0.0 para juízes de
+    JUDGES_SEM_CUSTO_DIRETO, e ignora (não conta como $0.0) registros de juiz pago sem preço
+    modelado, tratando-os como ausentes na média em vez de subestimá-la silenciosamente.
     """
     rows = [
         {
@@ -568,6 +664,7 @@ def custo_latencia_por_juiz_e_cenario(records: list[dict]) -> pd.DataFrame:
             "input_tokens": r["usage"]["input_tokens"],
             "output_tokens": r["usage"]["output_tokens"],
             "latency_ms": r["latency_ms"],
+            "custo_usd": custo_real_usd(r),
         }
         for r in records
         if r["status"] == "ok"
@@ -575,7 +672,10 @@ def custo_latencia_por_juiz_e_cenario(records: list[dict]) -> pd.DataFrame:
     df = pd.DataFrame(rows)
     if df.empty:
         return pd.DataFrame(
-            columns=["juiz", "cenario", "avaliacoes", "media_input_tokens", "media_output_tokens", "media_latencia_ms"]
+            columns=[
+                "juiz", "cenario", "avaliacoes", "media_input_tokens", "media_output_tokens",
+                "media_latencia_ms", "media_custo_usd",
+            ]
         )
     grouped = (
         df.groupby(["juiz", "cenario"])
@@ -584,10 +684,14 @@ def custo_latencia_por_juiz_e_cenario(records: list[dict]) -> pd.DataFrame:
             media_input_tokens=("input_tokens", "mean"),
             media_output_tokens=("output_tokens", "mean"),
             media_latencia_ms=("latency_ms", "mean"),
+            media_custo_usd=("custo_usd", "mean"),
         )
-        .round(1)
+        .round(6)
         .reset_index()
     )
+    grouped[["media_input_tokens", "media_output_tokens", "media_latencia_ms"]] = grouped[
+        ["media_input_tokens", "media_output_tokens", "media_latencia_ms"]
+    ].round(1)
     return grouped
 
 
@@ -596,8 +700,11 @@ def _delta_custo_com_codigo(custo_por_cenario: pd.DataFrame) -> pd.DataFrame:
     custo_latencia_por_juiz_e_cenario() -- o preço específico de mandar SOURCE_CODE, isolado do
     custo-base de avaliar só a description. Helper interno de veredito_custo_beneficio(), não
     uma tabela exportada por conta própria.
+
+    `delta_custo_usd` é o custo real (USD) extra médio por avaliação, não um total -- multiplicar
+    por quantas avaliações a mais se pretende rodar com SOURCE_CODE dá o gasto extra projetado.
     """
-    colunas = ["juiz", "delta_input_tokens", "delta_latencia_ms", "custo_percentual_extra"]
+    colunas = ["juiz", "delta_input_tokens", "delta_latencia_ms", "custo_percentual_extra", "delta_custo_usd"]
     if custo_por_cenario.empty:
         return pd.DataFrame(columns=colunas)
 
@@ -610,6 +717,7 @@ def _delta_custo_com_codigo(custo_por_cenario: pd.DataFrame) -> pd.DataFrame:
     delta_tokens = (src.loc[juizes_comuns, "media_input_tokens"] - desc.loc[juizes_comuns, "media_input_tokens"]).round(1)
     delta_latencia = (src.loc[juizes_comuns, "media_latencia_ms"] - desc.loc[juizes_comuns, "media_latencia_ms"]).round(1)
     custo_percentual = (delta_tokens / desc.loc[juizes_comuns, "media_input_tokens"] * 100).round(1)
+    delta_custo_usd = (src.loc[juizes_comuns, "media_custo_usd"] - desc.loc[juizes_comuns, "media_custo_usd"]).round(6)
 
     return pd.DataFrame(
         {
@@ -617,6 +725,7 @@ def _delta_custo_com_codigo(custo_por_cenario: pd.DataFrame) -> pd.DataFrame:
             "delta_input_tokens": delta_tokens.values,
             "delta_latencia_ms": delta_latencia.values,
             "custo_percentual_extra": custo_percentual.values,
+            "delta_custo_usd": delta_custo_usd.values,
         }
     ).reset_index(drop=True)
 
@@ -674,8 +783,11 @@ def veredito_custo_beneficio(records: list[dict]) -> pd.DataFrame:
     p-valores entre componentes.
 
     O custo extra é por juiz, não por componente (uma chamada ao juiz avalia os 6 componentes de
-    uma vez) -- por isso o mesmo delta_input_tokens/delta_latencia_ms se repete em todas as
-    linhas de componente daquele juiz; não é um erro de junção.
+    uma vez) -- por isso o mesmo delta_input_tokens/delta_latencia_ms/custo_extra_usd se repete
+    em todas as linhas de componente daquele juiz; não é um erro de junção. `custo_extra_usd` é
+    o preço real (USD, ver custo_real_usd()) extra médio por avaliação atribuível a mandar
+    SOURCE_CODE -- $0.0 para juízes sem custo direto (JUDGES_SEM_CUSTO_DIRETO), None para um
+    juiz pago sem preço modelado.
 
     `pct_sem_motivo` usa `n_diverge` de migracao_quartil_por_componente() como denominador -- não a
     soma de `ocorrencias` de resumo_motivos_por_componente(), que infla o total ao contar uma
@@ -741,6 +853,13 @@ def veredito_custo_beneficio(records: list[dict]) -> pd.DataFrame:
             vale_a_pena = "não"
 
         delta = delta_df.loc[row["juiz"]] if row["juiz"] in delta_df.index else None
+
+        def _campo_delta(nome):  # None se o juiz não tem custo/latência nos dois cenários, ou se
+            if delta is None:  # custo_real_usd() não soube precificar (NaN, ver custo_real_por_juiz()).
+                return None
+            valor = delta[nome]
+            return float(valor) if valor == valor else None
+
         rows.append(
             {
                 "juiz": row["juiz"],
@@ -750,9 +869,10 @@ def veredito_custo_beneficio(records: list[dict]) -> pd.DataFrame:
                 "n_diverge_subiu": row["n_diverge_subiu"],
                 "n_diverge_desceu": row["n_diverge_desceu"],
                 "pct_sem_motivo": pct_sem_motivo,
-                "delta_input_tokens": float(delta["delta_input_tokens"]) if delta is not None else None,
-                "delta_latencia_ms": float(delta["delta_latencia_ms"]) if delta is not None else None,
-                "custo_percentual_extra": float(delta["custo_percentual_extra"]) if delta is not None else None,
+                "delta_input_tokens": _campo_delta("delta_input_tokens"),
+                "delta_latencia_ms": _campo_delta("delta_latencia_ms"),
+                "custo_percentual_extra": _campo_delta("custo_percentual_extra"),
+                "custo_extra_usd": _campo_delta("delta_custo_usd"),
                 "direcao": direcao,
                 "vale_a_pena": vale_a_pena,
             }
@@ -915,6 +1035,7 @@ def main() -> None:
         "migracao_quartil_por_componente": migracao_quartil_por_componente(long_df),
         "concordancia_entre_juizes": concordancia_entre_juizes(long_df),
         "custo_latencia_por_juiz": custo_latencia_por_juiz(records),
+        "custo_real_por_juiz": custo_real_por_juiz(records),
         "notas_por_linguagem": notas_por_linguagem(long_df),
         "motivos_por_divergencia": motivos_por_divergencia(scoped),
         "resumo_motivos_por_componente": resumo_motivos_por_componente(motivos_por_divergencia(scoped)),

@@ -32,6 +32,7 @@ from scripts.analysis_evaluation_report import (
     MOTIVO_FALLBACK,
     MUDANCA_MINIMA_QUARTIS,
     classificar_motivos,
+    custo_real_por_juiz,
     migracao_quartil_por_tool,
     motivos_por_divergencia,
     resumo_motivos_por_componente,
@@ -292,6 +293,7 @@ def build_dashboard_data(records: list[dict], prompt_version: str | None = None)
         "divergences": build_divergences_data(scoped),
         "motivos_summary": build_motivos_summary_data(scoped),
         "tradeoff": build_tradeoff_data(scoped),
+        "custo_real": build_custo_real_data(records),
         "prompt_versions": version_summary,
     }
 
@@ -465,13 +467,28 @@ def build_tradeoff_data(records: list[dict]) -> list[dict]:
     # normalização, o NaN cru vazaria como o literal JS NaN no HTML gerado, em vez de null --
     # mesmo cuidado que compute_breakdown()::_or_none() já toma para wilcoxon_por_componente()
     # no resto do dashboard.
-    campos_nullable = ["mediana_diferenca_efetiva", "pct_sem_motivo", "delta_input_tokens", "delta_latencia_ms", "custo_percentual_extra"]
+    campos_nullable = [
+        "mediana_diferenca_efetiva", "pct_sem_motivo", "delta_input_tokens", "delta_latencia_ms",
+        "custo_percentual_extra", "custo_extra_usd",
+    ]
     rows = df.sort_values(["componente", "juiz"]).to_dict("records")
     for row in rows:
         for campo in campos_nullable:
             if row[campo] != row[campo]:
                 row[campo] = None
     return rows
+
+
+def build_custo_real_data(records: list[dict]) -> list[dict]:
+    """Envelopa custo_real_por_juiz() em JSON -- alimenta os tiles de "custo real" no topo da
+    aba Divergências. Usa `records` sem passar por registros_versao_ativa(): dinheiro já gasto
+    em avaliações de uma versão anterior do prompt continua tendo sido gasto de verdade (mesmo
+    raciocínio do docstring de custo_real_por_juiz()), diferente das demais funções desta aba.
+    """
+    df = custo_real_por_juiz(records)
+    if df.empty:
+        return []
+    return df.to_dict("records")
 
 
 def build_tools_data(records: list[dict]) -> list[dict]:
@@ -963,8 +980,14 @@ HTML_TEMPLATE = """<meta charset="UTF-8">
     <div class="ai-tabs" id="divergences-ai-tabs" role="tablist" aria-label="Filtrar divergências por juiz"></div>
 
     <section>
+      <h2>Custo real gasto</h2>
+      <p class="section-note">Preço público do provedor de cada juiz no momento de cada chamada (ver <code>DEEPSEEK_FLASH_PRICING_USD_POR_1M</code> em <code>analysis_evaluation_report.py</code>), somando os dois cenários e todas as versões de prompt já rodadas -- dinheiro já gasto não depende de qual versão do prompt está ativa hoje. Juízes locais (llama.cpp) ou no free tier do Google não têm custo direto.</p>
+      <div class="tiles" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); margin-bottom: 0;" id="cost-tiles"></div>
+    </section>
+
+    <section>
       <h2>Custo-benefício: vale a pena o código?</h2>
-      <p class="section-note">Por juiz e componente da rubrica: direção e significância do efeito de mandar <code>with_source</code> (Wilcoxon), % das divergências sem justificativa específica na reasoning e o custo extra de tokens/latência de mandar o código-fonte. A direção ("sobe"/"desce") é só descritiva -- o texto ativo do prompt não restringe para qual lado a nota pode mudar, só diz que o ajuste deve vir de uma inconsistência identificada. "Vale a pena" quando há um efeito estatisticamente significativo (em qualquer direção) E menos da metade das divergências ficam sem justificativa específica -- ver docstring de <code>veredito_custo_beneficio()</code> para a regra completa.</p>
+      <p class="section-note">Por juiz e componente da rubrica: direção e significância do efeito de mandar <code>with_source</code> (Wilcoxon), % das divergências sem justificativa específica na reasoning e o custo extra (tokens e USD reais) de mandar o código-fonte. A direção ("sobe"/"desce") é só descritiva -- o texto ativo do prompt não restringe para qual lado a nota pode mudar, só diz que o ajuste deve vir de uma inconsistência identificada. "Vale a pena" quando há um efeito estatisticamente significativo (em qualquer direção) E menos da metade das divergências ficam sem justificativa específica -- ver docstring de <code>veredito_custo_beneficio()</code> para a regra completa.</p>
       <div class="overflow-x">
         <table>
           <thead>
@@ -976,6 +999,7 @@ HTML_TEMPLATE = """<meta charset="UTF-8">
               <th class="num">% sem motivo</th>
               <th class="num">Custo extra (tokens)</th>
               <th class="num">Custo extra (%)</th>
+              <th class="num">Custo extra (US$/1000 aval.)</th>
               <th>Vale a pena?</th>
             </tr>
           </thead>
@@ -1702,6 +1726,25 @@ HTML_TEMPLATE = """<meta charset="UTF-8">
   }
   renderMotivosSummary();
 
+  // ---- custo real (USD) já gasto, por juiz ----
+  function renderCostTiles() {
+    const container = document.getElementById("cost-tiles");
+    container.innerHTML = "";
+    DATA.custo_real.forEach(c => {
+      const tile = document.createElement("div");
+      tile.className = "tile";
+      const valorHTML = c.gratuito
+        ? `<span class="value tabular" style="color:var(--status-good)">Grátis</span>`
+        : `<span class="value tabular">US$ ${c.custo_total_usd.toFixed(4)}</span>`;
+      const subParts = [`${c.avaliacoes} avaliações`];
+      if (c.gratuito) subParts.push("free tier / local");
+      if (c.custo_nao_modelado > 0) subParts.push(`${c.custo_nao_modelado} sem preço modelado`);
+      tile.innerHTML = `<span class="label">${escapeHtml(c.juiz)}</span>${valorHTML}<span class="sub">${subParts.join(" · ")}</span>`;
+      container.appendChild(tile);
+    });
+  }
+  renderCostTiles();
+
   // ---- custo-benefício: vale a pena o código? ----
   function renderTradeoffTable() {
     const tbody = document.getElementById("tradeoff-rows");
@@ -1722,6 +1765,7 @@ HTML_TEMPLATE = """<meta charset="UTF-8">
         <td class="num tabular">${v.pct_sem_motivo === null ? "—" : v.pct_sem_motivo.toFixed(1) + "%"}</td>
         <td class="num tabular">${v.delta_input_tokens === null ? "—" : (v.delta_input_tokens > 0 ? "+" : "") + v.delta_input_tokens.toFixed(0)}</td>
         <td class="num tabular">${v.custo_percentual_extra === null ? "—" : v.custo_percentual_extra.toFixed(1) + "%"}</td>
+        <td class="num tabular">${v.custo_extra_usd === null ? "—" : "US$ " + (v.custo_extra_usd * 1000).toFixed(2)}</td>
         <td><span class="pill ${valeAPenaClass[v.vale_a_pena] || ""}">${escapeHtml(v.vale_a_pena)}</span></td>`;
       tbody.appendChild(tr);
     });
