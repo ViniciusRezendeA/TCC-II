@@ -14,10 +14,9 @@ app = FastAPI(
 
 OLLAMA_URL = "http://localhost:11434"
 
-
 class GenerateRequest(BaseModel):
     prompt: str = Field(min_length=1)
-    model: str = "qwen3:8b"
+    model: str = "qwen3:14b"
     system: Optional[str] = None
     format: Optional[str | dict] = None
 
@@ -38,7 +37,7 @@ def root():
 @app.get("/health")
 async def health():
     try:
-        async with httpx.AsyncClient(timeout=5) as client:
+        async with httpx.AsyncClient(timeout=None) as client:
             response = await client.get(
                 f"{OLLAMA_URL}/api/tags"
             )
@@ -84,9 +83,7 @@ async def generate(request: GenerateRequest):
             "temperature": 0.0,
         }
         
-        async with httpx.AsyncClient(
-            timeout=httpx.Timeout(300.0)
-        ) as client:
+        async with httpx.AsyncClient(timeout=None) as client:
             response = await client.post(
                 f"{OLLAMA_URL}/api/chat",
                 json=payload,

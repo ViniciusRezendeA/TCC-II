@@ -6,7 +6,7 @@ import time
 
 import requests
 
-from mcp_pipeline.evaluation.judges.base import JudgeError, JudgeEvaluation, JudgeRefusal, RubricScores
+from mcp_pipeline.evaluation.judges.base import JudgeError, JudgeEvaluation, RubricScores
 from mcp_pipeline.evaluation.judges.openai_compatible_judge import _JSON_OBJECT_SHAPE_HINT
 from mcp_pipeline.evaluation.prompts import RUBRIC_SYSTEM_PROMPT, build_user_message
 
@@ -19,7 +19,7 @@ class OllamaJudge:
         judge_id: str,
         model_id: str,
         base_url: str = "http://localhost:8000",
-        timeout_seconds: int = 300,
+        timeout_seconds: int | None = None,
     ):
         self.judge_id = judge_id
         self.provider = "ollama"
@@ -30,14 +30,16 @@ class OllamaJudge:
     def evaluate(self, payload: dict) -> JudgeEvaluation:
         started = time.monotonic()
         try:
-            response = requests.post(
-                f"{self._base_url}/generate",
-                json={
+            request_body = {
                     "model": self.model_id,
                     "system": RUBRIC_SYSTEM_PROMPT + _JSON_OBJECT_SHAPE_HINT,
                     "prompt": build_user_message(payload),
-                    "format": "json",
-                },
+                    "format": RubricScores.model_json_schema(),
+                    "max_tokens": 2048,
+                }
+            response = requests.post(
+                f"{self._base_url}/generate",
+                json=request_body,
                 timeout=self._timeout_seconds,
             )
             response.raise_for_status()
@@ -65,6 +67,9 @@ class OllamaJudge:
                 parsed_json = json.loads(json_match.group(0))
             except json.JSONDecodeError as exc:
                 raise JudgeError(f"JSON de scores inválido retornado pelo Ollama: {exc}") from exc
+
+        if isinstance(parsed_json, dict) and "error" in parsed_json:
+            raise JudgeError(f"Ollama não conseguiu gerar os scores: {parsed_json['error']}")
 
         try:
             scores = RubricScores.model_validate(parsed_json)

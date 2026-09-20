@@ -4,7 +4,7 @@ código-fonte na avaliação da qualidade documental das tools?
 
 Entrada esperada (JSON): lista de tools, cada uma com uma lista "evaluations",
 cada evaluation com "model", "with_source" e "description_only", e dentro de
-cada um desses, os 5 atributos da rubrica (score + reasoning).
+cada um desses, os atributos da rubrica (score + reasoning).
 
 Estrutura esperada de cada evaluation:
 {
@@ -18,19 +18,24 @@ Estrutura esperada de cada evaluation:
   "description_only": { ... mesma estrutura ... }
 }
 
-Gera 3 figuras em /mnt/user-data/outputs/:
-  1. barras_divergentes_por_modelo.png
-  2. boxplot_strip_por_atributo_modelo.png
-  3. stacked_diverging_quantidade_magnitude.png
+Como há mais de um modelo de IA avaliando cada tool, todos os gráficos usam
+a MÉDIA entre os modelos (um único gráfico, não um por modelo). O boxplot
+compara "Com código" vs "Sem código" — não compara modelos entre si.
 
-E salva um CSV "long format" com todos os dados calculados, para reuso.
+Gera 3 figuras em /mnt/user-data/outputs/:
+  1. barras_divergentes.png       — diferença média por atributo
+  2. boxplot_com_sem_codigo.png   — distribuição das notas, com vs sem código
+  3. quantidade_magnitude.png     — % de casos que mudaram + magnitude média
+
+E salva um CSV "long format" (nível tool x modelo x atributo) para reuso.
 """
 
 import json
+import os
+
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-import seaborn as sns
 
 # ---------------------------------------------------------------------------
 # CONFIGURAÇÃO
@@ -57,35 +62,31 @@ ATTR_LABELS = {
     "examples": "Exemplos",
 }
 
-# Faixas de magnitude para o gráfico 3 (diverging stacked bar).
-# Ajuste os cortes conforme a distribuição real dos seus dados
-# (ex.: baseado em quartis, depois de rodar uma vez e olhar describe()).
-def categorizar_magnitude(diff):
-    if diff <= -2:
-        return "Piorou muito"
-    elif diff < 0:
-        return "Piorou pouco"
-    elif diff == 0:
-        return "Não mudou"
-    elif diff < 2:
-        return "Melhorou pouco"
-    else:
-        return "Melhorou muito"
+COR_PIOROU = "#d62728"     # vermelho padrão matplotlib
+COR_MELHOROU = "#1f77b4"   # azul padrão matplotlib (mesmo tom da imagem de referência)
 
-CATEGORY_ORDER = ["Piorou muito", "Piorou pouco", "Não mudou", "Melhorou pouco", "Melhorou muito"]
-CATEGORY_COLORS = {
-    "Piorou muito": "#b2182b",
-    "Piorou pouco": "#ef8a62",
-    "Não mudou": "#d9d9d9",
-    "Melhorou pouco": "#67a9cf",
-    "Melhorou muito": "#2166ac",
-}
+# Estilo simples: fundo branco, só grade horizontal tracejada, sem grade vertical
+plt.rcParams.update({
+    "figure.facecolor": "white",
+    "axes.facecolor": "white",
+    "axes.grid": True,
+    "axes.grid.axis": "y",
+    "grid.linestyle": "--",
+    "grid.alpha": 0.4,
+    "axes.spines.top": False,
+    "axes.spines.right": False,
+    "axes.axisbelow": True,
+    "font.size": 12,
+})
 
-sns.set_theme(style="whitegrid", context="talk")
+
+def _sem_grade_vertical(ax):
+    ax.grid(axis="x", visible=False)
+    ax.grid(axis="y", linestyle="--", alpha=0.4)
 
 
 # ---------------------------------------------------------------------------
-# 1. CARREGAR E TRANSFORMAR OS DADOS PARA FORMATO LONGO
+# 1. CARREGAR DADOS (nível tool x modelo x atributo)
 # ---------------------------------------------------------------------------
 def carregar_dados(path):
     with open(path, "r", encoding="utf-8") as f:
@@ -104,7 +105,7 @@ def carregar_dados(path):
                 score_sem = (without_src or {}).get(attr, {}).get("score")
 
                 if score_com is None or score_sem is None:
-                    continue  # pula se faltar algum score (dado incompleto)
+                    continue
 
                 rows.append(
                     {
@@ -118,42 +119,54 @@ def carregar_dados(path):
                     }
                 )
 
-    df = pd.DataFrame(rows)
-    df["magnitude_cat"] = df["diff"].apply(categorizar_magnitude)
-    return df
+    return pd.DataFrame(rows)
 
 
-# ---------------------------------------------------------------------------
-# 2. GRÁFICO 1 — BARRAS DIVERGENTES (MÉDIA DA DIFF POR ATRIBUTO), PAINEL POR MODELO
-# ---------------------------------------------------------------------------
-def grafico_barras_divergentes(df, output_path):
-    modelos = sorted(df["model"].unique())
-    n = len(modelos)
-
-    fig, axes = plt.subplots(1, n, figsize=(6 * n, 6), sharex=True)
-    if n == 1:
-        axes = [axes]
-
-    # ordena atributos pela magnitude média global (consistência entre os painéis)
-    ordem_global = (
-        df.groupby("attribute_label")["diff"].mean().sort_values().index.tolist()
-    )
-
-    for ax, modelo in zip(axes, modelos):
-        sub = (
-            df[df["model"] == modelo]
-            .groupby("attribute_label")["diff"]
-            .mean()
-            .reindex(ordem_global)
+def agregar_entre_modelos(df):
+    """
+    Colapsa os modelos: para cada (tool_id, atributo), tira a média das
+    notas 'com' e 'sem' código entre os modelos. Todos os gráficos usam
+    esta tabela agregada — um único valor por tool/atributo, não um por
+    modelo.
+    """
+    agg = (
+        df.groupby(["tool_id", "attribute", "attribute_label"])
+        .agg(
+            score_com_codigo=("score_com_codigo", "mean"),
+            score_sem_codigo=("score_sem_codigo", "mean"),
         )
-        cores = ["#b2182b" if v < 0 else "#2166ac" for v in sub.values]
-        ax.barh(sub.index, sub.values, color=cores)
-        ax.axvline(0, color="black", linewidth=0.8)
-        ax.set_title(modelo)
-        ax.set_xlabel("Diferença média (com − sem código)")
+        .reset_index()
+    )
+    agg["diff"] = agg["score_com_codigo"] - agg["score_sem_codigo"]
+    return agg
 
-    axes[0].set_ylabel("Atributo da rubrica")
-    fig.suptitle("Impacto médio do código-fonte por atributo, por modelo", y=1.03)
+
+# ---------------------------------------------------------------------------
+# 2. GRÁFICO 1 — BARRAS DIVERGENTES (DIFERENÇA MÉDIA POR ATRIBUTO)
+#    Valor da diferença escrito diretamente na ponta de cada barra.
+# ---------------------------------------------------------------------------
+def grafico_barras_divergentes(agg, output_path):
+    media = agg.groupby("attribute_label")["diff"].mean().sort_values()
+
+    fig, ax = plt.subplots(figsize=(10, 6))
+    cores = [COR_PIOROU if v < 0 else COR_MELHOROU for v in media.values]
+    barras = ax.barh(media.index, media.values, color=cores)
+
+    limite = max(abs(media.min()), abs(media.max()))
+    ax.set_xlim(-limite * 1.6 - 0.05, limite * 1.3 + 0.05)
+
+    for barra, valor in zip(barras, media.values):
+        offset = limite * 0.04 * (1 if valor >= 0 else -1)
+        ha = "left" if valor >= 0 else "right"
+        ax.text(
+            valor + offset, barra.get_y() + barra.get_height() / 2,
+            f"{valor:.2f}", va="center", ha=ha, fontsize=11,
+        )
+
+    ax.axvline(0, color="black", linewidth=0.8)
+    ax.set_xlabel("Diferença média (com − sem código)")
+    _sem_grade_vertical(ax)
+
     fig.tight_layout()
     fig.savefig(output_path, dpi=200, bbox_inches="tight")
     plt.close(fig)
@@ -161,69 +174,58 @@ def grafico_barras_divergentes(df, output_path):
 
 
 # ---------------------------------------------------------------------------
-# 3. GRÁFICO 2 — BOXPLOT AGRUPADO POR ATRIBUTO, COR POR MODELO
-#
-# IMPORTANTE (2 ajustes motivados pelos dados reais):
-#
-# (a) "diff" é um valor inteiro discreto (escala Likert): um strip/jitter
-#     plot com milhares de tools sobrepõe os pontos em faixas horizontais e
-#     esconde as caixas por baixo — por isso usamos boxplot "puro", sem
-#     overlay de pontos individuais (correto para amostras grandes).
-#
-# (b) a maioria dos pares (com/sem código) EMPATA (diff = 0). Isso é
-#     esperado e é exatamente o que o gráfico 3 (stacked diverging) mede.
-#     Mas incluir os empates aqui faz a caixa inteira colapsar em zero
-#     (mediana = Q1 = Q3 = 0), escondendo a pergunta que esse gráfico
-#     deveria responder: "quando a nota MUDA, de quanto é a mudança, e
-#     pra qual direção?". Por isso o boxplot é calculado apenas sobre os
-#     casos com diff != 0 — os empates ficam reportados como % ao lado de
-#     cada atributo, e sua contagem completa já está no gráfico 3.
+# 3. GRÁFICO 2 — BOXPLOT (DESIGN PADRÃO) COMPARANDO COM x SEM CÓDIGO
+#    Por atributo, duas caixas lado a lado: notas com código / sem código.
 # ---------------------------------------------------------------------------
-def grafico_boxplot_strip(df, output_path):
-    ordem_global = (
-        df.groupby("attribute_label")["diff"].mean().sort_values().index.tolist()
+def _plot_boxplot_com_sem(longo, ordem, ax):
+    largura = 0.35
+    x = np.arange(len(ordem))
+    fontes = ["Sem código", "Com código"]
+
+    for i, fonte in enumerate(fontes):
+        dados = [
+            longo[(longo["attribute_label"] == attr) & (longo["fonte"] == fonte)]["score"].values
+            for attr in ordem
+        ]
+        pos = x + (i - 0.5) * largura
+        ax.boxplot(
+            dados,
+            positions=pos,
+            widths=largura * 0.9,
+            patch_artist=True,
+            boxprops=dict(facecolor=("#dddddd" if fonte == "Sem código" else "#1f77b4"), alpha=0.7),
+            medianprops=dict(color="black"),
+            flierprops=dict(marker="o", markersize=3, alpha=0.4),
+        )
+
+    ax.set_xticks(x)
+    ax.set_xticklabels(ordem, rotation=15, ha="right", rotation_mode="anchor")
+    ax.set_ylabel("Nota (escala Likert)")
+    _sem_grade_vertical(ax)
+
+    from matplotlib.patches import Patch
+    legenda = [
+        Patch(facecolor="#dddddd", alpha=0.7, label="Sem código"),
+        Patch(facecolor="#1f77b4", alpha=0.7, label="Com código"),
+    ]
+    ax.legend(handles=legenda, loc="upper right")
+
+
+def grafico_boxplot_com_sem(agg, output_path):
+    ordem = agg.groupby("attribute_label")["diff"].mean().sort_values().index.tolist()
+
+    longo = agg.melt(
+        id_vars=["attribute_label"],
+        value_vars=["score_sem_codigo", "score_com_codigo"],
+        var_name="fonte",
+        value_name="score",
+    )
+    longo["fonte"] = longo["fonte"].map(
+        {"score_sem_codigo": "Sem código", "score_com_codigo": "Com código"}
     )
 
-    df_mudou = df[df["diff"] != 0].copy()
-
-    # % de empates por atributo (para anotar no eixo X)
-    pct_empate = (
-        df.groupby("attribute_label")["diff"]
-        .apply(lambda s: (s == 0).mean() * 100)
-        .reindex(ordem_global)
-    )
-    novos_labels = [f"{a}\n({pct_empate[a]:.0f}% empate)" for a in ordem_global]
-    label_map = dict(zip(ordem_global, novos_labels))
-    df_mudou["attribute_label_anotado"] = df_mudou["attribute_label"].map(label_map)
-    ordem_anotada = [label_map[a] for a in ordem_global]
-
-    fig, ax = plt.subplots(figsize=(15, 8))
-
-    sns.boxplot(
-        data=df_mudou,
-        x="attribute_label_anotado",
-        y="diff",
-        hue="model",
-        order=ordem_anotada,
-        showfliers=True,
-        flierprops=dict(marker="o", markersize=3, alpha=0.3, markeredgewidth=0),
-        showmeans=True,
-        meanprops=dict(
-            marker="D", markerfacecolor="white", markeredgecolor="black", markersize=6
-        ),
-        linewidth=1.2,
-        ax=ax,
-    )
-
-    ax.axhline(0, color="black", linewidth=0.8, linestyle="--")
-    ax.set_xlabel("Atributo da rubrica  (% de empates indicado abaixo do nome)", labelpad=15)
-    ax.set_ylabel("Diferença (com − sem código)\napenas casos que mudaram", labelpad=10)
-    ax.set_title("Distribuição da diferença por atributo e por modelo\n(excluindo empates, diff = 0)", pad=15)
-    ax.legend(title="Modelo", bbox_to_anchor=(1.02, 1), loc="upper left")
-    y_min, y_max = int(df_mudou["diff"].min()), int(df_mudou["diff"].max())
-    ax.set_yticks(range(y_min, y_max + 1))
-    plt.setp(ax.get_xticklabels(), rotation=15, ha="right", rotation_mode="anchor")
-
+    fig, ax = plt.subplots(figsize=(12, 7))
+    _plot_boxplot_com_sem(longo, ordem, ax)
     fig.tight_layout()
     fig.savefig(output_path, dpi=200, bbox_inches="tight")
     plt.close(fig)
@@ -231,121 +233,192 @@ def grafico_boxplot_strip(df, output_path):
 
 
 # ---------------------------------------------------------------------------
-# 4. GRÁFICO 3 — DIVERGING STACKED BAR (QUANTIDADE x MAGNITUDE), POR ATRIBUTO
-#    (uma versão agregando todos os modelos, e opcionalmente uma por modelo)
+# 3b. GRÁFICO EXTRA — MESMO BOXPLOT, MAS SÓ COM TOOLS QUE MUDARAM (diff != 0)
+#     NAQUELE atributo. Remove os empates, que colapsam a caixa em casos onde
+#     a maioria das notas nunca muda (ex.: nota sempre 1).
 # ---------------------------------------------------------------------------
-def _plot_stacked(ax, df_subset, titulo):
-    contagem = (
-        df_subset.groupby(["attribute_label", "magnitude_cat"])
-        .size()
-        .unstack(fill_value=0)
-        .reindex(columns=CATEGORY_ORDER, fill_value=0)
+def grafico_boxplot_com_sem_apenas_mudou(agg, output_path):
+    ordem = agg.groupby("attribute_label")["diff"].mean().sort_values().index.tolist()
+
+    agg_mudou = agg[agg["diff"] != 0].copy()
+
+    # % de tools usadas em cada caixa (as que mudaram), pra dar contexto no eixo
+    n_total = agg.groupby("attribute_label").size()
+    n_mudou = agg_mudou.groupby("attribute_label").size().reindex(ordem, fill_value=0)
+    pct_mudou = (n_mudou / n_total.reindex(ordem) * 100).round(0)
+    ordem_rotulada = [f"{a}\n(n={int(n_mudou[a])}, {pct_mudou[a]:.0f}%)" for a in ordem]
+
+    longo = agg_mudou.melt(
+        id_vars=["attribute_label"],
+        value_vars=["score_sem_codigo", "score_com_codigo"],
+        var_name="fonte",
+        value_name="score",
+    )
+    longo["fonte"] = longo["fonte"].map(
+        {"score_sem_codigo": "Sem código", "score_com_codigo": "Com código"}
+    )
+    mapa_rotulo = dict(zip(ordem, ordem_rotulada))
+    longo["attribute_label"] = longo["attribute_label"].map(mapa_rotulo)
+
+    fig, ax = plt.subplots(figsize=(12, 7))
+    _plot_boxplot_com_sem(longo, ordem_rotulada, ax)
+    ax.set_xlabel("(n = quantidade de tools que mudaram naquele atributo, % do total)")
+    fig.tight_layout()
+    fig.savefig(output_path, dpi=200, bbox_inches="tight")
+    plt.close(fig)
+    print(f"[OK] Gráfico 2b (apenas mudanças) salvo em: {output_path}")
+
+
+# ---------------------------------------------------------------------------
+# 4. GRÁFICO 3 — % DE CASOS QUE MUDARAM + MAGNITUDE MÉDIA
+#    Valores escritos diretamente nas barras (nenhum texto descritivo).
+# ---------------------------------------------------------------------------
+def grafico_quantidade_magnitude(agg, output_path):
+    grupos = agg.groupby("attribute_label")
+
+    pct_piorou = grupos["diff"].apply(lambda s: (s < 0).mean() * 100)
+    pct_melhorou = grupos["diff"].apply(lambda s: (s > 0).mean() * 100)
+
+    total = (pct_piorou + pct_melhorou).sort_values()
+    ordem = total.index.tolist()
+
+    fig, ax = plt.subplots(figsize=(11, 6))
+    y = np.arange(len(ordem))
+
+    barras_piorou = ax.barh(y, pct_piorou.reindex(ordem), color=COR_PIOROU, label="Piorou")
+    barras_melhorou = ax.barh(
+        y, pct_melhorou.reindex(ordem), left=pct_piorou.reindex(ordem),
+        color=COR_MELHOROU, label="Melhorou",
     )
 
-    # ordena atributos pelo total de mudanças (não-neutras), decrescente
-    total_mudancas = contagem.drop(columns=["Não mudou"]).sum(axis=1)
-    contagem = contagem.loc[total_mudancas.sort_values(ascending=True).index]
+    # valor (%) escrito dentro de cada segmento da barra
+    for barra, valores in [(barras_piorou, pct_piorou.reindex(ordem)),
+                            (barras_melhorou, pct_melhorou.reindex(ordem))]:
+        for rect, valor in zip(barra, valores):
+            if valor <= 0:
+                continue
+            ax.text(
+                rect.get_x() + rect.get_width() / 2, rect.get_y() + rect.get_height() / 2,
+                f"{valor:.0f}%", va="center", ha="center", color="white", fontsize=10,
+            )
 
-    # calcula porcentagens para plot centrado em zero (diverging)
-    pct = contagem.div(contagem.sum(axis=1), axis=0) * 100
+    # total (%) escrito na ponta da barra, sem nenhum texto adicional
+    for yi, attr in zip(y, ordem):
+        ax.text(total[attr] + 1.5, yi, f"{total[attr]:.0f}%", va="center", ha="left", fontsize=11)
 
-    # metade das categorias negativas + metade de "não mudou" empurradas p/ esquerda
-    esquerda = pct[["Piorou muito", "Piorou pouco"]].sum(axis=1) + pct["Não mudou"] / 2
-    offset = -esquerda
+    ax.set_yticks(y)
+    ax.set_yticklabels(ordem)
+    ax.set_xlabel("% de casos que mudaram")
+    ax.set_xlim(0, max(total.max() * 1.25, 15))
+    ax.legend(loc="lower right")
+    _sem_grade_vertical(ax)
 
-    left_acc = offset.copy()
-    for cat in CATEGORY_ORDER:
-        vals = pct[cat]
-        ax.barh(pct.index, vals, left=left_acc, color=CATEGORY_COLORS[cat], label=cat)
-        left_acc = left_acc + vals
-
-    ax.axvline(0, color="black", linewidth=0.8)
-    ax.set_title(titulo)
-    ax.set_xlabel("% de casos")
-
-
-def grafico_stacked_diverging(df, output_path, por_modelo=False):
-    if not por_modelo:
-        fig, ax = plt.subplots(figsize=(12, 6))
-        _plot_stacked(ax, df, "Distribuição das mudanças por atributo (todos os modelos)")
-        handles, labels = ax.get_legend_handles_labels()
-        by_label = dict(zip(labels, handles))
-        ax.legend(
-            by_label.values(),
-            by_label.keys(),
-            title="Magnitude",
-            bbox_to_anchor=(1.02, 1),
-            loc="upper left",
-        )
-        fig.tight_layout()
-        fig.savefig(output_path, dpi=200, bbox_inches="tight")
-        plt.close(fig)
-        print(f"[OK] Gráfico 3 salvo em: {output_path}")
-    else:
-        modelos = sorted(df["model"].unique())
-        n = len(modelos)
-        fig, axes = plt.subplots(1, n, figsize=(6 * n, 6), sharex=True)
-        if n == 1:
-            axes = [axes]
-        for ax, modelo in zip(axes, modelos):
-            _plot_stacked(ax, df[df["model"] == modelo], modelo)
-        handles, labels = axes[0].get_legend_handles_labels()
-        by_label = dict(zip(labels, handles))
-        fig.legend(
-            by_label.values(),
-            by_label.keys(),
-            title="Magnitude",
-            bbox_to_anchor=(1.0, 1.05),
-            loc="upper left",
-        )
-        fig.suptitle("Distribuição das mudanças por atributo, por modelo", y=1.08)
-        fig.tight_layout()
-        fig.savefig(output_path, dpi=200, bbox_inches="tight")
-        plt.close(fig)
-        print(f"[OK] Gráfico 3 (por modelo) salvo em: {output_path}")
+    fig.tight_layout()
+    fig.savefig(output_path, dpi=200, bbox_inches="tight")
+    plt.close(fig)
+    print(f"[OK] Gráfico 3 salvo em: {output_path}")
 
 
 # ---------------------------------------------------------------------------
-# 5. TESTE RÁPIDO DE CONCORDÂNCIA ENTRE MODELOS (para decidir se agrega ou não)
+# GRÁFICO EXTRA — STACKED: DIMINUIU / EMPATOU / AUMENTOU
+#    Uma barra por atributo, dividida em 3 segmentos, todas começando em 0%
+#    e somando 100%. Valor (%) escrito dentro de cada segmento.
+# ---------------------------------------------------------------------------
+COR_DIMINUIU = "#d62728"   # vermelho padrão
+COR_EMPATOU = "#bbbbbb"    # cinza claro
+COR_AUMENTOU = "#1f77b4"   # azul padrão
+
+ORDEM_ATRIBUTOS_FIXA = [
+    "Propósito",
+    "Explicação de parâmetros",
+    "Completude/extensão",
+    "Diretrizes de uso",
+    "Limitações",
+    "Exemplos",
+]
+
+def grafico_diminuiu_empatou_aumentou(agg, output_path):
+    # ordem fixa solicitada (de cima para baixo no gráfico); como barh empilha
+    # de baixo pra cima, invertemos a lista antes de plotar
+    ordem = ORDEM_ATRIBUTOS_FIXA[::-1]
+
+    pct = pd.DataFrame(index=ordem, columns=["Diminuiu", "Empatou", "Aumentou"], dtype=float)
+    for attr in ordem:
+        s = agg.loc[agg["attribute_label"] == attr, "diff"]
+        n = len(s)
+        pct.loc[attr, "Diminuiu"] = (s < 0).sum() / n * 100
+        pct.loc[attr, "Empatou"] = (s == 0).sum() / n * 100
+        pct.loc[attr, "Aumentou"] = (s > 0).sum() / n * 100
+
+    fig, ax = plt.subplots(figsize=(12, 6))
+    y = np.arange(len(ordem))
+
+    esquerda_acumulado = np.zeros(len(ordem))
+    segmentos = [
+        ("Diminuiu", COR_DIMINUIU),
+        ("Aumentou", COR_AUMENTOU),
+        ("Empatou", COR_EMPATOU),
+    ]
+    for cat, cor in segmentos:
+        valores = pct[cat].values
+        barras = ax.barh(y, valores, left=esquerda_acumulado, color=cor, label=cat)
+        for rect, valor in zip(barras, valores):
+            if valor <= 0:
+                continue
+            cor_texto = "white" if cat != "Empatou" else "black"
+            ax.text(
+                rect.get_x() + rect.get_width() / 2, rect.get_y() + rect.get_height() / 2,
+                f"{valor:.0f}%", va="center", ha="center", color=cor_texto, fontsize=10,
+            )
+        esquerda_acumulado = esquerda_acumulado + valores
+
+    ax.set_yticks(y)
+    ax.set_yticklabels(ordem)
+    ax.set_xlim(0, 100)
+    ax.set_xlabel("% de casos")
+    ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.15), ncol=3)
+    _sem_grade_vertical(ax)
+
+    fig.tight_layout()
+    fig.savefig(output_path, dpi=200, bbox_inches="tight")
+    plt.close(fig)
+    print(f"[OK] Gráfico diminuiu/empatou/aumentou salvo em: {output_path}")
+
+
+# ---------------------------------------------------------------------------
+# 5. TESTE DE CONCORDÂNCIA ENTRE MODELOS (só informativo no terminal)
 # ---------------------------------------------------------------------------
 def checar_concordancia(df):
     tabela = df.groupby(["model", "attribute_label"])["diff"].mean().unstack(0)
-    print("\n=== Diferença média por atributo e modelo ===")
+    print("\n=== Diferença média por atributo e modelo (antes de agregar) ===")
     print(tabela.round(2))
-    print("\n=== Correlação entre modelos (ordem de atributos mais afetados) ===")
+    print("\n=== Correlação entre modelos ===")
     print(tabela.corr(method="spearman").round(2))
-    return tabela
 
 
 # ---------------------------------------------------------------------------
 # MAIN
 # ---------------------------------------------------------------------------
 def main():
-    import os
-
     os.makedirs(OUTPUT_DIR, exist_ok=True)
 
     df = carregar_dados(INPUT_JSON)
     print(f"Total de linhas (tool x modelo x atributo): {len(df)}")
 
-    # salva o dataset já processado, para reuso em outras análises/gráficos
     csv_path = f"{OUTPUT_DIR}/dados_long_format.csv"
     df.to_csv(csv_path, index=False)
     print(f"[OK] CSV long-format salvo em: {csv_path}")
 
     checar_concordancia(df)
 
-    grafico_barras_divergentes(df, f"{OUTPUT_DIR}/barras_divergentes_por_modelo.png")
-    grafico_boxplot_strip(df, f"{OUTPUT_DIR}/boxplot_strip_por_atributo_modelo.png")
-    grafico_stacked_diverging(
-        df, f"{OUTPUT_DIR}/stacked_diverging_quantidade_magnitude.png", por_modelo=False
-    )
-    # versão extra por modelo, para checar consistência (ex.: usar no apêndice)
-    grafico_stacked_diverging(
-        df,
-        f"{OUTPUT_DIR}/stacked_diverging_quantidade_magnitude_por_modelo.png",
-        por_modelo=True,
-    )
+    agg = agregar_entre_modelos(df)
+    agg.to_csv(f"{OUTPUT_DIR}/dados_agregados_entre_modelos.csv", index=False)
+
+    grafico_barras_divergentes(agg, f"{OUTPUT_DIR}/barras_divergentes.png")
+    grafico_boxplot_com_sem(agg, f"{OUTPUT_DIR}/boxplot_com_sem_codigo.png")
+    grafico_boxplot_com_sem_apenas_mudou(agg, f"{OUTPUT_DIR}/boxplot_com_sem_codigo_apenas_mudou.png")
+    grafico_quantidade_magnitude(agg, f"{OUTPUT_DIR}/quantidade_magnitude.png")
+    grafico_diminuiu_empatou_aumentou(agg, f"{OUTPUT_DIR}/diminuiu_empatou_aumentou.png")
 
 
 if __name__ == "__main__":

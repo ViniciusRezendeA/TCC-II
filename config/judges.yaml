@@ -51,11 +51,11 @@ judges:
     enabled: true
 
   # Qwen3 rodando pelo wrapper FastAPI em ollhama/main.py, que encaminha para o Ollama.
-  - id: qwen3-8b-ollama
+  - id: qwen3-14b-ollama
     provider: ollama
-    model_id: qwen3:8b
-    base_url: http://localhost:8000
-    timeout_seconds: 300
+    model_id: qwen3:14b
+    base_url: http://192.168.18.98:8000
+    timeout_seconds: null
     enabled: false
 
 # Testes (o modelo é sempre escolhido via --judges, nunca hardcoded em script):
