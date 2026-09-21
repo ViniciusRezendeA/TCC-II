@@ -1,0 +1,30 @@
+\section{Fundamentação Teórica}
+\label{sec:fundamentacao}
+
+Esta seção apresenta os conceitos fundamentais para a compreensão da pesquisa proposta: os modelos de linguagem de grande escala, o protocolo MCP, as descrições de ferramentas e os \textit{smells} que as afetam.
+
+\subsection{Modelos de Linguagem de Grande Escala}
+
+Os LLMs são modelos de fundação especializados no processamento de linguagem natural, treinados sobre extensos acervos de texto para compreender e gerar conteúdo em múltiplos contextos \cite{2025arXiv250814704L}. Sua relevância para este trabalho reside menos em sua capacidade generativa e mais em uma evolução recente: a transição de preditores de texto para agentes que operam de forma parcialmente autônoma, decompondo problemas em subtarefas e coordenando sua execução \cite{multiagent}.
+
+Essa transição é viabilizada pelo paradigma de \textit{tool calling}, no qual o modelo interpreta a intenção do usuário e formula requisições estruturadas para sistemas externos, como bancos de dados ou APIs \cite{11298840}. Ao invocar ferramentas externas, o agente supera a natureza estática de seu conhecimento de treinamento e passa a acessar dados atualizados e a executar ações concretas. É justamente essa dependência de ferramentas externas que torna crítica a forma como tais ferramentas são descritas e disponibilizadas ao modelo.
+
+\subsection{Model Context Protocol}
+
+O \textit{Model Context Protocol} (MCP) é um padrão aberto que define como aplicações de IA se conectam a fontes de dados e ferramentas externas. Ele atua como uma camada de padronização entre o modelo e os sistemas que ele consome, de modo análogo ao papel que o USB-C desempenha ao uniformizar a conexão de periféricos de \textit{hardware} \cite{guo2025measurement}. Tecnicamente, o protocolo adota uma arquitetura cliente-servidor baseada em mensagens JSON-RPC, na qual um \textit{host} orquestra um ou mais servidores responsáveis por expor suas funcionalidades de maneira uniforme \cite{shi2026description}.
+
+Cada servidor MCP disponibiliza suas capacidades por meio de três primitivas: as ferramentas (\textit{tools}), que executam ações; os recursos (\textit{resources}), que fornecem dados contextuais; e os \textit{prompts}, que oferecem modelos de instrução \cite{guo2025measurement}. Esse modelo padronizado dispensa a escrita de código de integração específico para cada plataforma e estabelece convenções comuns para a descoberta e a utilização de funcionalidades, o que favorece a interoperabilidade e o reúso de ferramentas no ecossistema \cite{mcpAtFirstGlance}.
+
+\subsection{Descrições de Ferramentas}
+
+No MCP, as ferramentas dependem de descrições em linguagem natural como principal guia para os agentes baseados em LLMs. Diferentemente de sistemas tradicionais, que utilizam assinaturas de código estritas, a orquestração por IA exige que o propósito, os parâmetros e as restrições de cada funcionalidade sejam explicados textualmente, pois é a partir desse texto que o modelo decide quando e como invocar cada recurso \cite{2026arXiv260214878M}.
+
+A qualidade dessa interface linguística determina a capacidade do agente de selecionar as ferramentas corretas e de fornecer argumentos coerentes durante a execução. Uma descrição ambígua ou incompleta pode induzir o modelo a erros de planejamento, resultando em chamadas inválidas ou no uso de parâmetros inadequados. A descrição deixa de ser, assim, uma documentação passiva e passa a funcionar como um artefato de especificação que influencia diretamente a tomada de decisão do sistema.
+
+\subsection{Smells em Descrições}
+
+O conceito de \textit{smell} refere-se a características estruturais que sugerem problemas de qualidade em um artefato, ainda que não configurem defeitos funcionais, dificultando sua compreensão e manutenção. Na Engenharia de Software, LLMs têm sido empregados para detectar esses indícios em código, com eficácia comparável ou superior à de regras estáticas tradicionais \cite{souza2026beyond}.
+
+No âmbito do MCP, o termo aplica-se a ambiguidades e inconsistências nas descrições de ferramentas que prejudicam sua interpretação pelos modelos de IA \cite{2026arXiv260214878M}. Evidências indicam que a falta de rigor nessas descrições é um problema recorrente, presente tanto em servidores oficiais quanto em comunitários, manifestando-se em propósitos obscuros ou orientações de uso ausentes.
+
+A detecção e a correção desses problemas tornam-se, portanto, condições relevantes para a confiabilidade do ecossistema, uma vez que descrições precisas sustentam o raciocínio dos agentes e favorecem uma execução de tarefas mais estável.

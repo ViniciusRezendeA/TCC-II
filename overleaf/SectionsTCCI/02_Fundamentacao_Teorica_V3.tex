@@ -1,0 +1,29 @@
+\section{Fundamentação Teórica}
+\label{sec:fundamentacao}
+
+Nesta seção, \textcolor{red}{são} descritos os principais tópicos que \textcolor{red}{contextualizam e fundamentam} a pesquisa. \textcolor{red}{Inicialmente, é apresentado o conceito de qualidade de software}. Em seguida, é apresentado o MCP, protocolo responsável por padronizar a comunicação entre agentes e ferramentas. Posteriormente, são abordadas as descrições em linguagem natural utilizadas por ferramentas MCP, elemento central para o processo de tomada de decisão dos agentes. Por fim, são discutidos os conceitos relacionados aos \textit{smells} em descrições de ferramentas.
+
+\subsection{\textcolor{red}{Qualidade de Software}}
+\textcolor{red}{A qualidade, no âmbito da Engenharia de Software, pode ser compreendida como o grau em que um produto de software atende aos requisitos especificados e às necessidades e expectativas de seus usuários e demais partes interessadas \cite{iso24765}. Segundo Pressman e Maxim (2016)\nocite{pressman2016}, a qualidade de software envolve tanto a conformidade com requisitos funcionais e de desempenho explicitamente declarados quanto a aderência a padrões de desenvolvimento e a características implícitas esperadas de todo software desenvolvido profissionalmente.}
+
+\textcolor{red}{Nesse contexto, normas internacionais como a ISO/IEC 25010 \cite{iso25010} estabelecem modelos de qualidade que decompõem o conceito em características mensuráveis, tais como adequação funcional, confiabilidade, usabilidade e manutenibilidade, permitindo que a qualidade seja avaliada de forma sistemática e objetiva. A avaliação da qualidade, portanto, não se restringe ao código, estendendo-se também aos artefatos que compõem o software, como documentação, especificações e descrições, cuja clareza e precisão impactam diretamente a compreensão e o uso correto do sistema. Em sistemas baseados em agentes de IA, esses artefatos textuais assumem papel ainda mais crítico, uma vez que passam a orientar diretamente o comportamento dos modelos, como ocorre nas descrições de ferramentas MCP.}
+
+\subsection{Model Context Protocol}
+
+O \textit{Model Context Protocol} (MCP) é um padrão aberto que define como aplicações de IA se conectam a fontes de dados e ferramentas externas. Ele atua como uma camada de padronização entre o modelo e os sistemas que ele consome, de modo análogo ao papel que o USB-C desempenha ao uniformizar a conexão de periféricos de \textit{hardware} \cite{guo2025measurement}. Tecnicamente, o protocolo adota uma arquitetura cliente-servidor baseada em mensagens JSON-RPC, na qual um \textit{host} orquestra um ou mais servidores responsáveis por expor suas funcionalidades de maneira uniforme \cite{shi2026description}.
+
+Cada servidor MCP disponibiliza suas capacidades por meio de três primitivas: as ferramentas (\textit{tools}), que executam ações; os recursos (\textit{resources}), que fornecem dados contextuais; e os \textit{prompts}, que oferecem modelos de instrução \cite{guo2025measurement}. Esse modelo padronizado dispensa a escrita de código de integração específico para cada plataforma e estabelece convenções comuns para a descoberta e a utilização de funcionalidades, o que favorece a interoperabilidade e o reúso de ferramentas no ecossistema \cite{mcpAtFirstGlance}.
+
+\subsection{Descrições de Ferramentas}
+
+No MCP, as ferramentas dependem de descrições em linguagem natural como principal guia para os agentes baseados em LLMs. Diferentemente de sistemas tradicionais, que utilizam assinaturas de código estritas, a orquestração por IA exige que o propósito, os parâmetros e as restrições de cada funcionalidade sejam explicados textualmente, pois é a partir desse texto que o modelo decide quando e como invocar cada recurso \cite{2026arXiv260214878M}.
+
+A qualidade dessa interface linguística determina a capacidade do agente de selecionar as ferramentas corretas e de fornecer argumentos coerentes durante a execução. Uma descrição ambígua ou incompleta pode induzir o modelo a erros de planejamento, resultando em chamadas inválidas ou no uso de parâmetros inadequados \cite{shi2026description}. A descrição deixa de ser, assim, uma documentação passiva e passa a funcionar como um artefato de especificação que influencia diretamente a tomada de decisão do sistema. 
+
+
+\subsection{Smells em Descrições}
+
+O conceito de \textit{smell} refere-se a características estruturais que sugerem problemas de qualidade em um artefato, ainda que não configurem defeitos funcionais, dificultando sua compreensão e manutenção \cite{2026arXiv260214878M}. \textcolor{red}{Embora originalmente associado
+ao código, o conceito foi progressivamente estendido a artefatos em linguagem natural, como os \textit{requirements smells}, que identificam ambiguidades e imprecisões em especificações de requisitos \cite{femmer2017}, e os \textit{documentation smells}, que apontam problemas de qualidade em documentação de APIs \cite{khan2021}.}
+
+No âmbito do MCP, o termo aplica-se a ambiguidades\textcolor{red}{, inconsistências e omissões nas descrições de ferramentas, como a ausência de especificação dos parâmetros de entrada e saída, do comportamento esperado e das limitações da ferramenta }\cite{2026arXiv260214878M}. \textcolor{red}{Por exemplo, uma ferramenta cuja descrição se limita a ``processa os dados'' configura um \textit{smell} de vagueza: o texto não especifica quais dados são aceitos, qual transformação é aplicada nem qual saída é produzida, impedindo que o agente determine quando a ferramenta deve ser invocada.} A detecção e a correção desses problemas tornam-se, portanto, condições relevantes para a confiabilidade do ecossistema, uma vez que descrições precisas sustentam o raciocínio dos agentes e favorecem uma execução de tarefas mais estável.

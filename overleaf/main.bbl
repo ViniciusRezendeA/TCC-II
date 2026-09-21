@@ -6,6 +6,14 @@ Borges, H., Hora, A., and Valente, M.~T. (2016).
 \newblock In {\em Proceedings of the 12th International Conference on
   Predictive Models and Data Analytics in Software Engineering}, pages 1--10.
 
+\bibitem[Chaokromthong et~al. 2021]{chaokromthong2021sample}
+Chaokromthong, K., Sintao, N., et~al. (2021).
+\newblock Sample size estimation using yamane and cochran and krejcie and
+  morgan and green formulas and cohen statistical power analysis by g* power
+  and comparisions.
+\newblock {\em Apheit international journal of interdisciplinary social
+  sciences and technology}, 10(2):76--86.
+
 \bibitem[Dong et~al. 2023]{BashInTheWild}
 Dong, Y., Li, Z., Tian, Y., Sun, C., Godfrey, M.~W., and Nagappan, M. (2023).
 \newblock Bash in the wild: Language usage, code smells, and bugs.

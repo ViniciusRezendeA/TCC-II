@@ -1,0 +1,36 @@
+\section{Algoritmo de Sumarização Estrutural do Código-Fonte das Tools}
+\label{apendice:secao}
+
+Este apêndice detalha o algoritmo desenvolvido para a extração e sumarização da estrutura de execução das ferramentas MCP, denominado \textit{Structural Code Summarizer} (SCS). O objetivo desta implementação consiste em converter a lógica imperativa do código-fonte em uma representação compacta, apta a ser processada pela janela de contexto de modelos de linguagem, conforme ilustrado na Figura \ref{fig:codigoarvore}.
+
+\subsection*{Procedimento de Extração}
+O algoritmo opera em três fases distintas:
+\begin{enumerate}
+    \item \textbf{Mapeamento de Pontos de Entrada:} Identificação do \textit{entry point} da ferramenta dentro do servidor MCP.
+    \item \textbf{Construção do Grafo de Chamadas (\textit{Call Graph}):} Utilização de análise estática para mapeamento das dependências de funções até uma profundidade máxima de três níveis.
+    \item \textbf{Sumarização Estrutural:} Linearização do grafo em formato de texto hierárquico, preservando assinaturas e tipos, com a omissão de detalhes de implementação (\textit{boilerplate}) que não impactam a semântica técnica.
+\end{enumerate}
+
+\subsection*{Pseudocódigo do Algoritmo}
+A lógica operacional do SCS, responsável por percorrer a estrutura de funções e formatar a saída, é apresentada na Listagem 1. O método emprega uma busca em profundidade limitada para garantir que apenas o contexto relevante seja extraído.
+
+\begin{lstlisting}[language=Python, caption=Lógica do algoritmo SCS, label=code:scs]
+def extract_call_graph(tool_entry_point, depth=3):
+graph = {}
+def traverse(func, current_depth):
+if current_depth > depth:
+return
+
+    calls = get_internal_function_calls(func)
+    graph[func] = calls
+
+    for next_func in calls:
+        traverse(next_func, current_depth + 1)
+
+traverse(tool_entry_point, 0)
+return format_to_tree_view(graph)
+
+\end{lstlisting}
+
+\subsection*{Justificativa Técnica}
+A limitação a três níveis de profundidade baseia-se na heurística de que a intenção lógica da ferramenta é definida na camada superior da pilha de chamadas. Esta abordagem permite que o avaliador (\textit{LLM-as-a-Judge}) identifique inconsistências entre a documentação e a implementação sem ser sobrecarregado por detalhes de infraestrutura de baixo nível \cite{shi2026description}. Além disso, essa restrição preserva a economia de \textit{tokens}, permitindo que o modelo foque na análise da divergência semântica central.

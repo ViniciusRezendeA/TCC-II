@@ -24,6 +24,8 @@
 \usepackage[inline]{enumitem}
 \usepackage{tcolorbox}
 \usepackage{multirow}
+\usepackage{amsmath} 
+\usepackage{booktabs} 
 
 %%%%%%%%%%%%%%%%% Pacotes para inserção de algoritmos - BEGIN
 \usepackage[ruled,lined]{algorithm2e}
@@ -34,7 +36,7 @@
 % Definindo novas cores
 \definecolor{verde}{rgb}{0.25,0.5,0.35}
 \definecolor{jpurple}{rgb}{0.5,0,0.35}
-\definecolor{darkgreen}{rgb}{0.0, 0.2, 0.13}
+\definecolor{darkorange}{rgb}{0.0, 0.2, 0.13}
 %\definecolor{oldmauve}{rgb}{0.4, 0.19, 0.28}
 
 \usepackage{listings}
@@ -76,11 +78,11 @@
 \maketitle
 
 \begin{resumo}
-O \textit{Model Context Protocol} (MCP) permite que agentes de Inteligência Artificial (IA) interajam com sistemas externos por meio de \textit{tools}, cujas descrições em linguagem natural orientam sua utilização. Entretanto, descrições de baixa qualidade, caracterizadas pela presença de \textit{smells}, podem comprometer a eficácia desses agentes. Nesse contexto, este trabalho \textcolor{red}{realiza um} estudo sobre \textcolor{green}{a avaliação da qualidade dessas descrições por meio de uma rubrica multidimensional, da qual se derivam deficiências associadas a} \textit{smells} \textcolor{green}{em ferramentas MCP}, incorporando o código das ferramentas ao processo de avaliação. Para isso, são minerados repositórios de servidores MCP no GitHub e realizadas avaliações automatizadas das descrições das \textit{tools}. O objetivo é comparar resultados obtidos a partir das descrições com aqueles enriquecidos pelo código da ferramenta. Espera-se demonstrar que a inclusão desse contexto técnico revela inconsistências entre descrição e implementação, tornando mais precisa a avaliação de qualidade e \textcolor{green}{a identificação} desses \textit{smells}.
+O \textit{Model Context Protocol} (MCP) permite que agentes de Inteligência Artificial (IA) interajam com sistemas externos por meio de \textit{tools}, cujas descrições em linguagem natural orientam sua utilização. Entretanto, descrições de baixa qualidade, caracterizadas pela presença de \textit{smells}, podem comprometer a eficácia desses agentes. Nesse contexto, este trabalho \textcolor{red}{realiza um} estudo sobre \textcolor{orange}{a avaliação da qualidade dessas descrições por meio de uma rubrica multidimensional, da qual se derivam deficiências associadas a} \textit{smells} \textcolor{orange}{em ferramentas MCP}, incorporando o código das ferramentas ao processo de avaliação. Para isso, são minerados repositórios de servidores MCP no GitHub e realizadas avaliações automatizadas das descrições das \textit{tools}. O objetivo é comparar resultados obtidos a partir das descrições com aqueles enriquecidos pelo código da ferramenta. Espera-se demonstrar que a inclusão desse contexto técnico revela inconsistências entre descrição e implementação, tornando mais precisa a avaliação de qualidade e \textcolor{orange}{a identificação} desses \textit{smells}.
 \end{resumo}
 
 \begin{abstract}
-The \textit{Model Context Protocol} (MCP) enables Artificial Intelligence (AI) agents to interact with external systems through \textit{tools}, whose natural language descriptions guide their usage. However, poor-quality descriptions, characterized by the presence of \textit{smells}, can compromise the effectiveness of these agents. In this context, this work \textcolor{red}{conducts a} study on \textcolor{green}{assessing the quality of these descriptions through a multidimensional rubric, from which deficiencies associated with} \textit{smells} \textcolor{green}{in MCP tools are derived}, incorporating the tools' source code into the evaluation process. To achieve this, MCP server repositories are mined from GitHub, and automated evaluations of tool descriptions are performed. The objective is to compare results obtained solely from descriptions with those enriched by the tool's code. It is expected to demonstrate that incorporating this technical context reveals inconsistencies between description and implementation, thereby improving both the quality assessment and \textcolor{green}{the identification} of these \textit{smells}.
+The \textit{Model Context Protocol} (MCP) enables Artificial Intelligence (AI) agents to interact with external systems through \textit{tools}, whose natural language descriptions guide their usage. However, poor-quality descriptions, characterized by the presence of \textit{smells}, can compromise the effectiveness of these agents. In this context, this work \textcolor{red}{conducts a} study on \textcolor{orange}{assessing the quality of these descriptions through a multidimensional rubric, from which deficiencies associated with} \textit{smells} \textcolor{orange}{in MCP tools are derived}, incorporating the tools' source code into the evaluation process. To achieve this, MCP server repositories are mined from GitHub, and automated evaluations of tool descriptions are performed. The objective is to compare results obtained solely from descriptions with those enriched by the tool's code. It is expected to demonstrate that incorporating this technical context reveals inconsistencies between description and implementation, thereby improving both the quality assessment and \textcolor{orange}{the identification} of these \textit{smells}.
 \end{abstract}
 
 
@@ -98,15 +100,15 @@ Belo Horizonte, 28 de junho de 2026.
 
 
 \input{sectionsTCCII/01_Introducao}
-\input{SectionsTCCII/02_Fundamentacao_Teorica_V3}
-\input{SectionsTCCII/03_Trabalhos_Relacionados}
+ \input{sectionsTCCII/02_Fundamentacao_Teorica_V3}
+\input{sectionsTCCII/03_Trabalhos_Relacionados}
 \input{sectionsTCCII/04_Materiais_Metodos}
 \input{sectionsTCCII/05_Resultados_Parciais}
 \bibliographystyle{sbc}
 \bibliography{sbc-template}
 
-\appendix
-\section*{Apêndice}
-\input{sectionsTCCII/Apendice}
+ \appendix
+ \section*{Apêndice}
+ \input{sectionsTCCII/Apendice}
 
 \end{document}

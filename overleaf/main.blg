@@ -3,44 +3,46 @@ Capacity: max_strings=200000, hash_size=200000, hash_prime=170003
 The top-level auxiliary file: main.aux
 The style file: sbc.bst
 Database file #1: sbc-template.bib
-You've used 17 entries,
+Warning--I didn't find a database entry for "mccabe1976complexity"
+You've used 18 entries,
             1935 wiz_defined-function locations,
-            571 strings with 7590 characters,
-and the built_in function-call counts, 7425 in all, are:
-= -- 690
-> -- 446
+            578 strings with 7931 characters,
+and the built_in function-call counts, 7833 in all, are:
+= -- 731
+> -- 464
 < -- 10
-+ -- 160
-- -- 158
-* -- 632
-:= -- 1350
-add.period$ -- 53
-call.type$ -- 17
-change.case$ -- 165
-chr.to.int$ -- 17
-cite$ -- 17
-duplicate$ -- 258
-empty$ -- 422
-format.name$ -- 177
-if$ -- 1412
++ -- 166
+- -- 164
+* -- 670
+:= -- 1422
+add.period$ -- 56
+call.type$ -- 18
+change.case$ -- 172
+chr.to.int$ -- 18
+cite$ -- 18
+duplicate$ -- 272
+empty$ -- 450
+format.name$ -- 184
+if$ -- 1490
 int.to.chr$ -- 1
 int.to.str$ -- 0
-missing$ -- 14
-newline$ -- 89
-num.names$ -- 53
-pop$ -- 153
+missing$ -- 15
+newline$ -- 94
+num.names$ -- 56
+pop$ -- 158
 preamble$ -- 1
-purify$ -- 161
+purify$ -- 168
 quote$ -- 0
-skip$ -- 203
+skip$ -- 214
 stack$ -- 0
-substring$ -- 349
-swap$ -- 41
+substring$ -- 380
+swap$ -- 42
 text.length$ -- 4
 text.prefix$ -- 0
 top$ -- 0
-type$ -- 100
+type$ -- 106
 warning$ -- 0
-while$ -- 48
+while$ -- 52
 width$ -- 0
-write$ -- 224
+write$ -- 237
+(There was 1 warning)

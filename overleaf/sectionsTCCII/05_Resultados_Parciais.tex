@@ -2,6 +2,8 @@
 \section{Resultados}
 \label{sec:resultados}
 
+%% TALVEZ AQUI VALHA FAZER TIPO UM FILTRO DE PEGAR IGUALMENTE OU IGUALMENTE DISTRIBUIDA AS DIFERENÇAS ENTRE TOPICOS OU REPOSITORIOS OU SEI LA
+
 Esta seção apresenta os resultados da avaliação por rubrica descrita na Seção~\ref{sec:materiais}, obtidos até o momento da redação deste artigo com o juiz DeepSeek-V4.1-Flash: 8.648 avaliações concluídas, das quais 4.304 ferramentas foram avaliadas nos dois cenários experimentais (\textit{description\_only} e \textit{with\_source}), permitindo o pareamento necessário para o Teste de Wilcoxon. A avaliação pelos demais juízes configurados no pipeline (Gemini 3.5 Flash-Lite e Qwen2.5-14B-Instruct, Seção~\ref{sec:materiais}) está em execução; a comparação entre avaliadores distintos é tratada como direção de trabalho futuro.
 
 \subsection{Comparação entre Cenários e Significância Estatística}
@@ -25,6 +27,10 @@ Examples & 1,20 & 1,20 & -0,00 & 0,425 & Não \\ \hline
 \end{table}
 
 A inclusão do código reduz o escore médio nas seis dimensões da rubrica, com diferença estatisticamente significativa em cinco delas (todas exceto \textit{Examples}); a maior queda ocorre em \textit{Purpose} ($\Delta = -0,13$), seguida por \textit{Parameter Explanation} ($\Delta = -0,06$). Esse padrão é compatível com a hipótese de que o código expõe lacunas da descrição não percebidas quando apenas o texto é avaliado: ao confrontar a descrição com uma implementação mais completa do que o texto sugere, o avaliador atribui uma pontuação mais conservadora. A generalização desse resultado para outros juízes depende da conclusão da coleta de avaliações e é tratada como direção de trabalho futuro.
+
+
+
+
 
 \subsection{RQ1: O fornecimento do código da \textit{tool} ao avaliador aumenta a precisão da avaliação da qualidade de sua descrição, em relação à avaliação baseada apenas na descrição?}
 
@@ -64,20 +70,73 @@ Para validar o algoritmo produzido, utilizamos mais uma vez o resultado da Fórm
 
 Dessa forma, pudemos concluir que em 95\% dos casos os motivos identificados pelo algoritmo de busca por palavras-chave coincidem com o motivo identificado na leitura manual da amostra de validação. Os 5\% discordantes concentram-se em dois padrões: (i) \textit{parameter}/\textit{argument} aparecendo no próprio domínio de atuação da \textit{tool} (por exemplo, uma \textit{tool} de teste de injeção SQL cujo propósito é "verificar se um parâmetro é injetável", ou uma \textit{tool} de consulta cuja descrição já usa a palavra "parameters" para se referir aos seus próprios filtros), sem relação com a qualidade da explicação dos parâmetros da \textit{tool} em si, casando indevidamente com omissão de parâmetros; e (ii) o mesmo termo, quando a justificativa está na verdade elogiando uma descrição completa (por exemplo, "full parameter catalog"), sendo indevidamente lido como uma omissão. A busca por palavras-chave também é insensível à negação (por exemplo, "there is nothing misleading" ainda casa com o gatilho \textit{misleading} de contradição). Em nenhum dos casos discordantes da amostra de validação essas limitações eliminaram a categoria correta do conjunto retornado; elas apenas adicionaram, ocasionalmente, uma categoria extra que não reflete o motivo real da divergência.
 
-Cruzando os motivos com o resultado do Teste de Wilcoxon por componente (Tabela~\ref{tab:comparacao-deepseek}) e com o custo extra de enviar o código, obtemos um veredito por componente sobre se vale a pena fornecer o código ao avaliador (Tabela~\ref{tab:veredito-componente}): a proporção de divergências sem achado no código varia de 0,5\% (\textit{Limitations}) a 64,6\% (\textit{Length and Completeness}). Essa distribuição responde à RQ1 de forma diferenciada por componente, em vez de um único veredito agregado: em \textit{Parameter Explanation} e \textit{Limitations}, praticamente toda divergência é acompanhada de um achado concreto no código (parâmetros ou restrições que a descrição de fato omitia), o que sustenta a hipótese de que o código aumenta a precisão da avaliação desses dois componentes. Em \textit{Purpose} e \textit{Length and Completeness}, a maioria das divergências não cita nenhum achado do código, mais compatível com viés de contexto (a mera presença de código tornando o avaliador mais rigoroso, sem uma inconsistência real por trás) do que com ganho de precisão; \textit{Examples} não apresenta diferença estatisticamente significativa entre cenários (Tabela~\ref{tab:comparacao-deepseek}), de modo que a pergunta não se aplica a esse componente.
+\subsection{RQ2 Quais atributos da rubrica de qualidade documental são mais afetados pela adição do código da tool?}
+
+Ao comparar os atributos avaliados nos cenários com e sem acesso ao código, observa-se que a inclusão do código no método de avaliação impacta cada atributo de maneira distinta. A Figura~\ref{fig:grafico_distribuicao} apresenta a proporção de casos em que a análise com acesso ao código resultou em melhora, piora ou manutenção da pontuação atribuída à descrição da \textit{tool}.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1.0\linewidth]{images/RQs/diminuiu_empatou_aumentou.png}
+    \caption{Distribuição proporcional da alteração nas pontuações por atributo.}
+    \label{fig:grafico_distribuicao}
+\end{figure}
+
+Entre os atributos analisados, \textit{Purpose} apresenta a maior proporção de alterações, registrando redução da pontuação em 28\% dos casos e elevação em 22\%, o que totaliza 50\% de divergência e 50\% de manutenção da nota. Por outro lado, o atributo \textit{Examples} exibe a menor variação, com redução em 2\% dos casos, elevação em 4\% e manutenção da pontuação nos 94\% restantes. Os demais atributos do estudo (\textit{Guidelines}, \textit{Limitations}, \textit{Parameter Explanation} e \textit{Length \& Completeness}) apresentam comportamentos intermediários quanto à estabilidade das notas. Para analisar o comportamento e a distribuição das pontuações em cada cenário, a Figura~\ref{fig:boxplot} apresenta uma série de \textit{boxplots} comparando as avaliações com e sem acesso ao código para cada um dos atributos considerados.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\linewidth]{images/RQs/boxplot_com_sem_codigo_apenas_mudou.png}
+    \caption{Distribuição das notas nos cenários com e sem código para os casos com alteração de pontuação. (média entre modelos)}
+    \label{fig:boxplot}
+\end{figure}
+
+Na construção dos \textit{boxplots} da Figura~\ref{fig:boxplot}, foram consideradas apenas as avaliações que apresentaram diferença de nota. A escolha dessa abordagem ocorreu porque a maioria das avaliações resultou em empate, o que gerava gráficos muito parecidos e sem utilidade para a análise. Ao analisar apenas as descrições com notas diferentes, observa-se que a distribuição de cada atributo mudou de forma distinta. No atributo \textit{Purpose}, a distribuição permaneceu semelhante entre os cenários, com alteração apenas no valor mínimo registrado. Nos atributos \textit{Limitations} e \textit{Guidelines}, houve elevação da mediana de 1,5 para 2,0 no cenário com acesso ao código. No atributo \textit{Examples}, o terceiro quartil subiu de 3,5 para 4,0. Já o atributo \textit{Length \& Completeness} apresentou aumento na mediana (de 1,5 para 2,0) e no terceiro quartil (de 2,5 para 3,0). Por fim, em \textit{Parameter Explanation}, observou-se uma mudança na distribuição com aumento geral nas notas atribuídas às descrições.
+
+
+\subsection{RQ3 as diferenças observadas entre os escores dos cenários com e sem código são estatisticamente significativas?}
+
+Para responder à RQ3, foram empregados dois métodos de verificação da significância estatística das diferenças entre as duas medições: o Teste de Wilcoxon para Amostras Pareadas, cujos resultados estão apresentados na Tabela~\ref{tab:wilcoxon}, e a análise de transição de quartis, detalhada na Tabela~\ref{tab:transicao_quartis}. Para a aplicação do Teste de Wilcoxon, adotou-se o nível de significância de 5\% ($\alpha = 0{,}05$). Para a análise de transição de quartis, utilizaram-se como referência os quartis obtidos no cenário sem código, comparando-se a posição de cada par \textit{tool}-atributo entre a avaliação sem código e a avaliação com código. Em ambos os métodos, utilizou-se a média das notas atribuídas pelos modelos de inteligência artificial analisados neste estudo.
 
 \begin{table}[H]
 \centering
-\caption{Veredito de custo-benefício por componente: DeepSeek-V4.1-Flash}
-\label{tab:veredito-componente}
-\begin{tabular}{|l|r|l|l|}
-\hline
-\textbf{Componente} & \textbf{\% sem achado no código} & \textbf{Direção} & \textbf{Vale a pena?} \\ \hline
-Limitations & 0,5\% & Desce & Sim \\ \hline
-Parameter Explanation & 3,3\% & Desce & Sim \\ \hline
-Guidelines & 46,5\% & Desce & Sim \\ \hline
-Examples & 55,6\% & Neutro & Inconclusivo \\ \hline
-Purpose & 59,4\% & Desce & Não \\ \hline
-Length and Completeness & 64,6\% & Desce & Não \\ \hline
+\caption{Resultados do Teste de Postos Sinalizados de Wilcoxon comparando as notas com e sem código, por atributo (pareado por tool, média entre modelos).}
+\label{tab:wilcoxon}
+\begin{tabular}{lccc}
+\toprule
+Atributo & $n$ diferentes & $W$ & $p$-valor \\
+\midrule
+Purpose & 656 & 90683,0 & $1,39 \times 10^{-4}$*** \\
+Parameter Explanation & 588 & 63454,0 & $3,21 \times 10^{-9}$*** \\
+Length \& Completeness & 507 & 37002,5 & $3,84 \times 10^{-20}$*** \\
+Guidelines & 351 & 27684,0 & 0,069 \\
+Limitations & 211 & 10907,0 & 0,739 \\
+Examples & 84 & 1330,0 & 0,032* \\
+\bottomrule
+\end{tabular}
+\\[4pt]
+{\footnotesize *** $p<0.001$;\; ** $p<0.01$;\; * $p<0.05$}
+\end{table}
+
+Como é possível observar na Tabela~\ref{tab:wilcoxon}, os atributos \textit{Purpose}, \textit{Parameter Explanation} e \textit{Length \& Completeness} apresentaram diferenças estatisticamente significativas entre os cenários analisados ($p < 0{,}05$). Por outro lado, os atributos \textit{Guidelines} e \textit{Limitations} apresentaram $p$-valores superiores ao nível de significância adotado ($\alpha = 0{,}05$), indicando que as variações observadas nesses casos não possuem significância estatística. Já o atributo \textit{Examples}, embora tenha apresentado um $p$-valor superior aos três primeiros atributos, permaneceu dentro do limite de significância estatística estipulado no estudo.
+
+\begin{table}[H]
+\centering
+\caption{Transição de quartil das notas (com vs. sem código), por atributo. Faixas de quartil definidas a partir da distribuição sem código (pareado por tool, média entre modelos).}
+\label{tab:transicao_quartis}
+\begin{tabular}{lccc}
+\toprule
+Atributo & Manteve o quartil & Subiu de quartil & Desceu de quartil \\
+\midrule
+Purpose & 70,0\% & 12,1\% & 17,9\% \\
+Parameter Explanation & 72,6\% & 18,8\% & 8,6\% \\
+Length \& Completeness & 72,9\% & 21,7\% & 5,4\% \\
+Guidelines & 84,1\% & 10,4\% & 5,5\% \\
+Limitations & 93,3\% & 4,6\% & 2,1\% \\
+Examples & 98,8\% & 0,9\% & 0,3\% \\
+\bottomrule
 \end{tabular}
 \end{table}
+
+Ao analisar os dados da Tabela~\ref{tab:transicao_quartis} em conjunto com os resultados da Tabela~\ref{tab:wilcoxon}, observa-se uma convergência entre as métricas. Os atributos que registraram maior proporção de mudança de quartil foram \textit{Purpose}, \textit{Parameter Explanation} e \textit{Length \& Completeness}, com 20,0\%, 27,4\% e 27,1\% dos casos totais alterados, respectivamente. Em contrapartida, os demais atributos apresentaram menor variação na distribuição por quartis, destacando-se o atributo \textit{Examples}, que registrou apenas 1,2\% de alteração entre as avaliações, o que reforça a baixa alteração observada nessa categoria.
+
+
