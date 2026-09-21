@@ -1,6 +1,6 @@
 """
 Análise RQ2 — Quais atributos da rubrica são mais afetados pela adição do
-código-fonte na avaliação da qualidade documental das tools?
+código na avaliação da qualidade documental das tools?
 
 Entrada esperada (JSON): lista de tools, cada uma com uma lista "evaluations",
 cada evaluation com "model", "with_source" e "description_only", e dentro de
@@ -36,6 +36,7 @@ import os
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+from scipy.stats import wilcoxon
 
 # ---------------------------------------------------------------------------
 # CONFIGURAÇÃO
@@ -54,12 +55,12 @@ ATTRIBUTES = [
 
 # Nomes mais legíveis para os gráficos (edite à vontade)
 ATTR_LABELS = {
-    "purpose": "Propósito",
-    "guidelines": "Diretrizes de uso",
-    "limitations": "Limitações",
-    "parameter_explanation": "Explicação de parâmetros",
-    "length_completeness": "Completude/extensão",
-    "examples": "Exemplos",
+    "purpose": "Purpose",
+    "guidelines": "Guidelines",
+    "limitations": "Limitations",
+    "parameter_explanation": "Parameter Explanation",
+    "length_completeness": "Length & Completeness",
+    "examples": "Examples",
 }
 
 COR_PIOROU = "#d62728"     # vermelho padrão matplotlib
@@ -329,12 +330,12 @@ COR_EMPATOU = "#bbbbbb"    # cinza claro
 COR_AUMENTOU = "#1f77b4"   # azul padrão
 
 ORDEM_ATRIBUTOS_FIXA = [
-    "Propósito",
-    "Explicação de parâmetros",
-    "Completude/extensão",
-    "Diretrizes de uso",
-    "Limitações",
-    "Exemplos",
+    "Purpose",
+    "Parameter Explanation",
+    "Length & Completeness",
+    "Guidelines",
+    "Limitations",
+    "Examples",
 ]
 
 def grafico_diminuiu_empatou_aumentou(agg, output_path):
@@ -386,6 +387,228 @@ def grafico_diminuiu_empatou_aumentou(agg, output_path):
 
 
 # ---------------------------------------------------------------------------
+# 6. TESTE DE POSTOS SINALIZADOS DE WILCOXON, POR ATRIBUTO (COM x SEM CÓDIGO)
+#    Compara, para cada atributo, as notas pareadas (mesma tool) com e sem
+#    código, usando a média entre modelos já calculada em `agg`.
+# ---------------------------------------------------------------------------
+def teste_wilcoxon_por_atributo(agg, ordem=None):
+    if ordem is None:
+        ordem = agg.groupby("attribute_label")["diff"].mean().sort_values().index.tolist()
+
+    resultados = []
+    for attr in ordem:
+        grupo = agg[agg["attribute_label"] == attr]
+        sem = grupo["score_sem_codigo"].values
+        com = grupo["score_com_codigo"].values
+
+        n_total = len(sem)
+        n_diferentes = int(np.sum(com != sem))
+
+        if n_diferentes == 0:
+            estatistica, p_valor = np.nan, np.nan
+        else:
+            try:
+                estatistica, p_valor = wilcoxon(com, sem, zero_method="wilcox", alternative="two-sided")
+            except ValueError:
+                estatistica, p_valor = np.nan, np.nan
+
+        diffs = com - sem
+        diffs_mudou = diffs[diffs != 0]
+        mediana_mudou = np.median(diffs_mudou) if len(diffs_mudou) > 0 else np.nan
+
+        resultados.append({
+            "attribute_label": attr,
+            "n": n_total,
+            "n_diferentes": n_diferentes,
+            "estatistica_W": estatistica,
+            "p_valor": p_valor,
+            "diferenca_media": diffs.mean(),
+            "mediana_apenas_mudou": mediana_mudou,
+        })
+
+    return pd.DataFrame(resultados)
+
+
+def _estrelas_significancia(p):
+    if pd.isna(p):
+        return ""
+    if p < 0.001:
+        return "***"
+    if p < 0.01:
+        return "**"
+    if p < 0.05:
+        return "*"
+    return ""
+
+
+def _formatar_numero_br(valor, casas=3):
+    """Formata um número decimal com vírgula, no padrão brasileiro."""
+    return f"{valor:.{casas}f}".replace(".", ",")
+
+
+def _formatar_cientifico_latex(valor, casas=2):
+    """Formata em notação científica real para LaTeX: 'a,bc \\times 10^{n}'."""
+    texto = f"{valor:.{casas}e}"
+    mantissa, expoente = texto.split("e")
+    mantissa = mantissa.replace(".", ",")
+    expoente = int(expoente)
+    return f"${mantissa} \\times 10^{{{expoente}}}$"
+
+
+def gerar_tabela_latex_wilcoxon(df_resultados, output_path):
+    linhas = []
+    for _, row in df_resultados.iterrows():
+        if pd.isna(row["p_valor"]):
+            p_fmt = "--"
+            w_fmt = "--"
+        else:
+            if row["p_valor"] < 0.001:
+                p_fmt = _formatar_cientifico_latex(row["p_valor"])
+            else:
+                p_fmt = _formatar_numero_br(row["p_valor"], casas=3)
+            p_fmt += _estrelas_significancia(row["p_valor"])
+            w_fmt = _formatar_numero_br(row["estatistica_W"], casas=1)
+
+        attr_escapado = row["attribute_label"].replace("_", r"\_").replace("&", r"\&")
+        linhas.append(
+            f"{attr_escapado} & {row['n_diferentes']} & {w_fmt} & {p_fmt} \\\\"
+        )
+
+    corpo = "\n".join(linhas)
+    tabela = (
+        "\\begin{table}[H]\n"
+        "\\centering\n"
+        "\\caption{Resultados do Teste de Postos Sinalizados de Wilcoxon comparando as "
+        "notas com e sem código, por atributo (pareado por tool, média entre modelos).}\n"
+        "\\label{tab:wilcoxon}\n"
+        "\\begin{tabular}{lccc}\n"
+        "\\toprule\n"
+        "Atributo & $n$ diferentes & $W$ & $p$-valor \\\\\n"
+        "\\midrule\n"
+        f"{corpo}\n"
+        "\\bottomrule\n"
+        "\\end{tabular}\n"
+        "\\\\[4pt]\n"
+        "{\\footnotesize *** $p<0.001$;\\; ** $p<0.01$;\\; * $p<0.05$}\n"
+        "\\end{table}\n"
+    )
+
+    with open(output_path, "w", encoding="utf-8") as f:
+        f.write(tabela)
+    print(f"[OK] Tabela LaTeX (Wilcoxon) salva em: {output_path}")
+
+
+# ---------------------------------------------------------------------------
+# 7. TRANSIÇÃO DE QUARTIS (COM x SEM CÓDIGO), POR ATRIBUTO
+#
+#    Define as faixas de quartil (Q1/Q2/Q3/Q4) a partir da distribuição
+#    "sem código" (referência), depois classifica cada tool duas vezes
+#    (sem e com código) usando essas MESMAS faixas fixas, e verifica se ela
+#    mudou de faixa. Isso dá uma leitura não-paramétrica e fácil de explicar
+#    da mudança, complementando o Wilcoxon.
+# ---------------------------------------------------------------------------
+ORDEM_QUARTIS = ["Q1 (mais baixo)", "Q2", "Q3", "Q4 (mais alto)"]
+
+
+def _classificar_quartil(valor, q1, mediana, q3):
+    if valor <= q1:
+        return ORDEM_QUARTIS[0]
+    elif valor <= mediana:
+        return ORDEM_QUARTIS[1]
+    elif valor <= q3:
+        return ORDEM_QUARTIS[2]
+    else:
+        return ORDEM_QUARTIS[3]
+
+
+def calcular_transicao_quartis(agg, ordem=None):
+    """
+    Retorna:
+      - df_resumo: uma linha por atributo, com % que manteve/subiu/desceu de quartil
+      - matrizes: dict {atributo: matriz de transição 4x4 (sem código x com código)}
+    """
+    if ordem is None:
+        ordem = agg.groupby("attribute_label")["diff"].mean().sort_values().index.tolist()
+
+    resumo = []
+    matrizes = {}
+
+    for attr in ordem:
+        grupo = agg[agg["attribute_label"] == attr]
+        sem = grupo["score_sem_codigo"].values
+        com = grupo["score_com_codigo"].values
+        n = len(sem)
+
+        q1, mediana, q3 = np.percentile(sem, [25, 50, 75])
+
+        quartil_sem = np.array([_classificar_quartil(v, q1, mediana, q3) for v in sem])
+        quartil_com = np.array([_classificar_quartil(v, q1, mediana, q3) for v in com])
+
+        matriz = pd.crosstab(
+            pd.Categorical(quartil_sem, categories=ORDEM_QUARTIS),
+            pd.Categorical(quartil_com, categories=ORDEM_QUARTIS),
+            dropna=False,
+        )
+        matriz.index.name = "Sem código"
+        matriz.columns.name = "Com código"
+        matrizes[attr] = matriz
+
+        idx_sem = np.array([ORDEM_QUARTIS.index(q) for q in quartil_sem])
+        idx_com = np.array([ORDEM_QUARTIS.index(q) for q in quartil_com])
+
+        manteve = int(np.sum(idx_com == idx_sem))
+        subiu = int(np.sum(idx_com > idx_sem))
+        desceu = int(np.sum(idx_com < idx_sem))
+
+        resumo.append({
+            "attribute_label": attr,
+            "n": n,
+            "manteve": manteve,
+            "subiu": subiu,
+            "desceu": desceu,
+            "pct_manteve": manteve / n * 100,
+            "pct_subiu": subiu / n * 100,
+            "pct_desceu": desceu / n * 100,
+        })
+
+    return pd.DataFrame(resumo), matrizes
+
+
+def gerar_tabela_latex_quartis(df_resumo, output_path):
+    linhas = []
+    for _, row in df_resumo.iterrows():
+        attr_escapado = row["attribute_label"].replace("_", r"\_").replace("&", r"\&")
+        linhas.append(
+            f"{attr_escapado} & "
+            f"{_formatar_numero_br(row['pct_manteve'], 1)}\\% & "
+            f"{_formatar_numero_br(row['pct_subiu'], 1)}\\% & "
+            f"{_formatar_numero_br(row['pct_desceu'], 1)}\\% \\\\"
+        )
+
+    corpo = "\n".join(linhas)
+    tabela = (
+        "\\begin{table}[H]\n"
+        "\\centering\n"
+        "\\caption{Transição de quartil das notas (com vs. sem código), por atributo. "
+        "Faixas de quartil definidas a partir da distribuição sem código (pareado por tool, "
+        "média entre modelos).}\n"
+        "\\label{tab:transicao_quartis}\n"
+        "\\begin{tabular}{lccc}\n"
+        "\\toprule\n"
+        "Atributo & Manteve o quartil & Subiu de quartil & Desceu de quartil \\\\\n"
+        "\\midrule\n"
+        f"{corpo}\n"
+        "\\bottomrule\n"
+        "\\end{tabular}\n"
+        "\\end{table}\n"
+    )
+
+    with open(output_path, "w", encoding="utf-8") as f:
+        f.write(tabela)
+    print(f"[OK] Tabela LaTeX (transição de quartis) salva em: {output_path}")
+
+
+# ---------------------------------------------------------------------------
 # 5. TESTE DE CONCORDÂNCIA ENTRE MODELOS (só informativo no terminal)
 # ---------------------------------------------------------------------------
 def checar_concordancia(df):
@@ -419,6 +642,27 @@ def main():
     grafico_boxplot_com_sem_apenas_mudou(agg, f"{OUTPUT_DIR}/boxplot_com_sem_codigo_apenas_mudou.png")
     grafico_quantidade_magnitude(agg, f"{OUTPUT_DIR}/quantidade_magnitude.png")
     grafico_diminuiu_empatou_aumentou(agg, f"{OUTPUT_DIR}/diminuiu_empatou_aumentou.png")
+
+    resultado_wilcoxon = teste_wilcoxon_por_atributo(agg, ordem=ORDEM_ATRIBUTOS_FIXA)
+    print("\n=== Teste de Wilcoxon (com x sem código), por atributo ===")
+    print(resultado_wilcoxon.to_string(index=False))
+    resultado_wilcoxon.to_csv(f"{OUTPUT_DIR}/wilcoxon_resultados.csv", index=False)
+    gerar_tabela_latex_wilcoxon(resultado_wilcoxon, f"{OUTPUT_DIR}/tabela_wilcoxon.tex")
+
+    resumo_quartis, matrizes_quartis = calcular_transicao_quartis(agg, ordem=ORDEM_ATRIBUTOS_FIXA)
+    print("\n=== Transição de quartis (com x sem código), por atributo ===")
+    print(resumo_quartis.to_string(index=False))
+    resumo_quartis.to_csv(f"{OUTPUT_DIR}/transicao_quartis_resumo.csv", index=False)
+    gerar_tabela_latex_quartis(resumo_quartis, f"{OUTPUT_DIR}/tabela_transicao_quartis.tex")
+
+    import unicodedata
+
+    def _nome_arquivo_seguro(texto):
+        texto = unicodedata.normalize("NFKD", texto).encode("ascii", "ignore").decode("ascii")
+        return texto.lower().replace(" ", "_").replace("/", "_")
+
+    for attr, matriz in matrizes_quartis.items():
+        matriz.to_csv(f"{OUTPUT_DIR}/transicao_quartis_matriz_{_nome_arquivo_seguro(attr)}.csv")
 
 
 if __name__ == "__main__":
