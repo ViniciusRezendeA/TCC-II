@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.29 (TeX Live 2026) (preloaded format=pdflatex 2026.9.18)  20 SEP 2026 23:16
+This is pdfTeX, Version 3.141592653-2.6-1.40.29 (TeX Live 2026) (preloaded format=pdflatex 2026.9.18)  20 SEP 2026 23:21
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -921,7 +921,11 @@ File: ./images/fluxo_etapa3_detalhado.png Graphic file (type png)
 Package pdftex.def Info: ./images/fluxo_etapa3_detalhado.png  used on input lin
 e 141.
 (pdftex.def)             Requested size: 426.79135pt x 160.60475pt.
- [13] [14 <./images/fluxo_etapa3_detalhado.png>])
+
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+ [13]
+[14 <./images/fluxo_etapa3_detalhado.png>])
 (./sectionsTCCII/05_Resultados_Parciais.tex [15]
 Underfull \hbox (badness 2318) in paragraph at lines 39--40
 []\OT1/ptm/m/n/12 Por ha-ver um n[]umero ele-vado de pa-res juiz-componente-fer
@@ -947,17 +951,17 @@ Underfull \hbox (badness 5274) in paragraph at lines 39--40
 ta-ma-nho co-nhe-cido
  []
 
-[16]
-Underfull \vbox (badness 10000) has occurred while \output is active []
-
- [17]
-[18]
-<images/RQs/diminuiu_empatou_aumentou.png, id=88, 850.25655pt x 420.97275pt>
+[16] [17]
+<images/RQs/diminuiu_empatou_aumentou.png, id=85, 850.25655pt x 420.97275pt>
 File: images/RQs/diminuiu_empatou_aumentou.png Graphic file (type png)
 <use images/RQs/diminuiu_empatou_aumentou.png>
 Package pdftex.def Info: images/RQs/diminuiu_empatou_aumentou.png  used on inpu
 t line 79.
 (pdftex.def)             Requested size: 426.79135pt x 211.30806pt.
+
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+ [18]
 <images/RQs/boxplot_com_sem_codigo_apenas_mudou.png, id=89, 854.59274pt x 492.1
 587pt>
 File: images/RQs/boxplot_com_sem_codigo_apenas_mudou.png Graphic file (type png
@@ -975,34 +979,26 @@ ce.tex
 [23] (/usr/local/texlive/2026/texmf-dist/tex/latex/listings/lstlang1.sty
 File: lstlang1.sty 2025/11/14 1.11b listings language file
 )
-[24] [25]
-LaTeX Font Info:    Font shape `OMS/pcr/m/n' in size <12> not available
-(Font)              Font shape `OMS/cmsy/m/n' tried instead on input line 229.
-
-
-LaTeX Warning: Citation `mccabe1976complexity' on page 26 undefined on input li
-ne 247.
-
-[26] [27]
-Overfull \hbox (4.02031pt too wide) in paragraph at lines 314--324
+[24]
+Overfull \hbox (4.02031pt too wide) in paragraph at lines 190--200
  [][] 
  []
 
-) [28] (./main.aux)
+
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+ [25])
+[26] (./main.aux)
  ***********
 LaTeX2e <2025-11-01>
 L3 programming layer <2026-01-19>
  ***********
-
-
-LaTeX Warning: There were undefined references.
-
  ) 
 Here is how much of TeX's memory you used:
- 21147 strings out of 467525
- 417193 string characters out of 5418982
- 1141223 words of memory out of 5000000
- 49688 multiletter control sequences out of 15000+600000
+ 21128 strings out of 467525
+ 416854 string characters out of 5418982
+ 1127107 words of memory out of 5000000
+ 49669 multiletter control sequences out of 15000+600000
  654212 words of font info for 89 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
  98i,14n,118p,1762b,1806s stack positions out of 10000i,1000n,20000p,200000b,200000s
@@ -1021,10 +1017,10 @@ t/fonts/type1/urw/times/utmb8a.pfb></usr/local/texlive/2026/texmf-dist/fonts/ty
 pe1/urw/times/utmbi8a.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/urw/t
 imes/utmr8a.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/urw/times/utmri
 8a.pfb>
-Output written on main.pdf (28 pages, 1201559 bytes).
+Output written on main.pdf (26 pages, 1191930 bytes).
 PDF statistics:
- 193 PDF objects out of 1000 (max. 8388607)
- 113 compressed objects within 2 object streams
+ 187 PDF objects out of 1000 (max. 8388607)
+ 109 compressed objects within 2 object streams
  0 named destinations out of 1000 (max. 500000)
  58 words of extra memory for PDF output out of 10000 (max. 10000000)
 
