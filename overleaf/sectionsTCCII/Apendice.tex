@@ -297,3 +297,30 @@ best-effort baseada em nome que é inofensiva numa árvore de três níveis
 passa a poder inflar uma métrica agregada por um fator arbitrariamente
 grande a partir de um único acerto equivocado, o que a tornaria não
 confiável para qualquer análise comparativa entre ferramentas.}
+
+\section{Termos-Gatilho da Classificação por Motivo}
+\label{apendice:secao-motivos}
+
+Este apêndice lista, por extenso, os termos-gatilho (em inglês, idioma da
+justificativa produzida pelo avaliador) usados pela busca por palavras-chave
+que classifica cada divergência de nota entre cenários por motivo
+(Seção~\ref{sec:resultados}). A Tabela~\ref{tab:motivos-termos} apresenta os
+termos de cada uma das seis categorias.
+
+\begin{table}[H]
+\centering
+\caption{Termos-gatilho por motivo}
+\label{tab:motivos-termos}
+\begin{tabular}{|l|p{9.5cm}|}
+\hline
+\textbf{Motivo} & \textbf{Termos-gatilho} \\ \hline
+\textit{Tool} sem parâmetro & \textit{takes no input parameter, accepts no input parameter, no parameter roles to explain, exposes no user-facing parameter, no user-facing parameter, vacuously satisfied, empty input schema} \\ \hline
+Omissão de parâmetros & \textit{parameter, argument} \\ \hline
+Omissão de funcionalidades & \textit{other supported, additional mode, also filters, also performs, also allows, also supports, also returns, related tools such as, differs from, grouping semantics, selection mode, fuzzy, side effect, broader workflow, versus other, versus alternatives, how this differs} \\ \hline
+Omissão de saídas & \textit{return value, return format, return shape, returned fields, returned match, what is returned, no return value, output schema, returned format, return structure, what a returned, what the returned, result represents, outcome beyond, is returned, are returned, what fields, returned list, result shape, returned user} \\ \hline
+Omissão de limitações & \textit{error, exception, raise, constraint, edge case, corner case, fails to, fail for, failure mode, may fail, rate limit, credential, caveat, required integration, permission} \\ \hline
+Contradição & \textit{contradict, inconsistent*, mismatch, does not match, does not align, conflicts with, diverges from, misleading, not implemented, actually does, actually performs, the code reveals, the implementation shows, does not correspond} \\ \hline
+\end{tabular}
+\end{table}
+
+Uma divergência casa com uma categoria quando sua justificativa (\textit{reasoning}) no cenário \textit{with\_source} contém, como substring e sem diferenciar maiúsculas de minúsculas, ao menos um dos termos daquela linha; o asterisco em \textit{inconsistent*} indica que o termo casa tanto com \textit{inconsistent} quanto com variações como \textit{inconsistency}/\textit{inconsistencies}. Uma única exceção às seis categorias serem independentes entre si: uma divergência nunca é classificada simultaneamente como \textit{tool} sem parâmetro e omissão de parâmetros, por descreverem achados opostos sobre o mesmo par (ver Seção~\ref{sec:resultados}).

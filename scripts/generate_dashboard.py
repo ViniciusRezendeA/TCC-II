@@ -69,13 +69,13 @@ MIN_TRUSTWORTHY_N = 30
 # report.py) -- mantidos aqui, não lá, porque são só apresentação (a chave em si é o que os
 # CSVs/testes usam).
 MOTIVO_LABELS: dict[str, str] = {
-    "parametro": "Parâmetro",
-    "limitacao_erro": "Limitação/Erro",
-    "exemplo": "Exemplo",
+    "tool_sem_parametro": "Tool sem parâmetro",
+    "omissao_parametros": "Omissão de parâmetros",
+    "omissao_funcionalidades": "Omissão de funcionalidades",
+    "omissao_saidas": "Omissão de saídas",
+    "omissao_limitacoes": "Omissão de limitações",
     "contradicao": "Contradição",
-    "omissao": "Omissão",
-    "escopo_proposito": "Escopo/Propósito",
-    MOTIVO_FALLBACK: "Sem justificativa específica",
+    MOTIVO_FALLBACK: "Sem achado no código",
 }
 
 

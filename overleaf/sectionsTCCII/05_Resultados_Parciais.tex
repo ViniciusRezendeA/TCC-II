@@ -25,3 +25,59 @@ Examples & 1,20 & 1,20 & -0,00 & 0,425 & Não \\ \hline
 \end{table}
 
 A inclusão do código reduz o escore médio nas seis dimensões da rubrica, com diferença estatisticamente significativa em cinco delas (todas exceto \textit{Examples}); a maior queda ocorre em \textit{Purpose} ($\Delta = -0,13$), seguida por \textit{Parameter Explanation} ($\Delta = -0,06$). Esse padrão é compatível com a hipótese de que o código expõe lacunas da descrição não percebidas quando apenas o texto é avaliado: ao confrontar a descrição com uma implementação mais completa do que o texto sugere, o avaliador atribui uma pontuação mais conservadora. A generalização desse resultado para outros juízes depende da conclusão da coleta de avaliações e é tratada como direção de trabalho futuro.
+
+\subsection{RQ1: O fornecimento do código da \textit{tool} ao avaliador aumenta a precisão da avaliação da qualidade de sua descrição, em relação à avaliação baseada apenas na descrição?}
+
+O aumento ou a diminuição da nota atribuída a uma \textit{tool} não indica, por si só, uma melhora ou piora na precisão da avaliação da descrição: indica apenas que houve uma divergência na nota após a introdução do código, podendo essa divergência refletir tanto uma melhora real de precisão quanto viés ou ruído introduzido pelo próprio avaliador. Por isso, uma análise mais robusta do que a simples comparação de valores é necessária para concluir se houve melhora ou piora na precisão. Para isso, foi realizada uma análise sobre uma amostra das avaliações das descrições das \textit{tools} coletadas, sobre os atributos que obtiveram uma nota diferente entre as duas avaliações, em busca de entender o motivo da diferença entre as pontuações. Posteriormente, foi realizada uma busca por palavras-chave para obter a quantidade de ocorrência de cada motivo identificado.
+
+Por haver um número elevado de pares juiz-componente-ferramenta com nota distinta entre \textit{description\_only} e \textit{with\_source} a serem analisados (considerando o juiz DeepSeek-V4.1-Flash, único com coleta concluída até o momento), foi utilizada a Fórmula de Cochran para populações de tamanho conhecido \cite{chaokromthong2021sample} (Equação~\ref{eq:cochran}), que fornece o número mínimo de casos a observar sem prejudicar a validade do estudo. De forma semelhante ao estudo de Hasan et al. (2026) \nocite{2026arXiv260214878M}, foi utilizada uma taxa de 95\% de nível de confiança (Z = 1,96), uma proporção de população estimada de 0,5 (p) e 10\% de margem de erro ($\varepsilon$), o que levou ao resultado de n = 96, valor que arredondamos para 100 pares de avaliações de descrições de ferramentas a serem analisados.
+
+\begin{equation}
+n = \frac{\dfrac{Z^2 p(1 - p)}{\varepsilon^2}}{1 + \left( \dfrac{Z^2 p(1 - p)}{\varepsilon^2 N} \right)}
+\label{eq:cochran}
+\end{equation}
+
+A partir da análise dos 100 pares selecionados aleatoriamente, buscamos categorias de motivo que explicassem o \textbf{mecanismo} pelo qual o código mudou a nota, não a dimensão da rubrica em que a mudança foi registrada: saber que a nota mudou no componente \textit{Guidelines}, por exemplo, já está implícito no próprio dado coletado (campo \texttt{componente}), e não ajuda a responder se o código tornou a avaliação mais precisa. O que ajuda é saber se o código revelou um parâmetro, um comportamento, uma saída ou uma limitação concretos que a descrição não citava, ou se apenas expôs uma contradição entre descrição e implementação. Chegamos assim a seis categorias: \textit{tool} sem parâmetro, omissão de parâmetros, omissão de funcionalidades, omissão de saídas, omissão de limitações e contradição. As duas primeiras tratam de achados opostos sobre o mesmo assunto (parâmetros) e por isso são mantidas separadas: \textit{tool} sem parâmetro cobre os casos em que o código revela que a \textit{tool} não tem nenhum parâmetro de entrada, tornando injustificada a penalização por "parâmetro não explicado" que a avaliação apenas com a descrição aplicou (tipicamente eleva a nota); omissão de parâmetros cobre os casos em que o código revela parâmetros reais que a descrição não documenta (tipicamente reduz a nota).
+
+Nesse sentido, a fim de coletar o número desses acontecimentos no resto das análises, produzimos um algoritmo de busca por palavras-chave que procurava, na justificativa (\textit{reasoning}) do cenário \textit{with\_source} de cada divergência, pelos termos listados no Apêndice~\ref{apendice:secao-motivos}. Uma divergência sem nenhum desses termos é classificada como "sem achado no código". Aplicando essa busca sobre toda a população de divergências, e não apenas sobre a amostra lida manualmente, obtivemos a Tabela~\ref{tab:motivos-divergencia}.
+
+\begin{table}[H]
+\centering
+\caption{Motivos identificados nas divergências de nota entre cenários: DeepSeek-V4.1-Flash}
+\label{tab:motivos-divergencia}
+\begin{tabular}{|l|r|r|r|r|}
+\hline
+\textbf{Motivo} & \textbf{Ocorrências} & \textbf{\% do total} & \textbf{Subiu} & \textbf{Desceu} \\ \hline
+Sem achado no código & 6.415 & 37,2\% & 3.010 & 3.405 \\ \hline
+Omissão de parâmetros & 5.797 & 33,7\% & 1.936 & 3.861 \\ \hline
+Omissão de limitações & 2.988 & 17,3\% & 1.030 & 1.958 \\ \hline
+Omissão de saídas & 1.687 & 9,8\% & 655 & 1.032 \\ \hline
+Omissão de funcionalidades & 820 & 4,8\% & 287 & 533 \\ \hline
+Contradição & 776 & 4,5\% & 72 & 704 \\ \hline
+\textit{Tool} sem parâmetro & 625 & 3,6\% & 485 & 140 \\ \hline
+\end{tabular}
+\end{table}
+
+As categorias não são mutuamente exclusivas: uma mesma divergência pode casar mais de um motivo (por exemplo, uma justificativa que revela um parâmetro não documentado e, ao mesmo tempo, uma inconsistência entre a descrição e a implementação casa tanto com omissão de parâmetros quanto com contradição). Por isso, a soma das ocorrências ultrapassa o total de divergências, e os percentuais da Tabela~\ref{tab:motivos-divergencia} não devem ser somados entre si. A única exclusão é entre \textit{tool} sem parâmetro e omissão de parâmetros, forçada no algoritmo por descreverem achados opostos sobre o mesmo par (ver código-fonte).
+
+Para validar o algoritmo produzido, utilizamos mais uma vez o resultado da Fórmula de Cochran e analisamos manualmente mais 100 pares das divergências, dessa vez selecionados entre os já classificados pelo algoritmo, para verificar se os motivos encontrados pela busca por palavras-chave estão de acordo com o motivo real de cada divergência, identificado pela leitura manual.
+
+Dessa forma, pudemos concluir que em 95\% dos casos os motivos identificados pelo algoritmo de busca por palavras-chave coincidem com o motivo identificado na leitura manual da amostra de validação. Os 5\% discordantes concentram-se em dois padrões: (i) \textit{parameter}/\textit{argument} aparecendo no próprio domínio de atuação da \textit{tool} (por exemplo, uma \textit{tool} de teste de injeção SQL cujo propósito é "verificar se um parâmetro é injetável", ou uma \textit{tool} de consulta cuja descrição já usa a palavra "parameters" para se referir aos seus próprios filtros), sem relação com a qualidade da explicação dos parâmetros da \textit{tool} em si, casando indevidamente com omissão de parâmetros; e (ii) o mesmo termo, quando a justificativa está na verdade elogiando uma descrição completa (por exemplo, "full parameter catalog"), sendo indevidamente lido como uma omissão. A busca por palavras-chave também é insensível à negação (por exemplo, "there is nothing misleading" ainda casa com o gatilho \textit{misleading} de contradição). Em nenhum dos casos discordantes da amostra de validação essas limitações eliminaram a categoria correta do conjunto retornado; elas apenas adicionaram, ocasionalmente, uma categoria extra que não reflete o motivo real da divergência.
+
+Cruzando os motivos com o resultado do Teste de Wilcoxon por componente (Tabela~\ref{tab:comparacao-deepseek}) e com o custo extra de enviar o código, obtemos um veredito por componente sobre se vale a pena fornecer o código ao avaliador (Tabela~\ref{tab:veredito-componente}): a proporção de divergências sem achado no código varia de 0,5\% (\textit{Limitations}) a 64,6\% (\textit{Length and Completeness}). Essa distribuição responde à RQ1 de forma diferenciada por componente, em vez de um único veredito agregado: em \textit{Parameter Explanation} e \textit{Limitations}, praticamente toda divergência é acompanhada de um achado concreto no código (parâmetros ou restrições que a descrição de fato omitia), o que sustenta a hipótese de que o código aumenta a precisão da avaliação desses dois componentes. Em \textit{Purpose} e \textit{Length and Completeness}, a maioria das divergências não cita nenhum achado do código, mais compatível com viés de contexto (a mera presença de código tornando o avaliador mais rigoroso, sem uma inconsistência real por trás) do que com ganho de precisão; \textit{Examples} não apresenta diferença estatisticamente significativa entre cenários (Tabela~\ref{tab:comparacao-deepseek}), de modo que a pergunta não se aplica a esse componente.
+
+\begin{table}[H]
+\centering
+\caption{Veredito de custo-benefício por componente: DeepSeek-V4.1-Flash}
+\label{tab:veredito-componente}
+\begin{tabular}{|l|r|l|l|}
+\hline
+\textbf{Componente} & \textbf{\% sem achado no código} & \textbf{Direção} & \textbf{Vale a pena?} \\ \hline
+Limitations & 0,5\% & Desce & Sim \\ \hline
+Parameter Explanation & 3,3\% & Desce & Sim \\ \hline
+Guidelines & 46,5\% & Desce & Sim \\ \hline
+Examples & 55,6\% & Neutro & Inconclusivo \\ \hline
+Purpose & 59,4\% & Desce & Não \\ \hline
+Length and Completeness & 64,6\% & Desce & Não \\ \hline
+\end{tabular}
+\end{table}
