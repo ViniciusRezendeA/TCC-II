@@ -48,8 +48,8 @@
 
 Este apêndice detalha o algoritmo desenvolvido para a construção do grafo de
 chamadas (\textit{call graph}) de cada ferramenta MCP e para a composição do
-trecho de \textcolor{green}{código} usado como contexto adicional no cenário de avaliação
-que inclui \textcolor{green}{código} (Seção~\ref{sec:materiais}). O algoritmo é
+trecho de \textcolor{orange}{código} usado como contexto adicional no cenário de avaliação
+que inclui \textcolor{orange}{código} (Seção~\ref{sec:materiais}). O algoritmo é
 heurístico e baseado em análise estática via tree-sitter: a partir da função
 que implementa a própria ferramenta, resolve por nome as chamadas feitas
 dentro dela, até três níveis de profundidade, distinguindo chamadas
@@ -61,7 +61,7 @@ O algoritmo opera em três fases distintas, executadas uma vez por repositório:
 
 \begin{enumerate}
     \item \textbf{Indexação estática do repositório:} são construídos, a
-    partir de todo o \textcolor{green}{código} do repositório, um índice de definições
+    partir de todo o \textcolor{orange}{código} do repositório, um índice de definições
     (nome simples e nome qualificado, \texttt{Classe.método}, de toda
     função/método encontrado, com referência ao seu corpo) e, por arquivo,
     um índice de \textit{imports} (alias local usado no arquivo
@@ -90,8 +90,8 @@ O algoritmo opera em três fases distintas, executadas uma vez por repositório:
     na estrutura de dados, em vez de ser tratado como uma resolução certa.
 
     \item \textbf{Composição do contexto de código:} no cenário de
-    avaliação que inclui \textcolor{green}{código}, a árvore é percorrida em
-    pré-ordem e, para cada nó resolvido, o trecho de \textcolor{green}{código}
+    avaliação que inclui \textcolor{orange}{código}, a árvore é percorrida em
+    pré-ordem e, para cada nó resolvido, o trecho de \textcolor{orange}{código}
     correspondente (linhas de início e fim exatas) é lido diretamente do
     repositório clonado em disco e anotado com um comentário indicando o
     nível na árvore, a chamada de origem e a localização exata
@@ -173,127 +173,30 @@ ambígua na estrutura de dados final, em vez de ser silenciosamente tratada
 como uma resolução certa, preservando essa incerteza para análises
 posteriores.
 
-\section{Algoritmo de Cálculo de LOC e Complexidade Ciclomática da Tool Completa}
-\label{apendice:secao-complexidade}
 
-\textcolor{green}{Este apêndice detalha o algoritmo usado para calcular as métricas de
-tamanho (LOC) e complexidade ciclomática de cada ferramenta, apresentadas na
-Seção~\ref{sec:materiais}. Ele reaproveita a heurística de resolução de
-chamadas por nome descrita no Apêndice~\ref{apendice:secao} (mesmos cinco
-passos, mesma estrutura de índices), mas resolve um problema diferente: em
-vez de uma árvore de profundidade fixa usada para compor o contexto de
-código enviado ao avaliador, aqui o objetivo é determinar o conjunto
-completo de funções que compõem a implementação de uma ferramenta, sem um
-teto de profundidade arbitrário.}
+\section{Termos-Gatilho da Classificação por Motivo}
+\label{apendice:secao-motivos}
 
-\subsection*{Procedimento}
+Este apêndice lista, por extenso, os termos-gatilho (em inglês, idioma da
+justificativa produzida pelo avaliador) usados pela busca por palavras-chave
+que classifica cada divergência de nota entre cenários por motivo
+(Seção~\ref{sec:resultados}). A Tabela~\ref{tab:motivos-termos} apresenta os
+termos de cada uma das seis categorias.
 
-\begin{enumerate}
-    \item \textbf{\textcolor{green}{Busca em largura sem teto de profundidade:}}
-    \textcolor{green}{partindo da função que implementa a ferramenta, cada chamada
-    encontrada em seu corpo é resolvida pela mesma heurística de nome do
-    Apêndice~\ref{apendice:secao}. Toda função resolvida e ainda não
-    visitada é adicionada ao conjunto de funções alcançáveis e também tem
-    seu próprio corpo percorrido em busca de novas chamadas, repetindo-se o
-    processo até não haver mais chamadas resolvidas e não visitadas. Um
-    conjunto de nomes qualificados já visitados evita tanto a recontagem de
-    uma mesma função alcançada por mais de um caminho (por exemplo, duas
-    funções distintas que chamam um mesmo utilitário) quanto um loop
-    infinito em caso de recursão direta ou mútua -- papel que, na árvore de
-    três níveis do Apêndice~\ref{apendice:secao}, é desempenhado pelo
-    próprio teto de profundidade.}
+\begin{table}[H]
+\centering
+\caption{Termos-gatilho por motivo}
+\label{tab:motivos-termos}
+\begin{tabular}{|l|p{9.5cm}|}
+\hline
+\textbf{Motivo} & \textbf{Termos-gatilho} \\ \hline
+\textit{Tool} sem parâmetro & \textit{takes no input parameter, accepts no input parameter, no parameter roles to explain, exposes no user-facing parameter, no user-facing parameter, vacuously satisfied, empty input schema} \\ \hline
+Omissão de parâmetros & \textit{parameter, argument} \\ \hline
+Omissão de funcionalidades & \textit{other supported, additional mode, also filters, also performs, also allows, also supports, also returns, related tools such as, differs from, grouping semantics, selection mode, fuzzy, side effect, broader workflow, versus other, versus alternatives, how this differs} \\ \hline
+Omissão de saídas & \textit{return value, return format, return shape, returned fields, returned match, what is returned, no return value, output schema, returned format, return structure, what a returned, what the returned, result represents, outcome beyond, is returned, are returned, what fields, returned list, result shape, returned user} \\ \hline
+Omissão de limitações & \textit{error, exception, raise, constraint, edge case, corner case, fails to, fail for, failure mode, may fail, rate limit, credential, caveat, required integration, permission} \\ \hline
+Contradição & \textit{contradict, inconsistent*, mismatch, does not match, does not align, conflicts with, diverges from, misleading, not implemented, actually does, actually performs, the code reveals, the implementation shows, does not correspond} \\ \hline
+\end{tabular}
+\end{table}
 
-    \item \textbf{\textcolor{green}{Restrição adicional para chamadas com receptor:}}
-    \textcolor{green}{diferentemente da árvore de três níveis, uma chamada da forma
-    \texttt{objeto.metodo(...)} cujo receptor não é resolvido por nenhuma
-    heurística baseada em contexto local (\texttt{self}/\texttt{this} ou
-    alias de \textit{import} conhecido) não avança para o último passo da
-    heurística (nome único em todo o repositório): ela é tratada como
-    externa, do mesmo modo que uma chamada cujo nome não é encontrado em
-    lugar nenhum. Chamadas sem receptor (\texttt{helper(...)}) continuam
-    elegíveis a esse último passo normalmente. Essa restrição existe porque,
-    sem teto de profundidade, um único acerto incorreto desse passo --
-    aceitável como uma curiosidade isolada e visível num nó da árvore de
-    três níveis -- se propagaria por todas as chamadas feitas a partir da
-    função incorretamente associada, e assim sucessivamente. Um caso real,
-    encontrado num repositório que empacota dezenas de servidores MCP não
-    relacionados sob uma única árvore de código-fonte, tornou esse risco
-    concreto: a chamada \texttt{client.p.submission.fetch(...)} (um método
-    de uma biblioteca cliente externa) foi ``resolvida'' para uma função
-    \texttt{fetch} de um servidor completamente não relacionado, pelo simples
-    fato de ser a única função com esse nome em todo o repositório. Chamadas
-    sem receptor continuam usando esse último passo porque é, na prática, a
-    única forma de a heurística acompanhar um padrão de importação comum em
-    JavaScript/TypeScript (\texttt{const \{ helper \} = require(...)}), não
-    capturado pelo índice de \textit{imports} construído na fase de
-    indexação estática.}
-
-    \item \textbf{\textcolor{green}{Contagem por função:}} \textcolor{green}{para cada
-    função do conjunto alcançável, LOC é a diferença entre sua linha final e
-    inicial mais um, e a complexidade ciclomática é a contagem de McCabe
-    \cite{mccabe1976complexity} (pontos de decisão mais um) sobre seu
-    próprio corpo, sem descer em funções ou \textit{lambdas} aninhadas
-    definidas dentro dele. Os pontos de decisão contados variam por
-    linguagem, mas seguem o mesmo princípio em todas: \texttt{if}
-    (e variantes de encadeamento, como \texttt{elif}/\texttt{else if}),
-    laços (\texttt{for}/\texttt{while}/\texttt{do-while}), captura de
-    exceção (\texttt{catch}/\texttt{except}/\texttt{rescue}), cada ramo de
-    um \texttt{switch}/\texttt{match}/\texttt{when} exceto o ramo
-    \textit{default}, e expressões ternárias -- nunca operadores lógicos de
-    curto-circuito (\texttt{\&\&}/\texttt{||}), o que caracteriza a
-    definição clássica de McCabe, e não a variante estendida usada por
-    algumas ferramentas de análise estática. Os totais de LOC e de
-    complexidade ciclomática da ferramenta são, então, a soma desses
-    valores sobre todas as funções do conjunto alcançável.}
-\end{enumerate}
-
-\subsection*{Pseudocódigo do Algoritmo}
-
-\begin{lstlisting}[language=Python, caption={Fecho transitivo de chamadas resolvidas, sem teto de profundidade}, label=code:reachable-closure]
-def collect_reachable_definitions(start_def):
-    visited = {start_def.qualified_name: start_def}
-    queue = [start_def]
-
-    while queue:
-        current = queue.pop()
-
-        for call_site in extract_calls(current.body):
-            # unico ponto de diferenca em relacao a resolve_call()
-            # do Apendice A: chamada com receptor nao reconhecido
-            # nao cai no passo 4 (nome unico no repositorio inteiro)
-            resolved_def, ambiguous = resolve_call(
-                call_site, current,
-                allow_repo_wide_fallback=(call_site.receiver is None))
-
-            if resolved_def is None or ambiguous:
-                continue  # externa/dinamica, ou resolucao incerta: nao conta
-            if resolved_def.qualified_name in visited:
-                continue  # ja alcancada por outro caminho, ou recursao
-
-            visited[resolved_def.qualified_name] = resolved_def
-            queue.append(resolved_def)
-
-    return list(visited.values())
-
-
-def loc_e_complexidade(reachable_defs):
-    loc_total, cc_total = 0, 0
-    for fn_def in reachable_defs:
-        loc_total += fn_def.end_line - fn_def.start_line + 1
-        cc_total += count_decision_points(fn_def.body) + 1  # McCabe
-    return loc_total, cc_total
-\end{lstlisting}
-
-\subsection*{Justificativa Técnica}
-
-\textcolor{green}{A ausência de um teto de profundidade aqui, em contraste direto com o
-Apêndice~\ref{apendice:secao}, é deliberada: o objetivo dessa métrica é
-estimar o tamanho e a complexidade reais de uma ferramenta, e um teto fixo
-sub-representaria sistematicamente ferramentas cuja lógica está distribuída
-por mais de três níveis de chamadas internas. A restrição adicional sobre
-chamadas com receptor no passo de resolução (item 2 acima) é o
-\textit{trade-off} inverso: sem teto de profundidade, a mesma heurística
-best-effort baseada em nome que é inofensiva numa árvore de três níveis
-passa a poder inflar uma métrica agregada por um fator arbitrariamente
-grande a partir de um único acerto equivocado, o que a tornaria não
-confiável para qualquer análise comparativa entre ferramentas.}
+Uma divergência casa com uma categoria quando sua justificativa (\textit{reasoning}) no cenário \textit{with\_source} contém, como substring e sem diferenciar maiúsculas de minúsculas, ao menos um dos termos daquela linha; o asterisco em \textit{inconsistent*} indica que o termo casa tanto com \textit{inconsistent} quanto com variações como \textit{inconsistency}/\textit{inconsistencies}. Uma única exceção às seis categorias serem independentes entre si: uma divergência nunca é classificada simultaneamente como \textit{tool} sem parâmetro e omissão de parâmetros, por descreverem achados opostos sobre o mesmo par (ver Seção~\ref{sec:resultados}).

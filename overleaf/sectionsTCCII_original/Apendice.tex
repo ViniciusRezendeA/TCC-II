@@ -1,0 +1,174 @@
+% ============================================================================
+% Apêndice: Algoritmo do Grafo de Chamadas (Call Graph), versão corrigida
+% para refletir a implementação real (call_graph_builder.py,
+% definition_index.py, import_index.py, render_source_view.py).
+%
+% Requer no preâmbulo (se ainda não existir): \usepackage{listings}
+%
+% Principais correções em relação ao rascunho anterior:
+%
+% 1. O nome "Structural Code Summarizer" e a ideia de "sumarização" foram
+%    removidos. O algoritmo real NÃO resume o código (não preserva "só
+%    assinaturas e tipos", não omite "boilerplate"). Para cada nó resolvido
+%    da árvore, ele lê e inclui o trecho de código-fonte LITERAL do
+%    repositório clonado em disco (render_source_view.py). O único corte que
+%    existe é um limite bruto de caracteres aplicado depois, na Etapa 3
+%    (MAX_SOURCE_CODE_CHARS = 32.000, em evaluation/payload.py), para conter
+%    o custo/atenção do juiz. É truncamento, não sumarização.
+%
+% 2. As "3 fases" foram reescritas para bater com o código real: (1)
+%    indexação estática do repositório (índice de definições + índice de
+%    imports por arquivo, não um "mapeamento de entry point"); (2)
+%    construção RECURSIVA da árvore (não BFS) com uma heurística de
+%    resolução de 5 passos por nome, primeira que casar vence; (3)
+%    renderização do contexto via leitura literal do código-fonte de cada
+%    nó resolvido, não uma "linearização" que preserva só estrutura.
+%
+% 3. O pseudocódigo foi reescrito para espelhar as funções reais
+%    (build_call_graph, resolve_call, render_source_view) em vez de nomes
+%    genéricos inventados (extract_call_graph, get_internal_function_calls,
+%    format_to_tree_view).
+%
+% 4. A citação \cite{shi2026description} foi REMOVIDA: não há como
+%    verificar se essa referência existe de fato nem se sustenta a alegação
+%    original ("intenção lógica definida na camada superior da pilha"), e eu
+%    não vou inventar uma citação. A justificativa para profundidade=3 foi
+%    reescrita em cima do que o próprio código documenta (contenção de
+%    custo + eliminação estrutural de recursão infinita), sem fonte externa.
+%    Se vocês tiverem uma referência real para essa alegação, adicionem a
+%    citação de volta manualmente.
+%
+% 5. \label{code:scs} -> \label{code:call-graph} (o nome antigo vinha do
+%    acrônimo removido). Ainda não deve haver \ref para ele em outro lugar,
+%    já que este apêndice parece ser rascunho novo, mas vale conferir.
+% ============================================================================
+
+\section{Algoritmo de Construção do Grafo de Chamadas e Composição do Contexto de Código}
+\label{apendice:secao}
+
+Este apêndice detalha o algoritmo desenvolvido para a construção do grafo de
+chamadas (\textit{call graph}) de cada ferramenta MCP e para a composição do
+trecho de código-fonte usado como contexto adicional no cenário de avaliação
+que inclui código-fonte (Seção~\ref{sec:materiais}). O algoritmo é
+heurístico e baseado em análise estática via tree-sitter: a partir da função
+que implementa a própria ferramenta, resolve por nome as chamadas feitas
+dentro dela, até três níveis de profundidade, distinguindo chamadas
+resolvidas dentro do próprio repositório de chamadas externas ou
+dinamicamente determinadas, conforme ilustrado na Figura~\ref{fig:codigoarvore}.
+
+\subsection*{Procedimento de Extração}
+O algoritmo opera em três fases distintas, executadas uma vez por repositório:
+
+\begin{enumerate}
+    \item \textbf{Indexação estática do repositório:} são construídos, a
+    partir de todo o código-fonte do repositório, um índice de definições
+    (nome simples e nome qualificado, \texttt{Classe.método}, de toda
+    função/método encontrado, com referência ao seu corpo) e, por arquivo,
+    um índice de \textit{imports} (alias local usado no arquivo
+    $\rightarrow$ módulo e nome original de onde veio). Ambos são
+    heurísticas de escopo léxico, não uma resolução completa de símbolos.
+
+    \item \textbf{Construção recursiva do grafo de chamadas:} a árvore de
+    cada ferramenta é construída a partir da função que a implementa
+    (nível~1). Para cada chamada encontrada no corpo de uma função, uma
+    heurística de resolução por nome é aplicada em ordem, valendo a
+    primeira que casar: (i) receptor \texttt{self}/\texttt{this}
+    $\rightarrow$ método da própria classe; (ii) mesmo nome definido no
+    mesmo arquivo $\rightarrow$ função auxiliar local; (iii) receptor casa
+    com um alias de \textit{import} conhecido $\rightarrow$ busca no
+    módulo importado; (iv) nome único em todo o repositório
+    $\rightarrow$ resolve diretamente; (v) não encontrado em lugar nenhum
+    (biblioteca externa, \textit{stdlib}, ou chamada genuinamente
+    dinâmica) $\rightarrow$ tratado como folha externa, sem recursão.
+    Uma chamada resolvida vira um novo nó, expandido recursivamente até o
+    nível~3; nós de nível~3 continuam sendo chamadas normalmente
+    resolvidas, mas suas próprias chamadas internas não são mais
+    exploradas. Quando mais de um candidato válido é encontrado num mesmo
+    passo (nome duplicado em escopos distintos), o desempate é feito pela
+    menor distância de diretório até o arquivo de origem da chamada, e o
+    nó resultante permanece explicitamente sinalizado como \textit{ambíguo}
+    na estrutura de dados, em vez de ser tratado como uma resolução certa.
+
+    \item \textbf{Composição do contexto de código:} no cenário de
+    avaliação que inclui código-fonte, a árvore é percorrida em
+    pré-ordem e, para cada nó resolvido, o trecho de código-fonte
+    correspondente (linhas de início e fim exatas) é lido diretamente do
+    repositório clonado em disco e anotado com um comentário indicando o
+    nível na árvore, a chamada de origem e a localização exata
+    (arquivo:linhas). Nós externos/não resolvidos entram apenas como um
+    comentário sinalizando a chamada não resolvida, sem trecho de código.
+    Os trechos são concatenados na ordem de visita; o texto resultante é
+    limitado a um número máximo de caracteres antes de ser enviado ao
+    avaliador, para conter o custo e a atenção do modelo: um corte por
+    tamanho, não uma sumarização do conteúdo.
+\end{enumerate}
+
+\subsection*{Pseudocódigo do Algoritmo}
+A lógica de construção do grafo e de resolução de chamadas é apresentada na
+Listagem~\ref{code:call-graph}. A profundidade máxima é imposta pela
+própria recursão: ao atingir o nível limite, a função retorna sem procurar
+novas chamadas, o que também elimina, por construção, qualquer risco de
+loop em recursão direta ou mútua, sem exigir detecção de ciclo separada.
+
+\begin{lstlisting}[language=Python, caption=Construção do grafo de chamadas e resolução por nome, label=code:call-graph]
+MAX_LEVEL = 3
+
+def build_call_graph(fn_def, level=1):
+    node = Node(level, resolved=True, external=False,
+                ambiguous=False, location=fn_def.location)
+
+    if level >= MAX_LEVEL:
+        return node  # nó de nivel 3: resolvido, mas nao expandido
+
+    for call_site in extract_calls(fn_def.body):
+        resolved_def, ambiguous = resolve_call(call_site, fn_def)
+
+        if resolved_def is None:
+            node.calls.append(
+                ExternalLeaf(level + 1, call_site.raw_text))
+            continue
+
+        child = build_call_graph(resolved_def, level + 1)
+        child.ambiguous = ambiguous
+        child.raw_call_text = call_site.raw_text
+        node.calls.append(child)
+
+    return node
+
+
+def resolve_call(call_site, fn_def):
+    name = call_site.callee_name
+
+    # 1. receptor self/this -> metodo da propria classe
+    if call_site.receiver in ("self", "this"):
+        candidate = definitions.by_qualified_name.get(
+            f"{fn_def.class_name}.{name}")
+        if candidate:
+            return candidate, False  # (definicao, ambiguous)
+
+    # 2. mesmo nome, mesmo arquivo
+    # 3. receptor casa com alias de import conhecido
+    # 4. nome unico em todo o repositorio
+    candidates = lookup_by_scope(name, call_site, fn_def)
+    if len(candidates) == 1:
+        return candidates[0], False
+    if len(candidates) > 1:
+        return nearest_by_directory(candidates, fn_def.file), True
+
+    # 5. nao encontrado -> chamada externa/dinamica
+    return None, False
+\end{lstlisting}
+
+\subsection*{Justificativa Técnica}
+A limitação a três níveis é uma decisão de engenharia, não uma medição
+prévia de onde a lógica relevante de uma ferramenta termina: ela contém o
+tamanho da árvore (e, por consequência, do texto eventualmente enviado ao
+avaliador) a um custo previsível, e elimina, por construção, qualquer
+risco de loop infinito em recursão direta ou mútua, sem exigir detecção de
+ciclo separada. A resolução de chamadas é heurística e baseada em nome, não
+uma checagem de tipos ou resolução semântica completa: um \textit{trade-off}
+assumido dado o escopo do projeto. Por isso, toda chamada resolvida por
+desempate entre múltiplos candidatos válidos permanece marcada como
+ambígua na estrutura de dados final, em vez de ser silenciosamente tratada
+como uma resolução certa, preservando essa incerteza para análises
+posteriores.

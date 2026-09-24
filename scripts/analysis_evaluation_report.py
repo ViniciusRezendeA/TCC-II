@@ -381,52 +381,154 @@ def migracao_quartil_por_componente(long_df: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(rows).sort_values(["componente", "juiz"]).reset_index(drop=True)
 
 
+def divergencias_nao_empatadas_por_tool(long_df: pd.DataFrame) -> pd.DataFrame:
+    """Uma linha por (juiz, componente, tool_uid) cuja nota mudou entre description_only e
+    with_source (diff_nota != 0) -- população mais ampla que migracao_quartil_por_tool()
+    (que só conta migrações de pelo menos MUDANCA_MINIMA_QUARTIS faixas de quartil): aqui
+    QUALQUER mudança de nota conta, sem passar pelo quartil.
+
+    Mesma base de pares que _mediana_diferenca_efetiva_por_componente() usa para calcular
+    `direcao` em veredito_custo_beneficio() (empates descartados, sem filtro de quartil) --
+    existir como função própria, em vez de recalcular esse pivot em mais um lugar, unifica os
+    dois em uma só noção de "divergência" para o pipeline de motivos/veredito. Usada por
+    motivos_por_divergencia() e por veredito_custo_beneficio() (via
+    divergencias_nao_empatadas_por_componente()).
+    """
+    pivot = long_df.pivot_table(index=["juiz", "componente", "tool_uid"], columns="cenario", values="nota")
+    obrigatorias = ["description_only", "with_source"]
+    if not set(obrigatorias) <= set(pivot.columns):
+        return pd.DataFrame(columns=["juiz", "componente", "tool_uid", "diff_nota", "subiu"])
+
+    combinado = pivot.dropna(subset=obrigatorias).reset_index()
+    combinado["diff_nota"] = combinado["with_source"] - combinado["description_only"]
+    combinado = combinado[combinado["diff_nota"] != 0].copy()
+    combinado["subiu"] = combinado["diff_nota"] > 0
+    return combinado[["juiz", "componente", "tool_uid", "diff_nota", "subiu"]]
+
+
+def divergencias_nao_empatadas_por_componente(long_df: pd.DataFrame) -> pd.DataFrame:
+    """Resumo por juiz/componente de divergencias_nao_empatadas_por_tool(): quantas mudanças de
+    nota (qualquer tamanho, não-empatadas) e quantas subiram/desceram. Denominador de
+    `pct_sem_motivo` em veredito_custo_beneficio() -- ver docstring de lá.
+    """
+    df = divergencias_nao_empatadas_por_tool(long_df)
+    if df.empty:
+        return pd.DataFrame(columns=["juiz", "componente", "n_diverge", "n_diverge_subiu", "n_diverge_desceu"])
+    rows = []
+    for (juiz, componente), group in df.groupby(["juiz", "componente"]):
+        rows.append(
+            {
+                "juiz": juiz,
+                "componente": componente,
+                "n_diverge": len(group),
+                "n_diverge_subiu": int(group["subiu"].sum()),
+                "n_diverge_desceu": int((~group["subiu"]).sum()),
+            }
+        )
+    return pd.DataFrame(rows).sort_values(["componente", "juiz"]).reset_index(drop=True)
+
+
 # --- Motivos de divergência (junção por palavra-chave) -----------------------
 
 # Termos em inglês porque o reasoning das avaliações é sempre em inglês (ver
-# evaluation/prompts.py). Derivado das definições dos 6 componentes da rubrica
-# (RUBRIC_COMPONENTS em prompts.py) e do próprio texto de "Handling SOURCE_CODE" do prompt
-# ativo (RUBRIC_SYSTEM_PROMPT): a nota só deveria ser ajustada "based on ... findings" de
-# inconsistências entre descrição e código, então contradição/omissão são os motivos mais
-# diretamente ligados à instrução em vigor. Uma divergência pode casar mais de uma categoria
-# -- é uma junção por palavra-chave, não uma classificação exclusiva.
+# evaluation/prompts.py).
+#
+# Categorias pensadas como MECANISMO -- o que o SOURCE_CODE deu ao juiz para enxergar que o
+# texto sozinho não dava -- e não como espelho de qual componente da rubrica (RUBRIC_COMPONENTS
+# em prompts.py) foi pontuado. Essa distinção importa para a RQ1 (o código aumenta a precisão da
+# avaliação?): saber que a nota mudou no componente "Guidelines" não explica nada por si só, já
+# que isso já está no próprio dado (campo "componente"); o que explica é se o código revelou um
+# parâmetro, comportamento, saída ou limitação concretos que o texto não citava, ou se apenas
+# expôs uma contradição entre descrição e implementação. Uma primeira versão deste dicionário
+# (2026-09-20, revisada no mesmo dia) usava duas categorias ("diretrizes_uso",
+# "extensao_completude") definidas a partir do próprio texto de RUBRIC_COMPONENTS -- descartada
+# por reproduzir exatamente o problema acima.
+#
+# tool_sem_parametro existe separado de omissao_parametros porque são achados opostos: o
+# primeiro diz que a "falta de explicação de parâmetro" do description_only era injustificada
+# (a tool não tem parâmetro nenhum -- tipicamente sobe a nota), o segundo que há parâmetros reais
+# não documentados (tipicamente desce a nota). Ambos tendem a mencionar a palavra "parameter"
+# soltas, então omissao_parametros nunca dispara sozinha quando tool_sem_parametro já casou (ver
+# classificar_motivos()) -- sem essa exclusão, qualquer caso "a tool não tem parâmetro" também
+# casaria com "parâmetro não documentado", o que são achados contraditórios entre si.
+#
+# Uma divergência pode casar mais de uma categoria -- é uma junção por palavra-chave, não uma
+# classificação exclusiva. Isso também significa que falso-positivo por vocabulário coincidente
+# é esperado (ex: "parameter" aparece na própria descrição de uma tool sobre teste de SQL
+# injection -- "check if a parameter is injectable" -- sem relação com a qualidade da explicação
+# dos parâmetros da tool); a validação manual de 2026-09-20 (100 pares, ver
+# overleaf/sectionsTCCII/05_Resultados_Parciais.tex) mediu 95% de concordância com leitura
+# humana nesse regime.
 MOTIVO_KEYWORDS: dict[str, list[str]] = {
-    "parametro": ["parameter", "argument", "data type", "type hint"],
-    "limitacao_erro": ["error", "exception", "raise", "constraint", "edge case", "corner case", "fail"],
-    "exemplo": ["example", "usage", "demonstrat"],
-    "contradicao": ["contradict", "inconsistent", "mismatch", "does not match", "does not align", "conflicts with"],
-    "omissao": ["omit", "missing", "does not mention", "lacks", "no mention of", "fails to mention", "not disclosed", "undisclosed"],
-    "escopo_proposito": ["actually does", "actually performs", "purpose is", "the code reveals", "the implementation shows"],
+    "tool_sem_parametro": [
+        "takes no input parameter", "accepts no input parameter", "no parameter roles to explain",
+        "exposes no user-facing parameter", "no user-facing parameter", "vacuously satisfied",
+        "empty input schema",
+    ],
+    "omissao_parametros": ["parameter", "argument"],
+    "omissao_funcionalidades": [
+        "other supported", "additional mode", "also filters", "also performs", "also allows",
+        "also supports", "also returns", "related tools such as", "differs from",
+        "grouping semantics", "selection mode", "fuzzy", "side effect", "broader workflow",
+        "versus other", "versus alternatives", "how this differs",
+    ],
+    "omissao_saidas": [
+        "return value", "return format", "return shape", "returned fields", "returned match",
+        "what is returned", "no return value", "output schema", "returned format",
+        "return structure", "what a returned", "what the returned", "result represents",
+        "outcome beyond", "is returned", "are returned", "what fields", "returned list",
+        "result shape", "returned user",
+    ],
+    "omissao_limitacoes": [
+        "error", "exception", "raise", "constraint", "edge case", "corner case", "fails to",
+        "fail for", "failure mode", "may fail", "rate limit", "credential", "caveat",
+        "required integration", "permission",
+    ],
+    "contradicao": [
+        "contradict", "inconsisten", "mismatch", "does not match", "does not align",
+        "conflicts with", "diverges from", "misleading", "not implemented", "actually does",
+        "actually performs", "the code reveals", "the implementation shows", "does not correspond",
+    ],
 }
 
 # Retornado quando nenhuma categoria de MOTIVO_KEYWORDS casa -- ver classificar_motivos().
-MOTIVO_FALLBACK = "sem_justificativa_especifica"
+MOTIVO_FALLBACK = "sem_achado_no_codigo"
 
 
 def classificar_motivos(reasoning: str) -> list[str]:
     """Junção por palavra-chave: casa o texto de reasoning contra MOTIVO_KEYWORDS,
-    case-insensitive, por substring. Retorna TODAS as categorias que casarem (ex: "the
-    parameter's type is missing" casa tanto "parametro" quanto "omissao"), não uma
-    classificação exclusiva.
+    case-insensitive, por substring. Retorna TODAS as categorias que casarem, não uma
+    classificação exclusiva -- com uma única exceção: omissao_parametros nunca aparece junto de
+    tool_sem_parametro (ver comentário acima de MOTIVO_KEYWORDS), porque os dois descrevem
+    achados incompatíveis sobre o mesmo par.
 
-    Quando nenhuma categoria casa, retorna [MOTIVO_FALLBACK]: o texto ativo de "Handling
-    SOURCE_CODE" (RUBRIC_SYSTEM_PROMPT, ver registros_versao_ativa()) diz que o ajuste de nota
-    deve ser feito "based on ... findings" de inconsistências entre descrição e código -- uma
-    divergência cuja reasoning não nomeia nenhum termo de problema reconhecível não está
-    claramente fundamentada nesses termos, independente de a nota ter subido ou descido.
+    Quando nenhuma categoria casa, retorna [MOTIVO_FALLBACK]: a reasoning não cita nenhum
+    parâmetro, comportamento, saída, limitação ou contradição concretos vindos do código,
+    independente de a nota ter subido ou descido -- pode ser puro reflexo do julgamento do juiz
+    sobre a prosa da descrição (extensão, clareza), sem relação com o que o SOURCE_CODE mostrou.
     """
     texto = (reasoning or "").lower()
     motivos = [motivo for motivo, termos in MOTIVO_KEYWORDS.items() if any(termo in texto for termo in termos)]
+    if "omissao_parametros" in motivos and "tool_sem_parametro" in motivos:
+        motivos.remove("omissao_parametros")
     return motivos or [MOTIVO_FALLBACK]
 
 
 def motivos_por_divergencia(records: list[dict]) -> pd.DataFrame:
-    """Aplica classificar_motivos() a cada divergência (ver migracao_quartil_por_tool()): para
-    cada (juiz, componente, tool_uid) cuja nota migrou pelo menos MUDANCA_MINIMA_QUARTIS faixas
-    de quartil, busca a reasoning do with_source diretamente nos records brutos (mesma técnica
-    de lookup por chave usada em generate_dashboard.py::build_divergences_data()) e classifica.
-    Usa só a reasoning do with_source, não a do description_only: é nela que o juiz, seguindo o
-    texto ativo de "Handling SOURCE_CODE", deveria registrar a inconsistência encontrada.
+    """Aplica classificar_motivos() a cada divergência (ver divergencias_nao_empatadas_por_tool()):
+    para cada (juiz, componente, tool_uid) cuja nota mudou entre description_only e with_source
+    (empate excluído, qualquer tamanho de mudança -- sem o filtro de quartil de
+    migracao_quartil_por_tool()), busca a reasoning do with_source diretamente nos records
+    brutos (mesma técnica de lookup por chave usada em
+    generate_dashboard.py::build_divergences_data()) e classifica. Usa só a reasoning do
+    with_source, não a do description_only: é nela que o juiz, seguindo o texto ativo de
+    "Handling SOURCE_CODE", deveria registrar a inconsistência encontrada.
+
+    Usar a população não-empatada (bem mais ampla que a migração de quartil) em vez de
+    diverge=True foi uma decisão tomada em 2026-09-20 após validar MOTIVO_KEYWORDS contra uma
+    amostra de 100 pares desse regime (ver overleaf/sectionsTCCII/05_Resultados_Parciais.tex):
+    restringir a quartil deixava de fora a maior parte das mudanças de nota reais sem nenhum
+    ganho de qualidade na classificação.
 
     Uma linha por (divergência x motivo casado) -- fan-out proposital de uma junção real, não
     uma classificação 1:1. `records` deve já ter passado por registros_versao_ativa(); esta
@@ -434,10 +536,9 @@ def motivos_por_divergencia(records: list[dict]) -> pd.DataFrame:
     uma só versão).
     """
     long_df = scores_long(records)
-    migracao = migracao_quartil_por_tool(long_df)
-    divergentes = migracao[migracao["diverge"]]
+    divergentes = divergencias_nao_empatadas_por_tool(long_df)
     if divergentes.empty:
-        return pd.DataFrame(columns=["juiz", "componente", "tool_uid", "motivo", "diff_quartil", "subiu"])
+        return pd.DataFrame(columns=["juiz", "componente", "tool_uid", "motivo", "diff_nota", "subiu"])
 
     reasoning_with_source: dict[tuple[str, str, str], str] = {}
     for r in records:
@@ -460,8 +561,8 @@ def motivos_por_divergencia(records: list[dict]) -> pd.DataFrame:
                     "componente": row["componente"],
                     "tool_uid": row["tool_uid"],
                     "motivo": motivo,
-                    "diff_quartil": row["diff_quartil"],
-                    "subiu": row["diff_quartil"] > 0,
+                    "diff_nota": row["diff_nota"],
+                    "subiu": row["subiu"],
                 }
             )
     return pd.DataFrame(rows)
@@ -764,18 +865,18 @@ def _mediana_diferenca_efetiva_por_componente(long_df: pd.DataFrame) -> pd.DataF
 
 
 # Limiar usado por veredito_custo_beneficio() para separar mudanças de nota bem fundamentadas
-# de mudanças sem justificativa clara: abaixo de 50% de divergências no motivo de fallback
-# (MOTIVO_FALLBACK, "sem_justificativa_especifica"), o efeito é considerado confiável o
-# bastante para justificar o custo extra de mandar o código.
+# de mudanças sem achado claro no código: abaixo de 50% de divergências no motivo de fallback
+# (MOTIVO_FALLBACK, "sem_achado_no_codigo"), o efeito é considerado confiável o bastante para
+# justificar o custo extra de mandar o código.
 LIMIAR_SEM_MOTIVO_PERCENTUAL = 50.0
 
 
 def veredito_custo_beneficio(records: list[dict]) -> pd.DataFrame:
     """Veredito por (juiz, componente): vale a pena pagar o custo extra de mandar SOURCE_CODE
     ao juiz? Cruza significância estatística (wilcoxon_por_componente), direção e volume da
-    migração de quartil (migracao_quartil_por_componente), a proporção de divergências sem
-    justificativa específica (resumo_motivos_por_componente, ver classificar_motivos()) e o
-    custo extra do with_source (_delta_custo_com_codigo()).
+    divergência de nota (divergencias_nao_empatadas_por_componente), a proporção de
+    divergências sem justificativa específica (resumo_motivos_por_componente, ver
+    classificar_motivos()) e o custo extra do with_source (_delta_custo_com_codigo()).
 
     Filtra por registros_versao_ativa() internamente -- não confia em quem chama já ter
     filtrado, porque misturar prompt_version misturaria respostas a textos de rubrica
@@ -789,9 +890,15 @@ def veredito_custo_beneficio(records: list[dict]) -> pd.DataFrame:
     SOURCE_CODE -- $0.0 para juízes sem custo direto (JUDGES_SEM_CUSTO_DIRETO), None para um
     juiz pago sem preço modelado.
 
-    `pct_sem_motivo` usa `n_diverge` de migracao_quartil_por_componente() como denominador -- não a
-    soma de `ocorrencias` de resumo_motivos_por_componente(), que infla o total ao contar uma
-    mesma divergência uma vez por motivo casado quando ela bate em mais de uma categoria.
+    `pct_sem_motivo` usa `n_diverge` de divergencias_nao_empatadas_por_componente() como
+    denominador -- não a soma de `ocorrencias` de resumo_motivos_por_componente(), que infla o
+    total ao contar uma mesma divergência uma vez por motivo casado quando ela bate em mais de
+    uma categoria. Esse denominador foi trocado de migracao_quartil_por_componente() (migração
+    de quartil) para divergencias_nao_empatadas_por_componente() (qualquer nota não-empatada) em
+    2026-09-20, para casar com a população que motivos_por_divergencia() de fato classifica
+    desde então -- manter o denominador em quartil enquanto o numerador (`n_sem_motivo`, vindo de
+    motivos_df) já cobria a população mais ampla inflava artificialmente `pct_sem_motivo` (podia
+    passar de 100%).
 
     IMPORTANTE: esta função não assume qualquer direção como "certa" ou "errada". O texto ativo
     de "Handling SOURCE_CODE" (RUBRIC_SYSTEM_PROMPT, prompt_version vigente) só diz que a nota
@@ -816,7 +923,7 @@ def veredito_custo_beneficio(records: list[dict]) -> pd.DataFrame:
     long_df = scores_long(scoped)
 
     wilcoxon_df = wilcoxon_por_componente(long_df)
-    migracao_df = migracao_quartil_por_componente(long_df)
+    divergencia_df = divergencias_nao_empatadas_por_componente(long_df)
     mediana_df = _mediana_diferenca_efetiva_por_componente(long_df)
     motivos_df = resumo_motivos_por_componente(motivos_por_divergencia(scoped))
     custo_df = custo_latencia_por_juiz_e_cenario(scoped)
@@ -828,7 +935,7 @@ def veredito_custo_beneficio(records: list[dict]) -> pd.DataFrame:
         else pd.Series(dtype=float)
     )
 
-    base = wilcoxon_df.merge(migracao_df, on=["juiz", "componente"]).merge(mediana_df, on=["juiz", "componente"])
+    base = wilcoxon_df.merge(divergencia_df, on=["juiz", "componente"]).merge(mediana_df, on=["juiz", "componente"])
 
     rows = []
     for row in base.to_dict("records"):
