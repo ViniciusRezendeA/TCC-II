@@ -428,6 +428,104 @@ def divergencias_nao_empatadas_por_componente(long_df: pd.DataFrame) -> pd.DataF
     return pd.DataFrame(rows).sort_values(["componente", "juiz"]).reset_index(drop=True)
 
 
+# --- Consenso de divergência entre juízes -------------------------------------
+
+# Exige pelo menos 2 juízes cobrindo a tool nos dois cenários para "todos os juízes
+# concordaram" ser um sinal que significa algo -- com 1 juiz só, "todos concordaram" é
+# trivialmente verdadeiro. Decisão tomada com o usuário em 2026-09-24.
+MIN_JUIZES_CONSENSO = 2
+
+
+def cobertura_juizes_por_tool(long_df: pd.DataFrame) -> pd.DataFrame:
+    """Uma linha por tool_uid, coluna `juizes` (lista ordenada de ids de juiz que avaliaram
+    essa tool em AMBOS os cenários, description_only e with_source). É o universo dinâmico de
+    "todos os juízes" usado por consenso_divergencia_por_tool() -- dinâmico porque a cobertura
+    varia por tool: nem toda tool foi avaliada pelos mesmos juízes (juízes locais/cloud têm
+    volumes e datas de execução diferentes, ver JUDGES_STRATEGY.md).
+    """
+    cobertura = long_df.groupby(["tool_uid", "juiz"])["cenario"].apply(
+        lambda s: {"description_only", "with_source"} <= set(s)
+    )
+    universo = cobertura[cobertura].reset_index()[["tool_uid", "juiz"]]
+    return universo.groupby("tool_uid")["juiz"].apply(lambda s: sorted(set(s))).reset_index(name="juizes")
+
+
+def resumo_cobertura_juizes(long_df: pd.DataFrame) -> pd.DataFrame:
+    """Tabela de transparência para MIN_JUIZES_CONSENSO: quantas tools têm 1 juiz cobrindo os
+    dois cenários (ficam de fora de consenso_divergencia_por_tool() por definição), quantas
+    têm 2, quantas têm 3+. Sem esta tabela, o motivo de uma tool nunca aparecer em
+    consenso_divergencia_por_tool() (cobertura insuficiente vs. nota que não mudou em uníssono)
+    ficaria invisível.
+    """
+    cobertura = cobertura_juizes_por_tool(long_df)
+    cobertura["n_juizes"] = cobertura["juizes"].apply(len)
+    return (
+        cobertura.groupby("n_juizes").size().reset_index(name="n_tools").sort_values("n_juizes").reset_index(drop=True)
+    )
+
+
+def consenso_divergencia_por_tool(long_df: pd.DataFrame) -> pd.DataFrame:
+    """Uma linha por (tool_uid, componente, juiz) -- mesmo formato "longo" de
+    divergencias_nao_empatadas_por_tool() -- restrita aos casos em que TODO o universo de
+    juízes daquela tool (cobertura_juizes_por_tool(), tamanho >= MIN_JUIZES_CONSENSO) mudou a
+    nota nesse componente específico entre description_only e with_source. Não exige mesma
+    direção (um juiz pode subir e outro descer a nota e ainda contar como "todos mudaram") --
+    ver `mesma_direcao` para esse sinal mais forte, reportado mas não filtrado.
+
+    `set(grupo["juiz"]) != set(universo)` é a checagem central: grupo só contém juízes que já
+    mudaram a nota nesse componente (via divergencias_nao_empatadas_por_tool), então comparar
+    contra o universo completo captura exatamente "todos mudaram" -- sobra automaticamente se
+    algum juiz do universo não aparecer no grupo (não mudou a nota).
+    """
+    divergencias = divergencias_nao_empatadas_por_tool(long_df)
+    cobertura = cobertura_juizes_por_tool(long_df)
+    cobertura = cobertura[cobertura["juizes"].apply(len) >= MIN_JUIZES_CONSENSO]
+    universo_por_tool = cobertura.set_index("tool_uid")["juizes"].to_dict()
+
+    columns = ["tool_uid", "componente", "juiz", "diff_nota", "subiu", "n_juizes", "mesma_direcao"]
+    if divergencias.empty:
+        return pd.DataFrame(columns=columns)
+
+    rows = []
+    for (tool_uid, componente), grupo in divergencias.groupby(["tool_uid", "componente"]):
+        universo = universo_por_tool.get(tool_uid)
+        if universo is None:
+            continue
+        if set(grupo["juiz"]) != set(universo):
+            continue
+        mesma_direcao = bool(grupo["subiu"].nunique() == 1)
+        for row in grupo.to_dict("records"):
+            rows.append({**row, "n_juizes": len(universo), "mesma_direcao": mesma_direcao})
+    return pd.DataFrame(rows, columns=columns)
+
+
+def resumo_consenso_por_componente(consenso_df: pd.DataFrame) -> pd.DataFrame:
+    """Agregado por componente de consenso_divergencia_por_tool(): quantas tools distintas
+    tiveram consenso TOTAL de mudança de nota (não maioria, não "pelo menos um juiz") em cada
+    componente -- a resposta mais forte possível para RQ2 (quais componentes são mais afetados
+    pela adição do código).
+
+    drop_duplicates(subset=["tool_uid", "componente"]) é necessário porque
+    consenso_divergencia_por_tool() tem uma linha por juiz -- sem isso, uma tool com consenso
+    de 3 juízes contaria 3x aqui em vez de 1x.
+    """
+    columns = ["componente", "n_tools_consenso", "n_tools_mesma_direcao", "media_juizes_por_consenso"]
+    if consenso_df.empty:
+        return pd.DataFrame(columns=columns)
+    chaves = consenso_df.drop_duplicates(subset=["tool_uid", "componente"])
+    grouped = (
+        chaves.groupby("componente")
+        .agg(
+            n_tools_consenso=("tool_uid", "size"),
+            n_tools_mesma_direcao=("mesma_direcao", "sum"),
+            media_juizes_por_consenso=("n_juizes", "mean"),
+        )
+        .reset_index()
+    )
+    grouped["media_juizes_por_consenso"] = grouped["media_juizes_por_consenso"].round(2)
+    return grouped.sort_values("n_tools_consenso", ascending=False).reset_index(drop=True)
+
+
 # --- Motivos de divergência (junção por palavra-chave) -----------------------
 
 # Termos em inglês porque o reasoning das avaliações é sempre em inglês (ver
@@ -1121,11 +1219,25 @@ def main() -> None:
         sys.exit(1)
 
     records = load_evaluations(evaluations_dir)
+    logger.info("Carregadas %s avaliações (tool x cenário x juiz) de %s", len(records), evaluations_dir)
+
+    # Import local (não no topo do arquivo) para evitar import circular: dedupe_evaluations.py
+    # importa tool_key_for() deste próprio módulo. run_step3.py grava em modo append -- um
+    # retry (--retry-failed) soma uma linha nova sem remover a antiga com status "error" (ver
+    # docstring de dedupe_records()); sem deduplicar aqui, uma tool reprocessada é contada mais
+    # de uma vez em toda tabela abaixo (scores_long(), cobertura_juizes_por_tool(), etc.).
+    # Mesma deduplicação que scripts/generate_dashboard.py já aplica -- sem isso, os dois
+    # relatórios divergem em contagens para os mesmos dados brutos. Roda ANTES de calcular
+    # n_ok, para o "com status ok" abaixo já refletir o total pós-deduplicação.
+    from scripts.dedupe_evaluations import dedupe_records
+
+    deduped = dedupe_records(records)
+    if len(deduped) != len(records):
+        logger.info("Removidas %s avaliações duplicadas (retries via --retry-failed)", len(records) - len(deduped))
+    records = deduped
+
     n_ok = sum(1 for r in records if r["status"] == "ok")
-    logger.info(
-        "Carregadas %s avaliações (tool x cenário x juiz) de %s, %s com status ok",
-        len(records), evaluations_dir, n_ok,
-    )
+    logger.info("%s avaliações após deduplicação, %s com status ok", len(records), n_ok)
 
     long_df = scores_long(records)
 
@@ -1133,6 +1245,8 @@ def main() -> None:
     # registros_versao_ativa()): as tabelas legadas acima continuam com todos os records, sem
     # esse filtro, para não mudar números já publicados no TCC.
     scoped = registros_versao_ativa(records)
+    long_df_scoped = scores_long(scoped)  # só para as tabelas de consenso entre juízes, novas
+    consenso_df = consenso_divergencia_por_tool(long_df_scoped)
 
     tables = {
         "status_por_juiz_cenario": status_por_juiz_cenario(records),
@@ -1148,6 +1262,9 @@ def main() -> None:
         "resumo_motivos_por_componente": resumo_motivos_por_componente(motivos_por_divergencia(scoped)),
         "custo_latencia_por_juiz_e_cenario": custo_latencia_por_juiz_e_cenario(scoped),
         "veredito_custo_beneficio": veredito_custo_beneficio(scoped),
+        "resumo_cobertura_juizes": resumo_cobertura_juizes(long_df_scoped),
+        "consenso_divergencia_por_tool": consenso_df,
+        "resumo_consenso_por_componente": resumo_consenso_por_componente(consenso_df),
     }
 
     export_tables(tables, output_dir / "tables", workbook_name="resumo_etapa_3.xlsx")

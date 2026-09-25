@@ -9,11 +9,15 @@ from scripts.analysis_evaluation_report import (
     _delta_custo_com_codigo,
     _deepseek_em_horario_peak_utc,
     classificar_motivos,
+    cobertura_juizes_por_tool,
+    consenso_divergencia_por_tool,
     custo_latencia_por_juiz_e_cenario,
     custo_real_por_juiz,
     custo_real_usd,
     motivos_por_divergencia,
     registros_versao_ativa,
+    resumo_cobertura_juizes,
+    resumo_consenso_por_componente,
     resumo_motivos_por_componente,
     tool_key_for,
     veredito_custo_beneficio,
@@ -127,6 +131,105 @@ def test_wilcoxon_por_componente_bh_correction_is_scoped_per_judge():
     # BH de 2 p-valores dentro de juiz_a, calculado independente do que juiz_b tem.
     manual_bh = _benjamini_hochberg(juiz_a["p_valor"])
     pd.testing.assert_series_equal(juiz_a["p_valor_bh"], manual_bh.round(4), check_names=False)
+
+
+def test_cobertura_juizes_por_tool_only_counts_judges_present_in_both_scenarios():
+    """juiz 'a' avaliou 't0' nos dois cenários; juiz 'b' só aparece em description_only (ex:
+    with_source terminou em status != 'ok' e nunca chegou a scores_long()) -- só 'a' entra no
+    universo de 't0'."""
+    rows = [
+        _long_df_row("a", "purpose", "t0", "description_only", 2),
+        _long_df_row("a", "purpose", "t0", "with_source", 4),
+        _long_df_row("b", "purpose", "t0", "description_only", 3),
+    ]
+    long_df = pd.DataFrame(rows)
+
+    result = cobertura_juizes_por_tool(long_df)
+
+    assert len(result) == 1
+    assert result.iloc[0]["tool_uid"] == "t0"
+    assert result.iloc[0]["juizes"] == ["a"]
+
+
+def test_consenso_divergencia_por_tool_requires_full_universe_per_component():
+    """3 juízes cobrem a mesma tool. Em 'purpose', só a e b mudam a nota (c empata) -- não é
+    unanimidade, não deve aparecer. Em 'guidelines', os 3 mudam -- deve aparecer, uma linha por
+    juiz, todas com n_juizes=3."""
+    rows = []
+    for juiz, desc, src in [("a", 2, 4), ("b", 2, 4), ("c", 3, 3)]:
+        rows.append(_long_df_row(juiz, "purpose", "t0", "description_only", desc))
+        rows.append(_long_df_row(juiz, "purpose", "t0", "with_source", src))
+    for juiz, desc, src in [("a", 1, 2), ("b", 1, 3), ("c", 1, 2)]:
+        rows.append(_long_df_row(juiz, "guidelines", "t0", "description_only", desc))
+        rows.append(_long_df_row(juiz, "guidelines", "t0", "with_source", src))
+    long_df = pd.DataFrame(rows)
+
+    result = consenso_divergencia_por_tool(long_df)
+
+    assert set(result["componente"]) == {"guidelines"}
+    assert len(result) == 3
+    assert (result["n_juizes"] == 3).all()
+
+
+def test_consenso_divergencia_por_tool_mesma_direcao_flag():
+    """'purpose': os 3 juízes sobem a nota -- mesma_direcao=True. 'examples': sinais mistos
+    (sobe/desce/desce) -- mesma_direcao=False, mesmo sendo unanimidade de MUDANÇA."""
+    rows = []
+    for juiz, desc, src in [("a", 1, 2), ("b", 1, 3), ("c", 2, 5)]:
+        rows.append(_long_df_row(juiz, "purpose", "t0", "description_only", desc))
+        rows.append(_long_df_row(juiz, "purpose", "t0", "with_source", src))
+    for juiz, desc, src in [("a", 4, 2), ("b", 1, 3), ("c", 3, 1)]:
+        rows.append(_long_df_row(juiz, "examples", "t0", "description_only", desc))
+        rows.append(_long_df_row(juiz, "examples", "t0", "with_source", src))
+    long_df = pd.DataFrame(rows)
+
+    result = consenso_divergencia_por_tool(long_df)
+    por_componente = result.drop_duplicates("componente").set_index("componente")["mesma_direcao"]
+
+    assert por_componente["purpose"]
+    assert not por_componente["examples"]
+
+
+def test_consenso_divergencia_por_tool_excludes_single_judge_tool():
+    """MIN_JUIZES_CONSENSO=2: uma tool coberta por 1 só juiz nunca conta como consenso, por
+    mais que a nota tenha mudado -- "todos concordaram" seria trivial com 1 juiz só. Ainda
+    assim, ela aparece em resumo_cobertura_juizes() (n_juizes=1), para transparência do que foi
+    excluído."""
+    rows = [
+        _long_df_row("a", "purpose", "t1", "description_only", 2),
+        _long_df_row("a", "purpose", "t1", "with_source", 5),
+    ]
+    long_df = pd.DataFrame(rows)
+
+    consenso = consenso_divergencia_por_tool(long_df)
+    cobertura_resumo = resumo_cobertura_juizes(long_df)
+
+    assert consenso.empty
+    assert cobertura_resumo.set_index("n_juizes").loc[1, "n_tools"] == 1
+
+
+def test_resumo_consenso_por_componente_counts_distinct_tools():
+    """Uma tool com consenso de 3 juízes gera 3 linhas em consenso_divergencia_por_tool() (uma
+    por juiz) -- resumo_consenso_por_componente() deve contar tools distintas (n_tools_consenso),
+    não linhas."""
+    consenso_df = pd.DataFrame(
+        [
+            {"tool_uid": "t0", "componente": "purpose", "juiz": "a", "diff_nota": 1, "subiu": True, "n_juizes": 3, "mesma_direcao": True},
+            {"tool_uid": "t0", "componente": "purpose", "juiz": "b", "diff_nota": 2, "subiu": True, "n_juizes": 3, "mesma_direcao": True},
+            {"tool_uid": "t0", "componente": "purpose", "juiz": "c", "diff_nota": 1, "subiu": True, "n_juizes": 3, "mesma_direcao": True},
+            {"tool_uid": "t1", "componente": "purpose", "juiz": "a", "diff_nota": -1, "subiu": False, "n_juizes": 2, "mesma_direcao": True},
+            {"tool_uid": "t1", "componente": "purpose", "juiz": "b", "diff_nota": -2, "subiu": False, "n_juizes": 2, "mesma_direcao": True},
+        ]
+    )
+
+    result = resumo_consenso_por_componente(consenso_df)
+
+    assert len(result) == 1
+    row = result.iloc[0]
+    assert row["componente"] == "purpose"
+    assert row["n_tools_consenso"] == 2
+    assert row["n_tools_mesma_direcao"] == 2
+    assert row["media_juizes_por_consenso"] == 2.5
 
 
 def test_registros_versao_ativa_keeps_only_latest_version():

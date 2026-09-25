@@ -29,12 +29,15 @@ from mcp_pipeline.config import DATA_DIR
 from mcp_pipeline.evaluation.prompts import PROMPT_VERSION, RUBRIC_COMPONENTS
 from mcp_pipeline.logging_setup import setup_logging
 from scripts.analysis_evaluation_report import (
+    MIN_JUIZES_CONSENSO,
     MOTIVO_FALLBACK,
     MUDANCA_MINIMA_QUARTIS,
     classificar_motivos,
+    consenso_divergencia_por_tool,
     custo_real_por_juiz,
     migracao_quartil_por_tool,
     motivos_por_divergencia,
+    resumo_consenso_por_componente,
     resumo_motivos_por_componente,
     scores_long,
     tool_key_for,
@@ -285,6 +288,7 @@ def build_dashboard_data(records: list[dict], prompt_version: str | None = None)
             "divergence_min_quartile_change": MUDANCA_MINIMA_QUARTIS,
             "motivo_labels": MOTIVO_LABELS,
             "motivo_fallback": MOTIVO_FALLBACK,
+            "min_juizes_consenso": MIN_JUIZES_CONSENSO,
         },
         "overall": overall,
         "breakdowns": breakdowns,
@@ -292,6 +296,8 @@ def build_dashboard_data(records: list[dict], prompt_version: str | None = None)
         "tools": build_tools_data(scoped),
         "divergences": build_divergences_data(scoped),
         "motivos_summary": build_motivos_summary_data(scoped),
+        "consenso_juizes": build_consenso_data(scoped),
+        "consenso_summary": build_consenso_summary_data(scoped),
         "tradeoff": build_tradeoff_data(scoped),
         "custo_real": build_custo_real_data(records),
         "prompt_versions": version_summary,
@@ -477,6 +483,75 @@ def build_tradeoff_data(records: list[dict]) -> list[dict]:
             if row[campo] != row[campo]:
                 row[campo] = None
     return rows
+
+
+def build_consenso_data(records: list[dict]) -> list[dict]:
+    """Envelopa consenso_divergencia_por_tool() em JSON -- uma linha por (tool, componente) em
+    que TODOS os juízes que avaliaram aquela tool nos dois cenários (universo dinâmico, ver
+    cobertura_juizes_por_tool() em analysis_evaluation_report.py; mínimo MIN_JUIZES_CONSENSO
+    juízes) mudaram a nota daquele componente entre description_only e with_source. Diferente
+    de consenso_divergencia_por_tool(), que tem uma linha por juiz, aqui os diffs de cada juiz
+    já vêm agrupados em `juizes` -- alimenta a tabela "Tools com consenso total de mudança" da
+    aba Divergências.
+
+    Metadados (nome, repo, linguagem) vêm de um lookup por tool_key_for() sobre os records
+    brutos -- mesma técnica de build_divergences_data(), porque consenso_divergencia_por_tool()
+    só carrega tool_uid (a chave), não os metadados de exibição.
+    """
+    long_df = scores_long(records)
+    consenso = consenso_divergencia_por_tool(long_df)
+    if consenso.empty:
+        return []
+
+    labels = {key: label for key, label, _ in RUBRIC_COMPONENTS}
+    metadata: dict[str, dict] = {}
+    for r in records:
+        if r.get("status") != "ok":
+            continue
+        metadata.setdefault(
+            tool_key_for(r),
+            {
+                "tool_name": r["tool"]["name"],
+                "qualified_name": r["tool"]["qualified_name"],
+                "repo": r["repo"]["name_with_owner"],
+                "language": r["repo"].get("primary_language") or "—",
+            },
+        )
+
+    rows = []
+    for (tool_uid, componente), grupo in consenso.groupby(["tool_uid", "componente"]):
+        meta = metadata.get(tool_uid)
+        if meta is None:
+            continue
+        primeira = grupo.iloc[0]
+        rows.append({
+            **meta,
+            "componente": componente,
+            "componente_label": labels.get(componente, componente),
+            "n_juizes": int(primeira["n_juizes"]),
+            "mesma_direcao": bool(primeira["mesma_direcao"]),
+            "juizes": [
+                {"judge_id": row["juiz"], "diff": row["diff_nota"], "subiu": bool(row["subiu"])}
+                for row in grupo.to_dict("records")
+            ],
+        })
+    rows.sort(key=lambda row: (row["n_juizes"], sum(abs(j["diff"]) for j in row["juizes"])), reverse=True)
+    return rows
+
+
+def build_consenso_summary_data(records: list[dict]) -> list[dict]:
+    """Envelopa resumo_consenso_por_componente() em JSON -- alimenta a tabela "Consenso entre
+    juízes: componentes mais afetados" da aba Divergências: a resposta mais forte possível para
+    RQ2 (quais componentes são mais afetados pela adição do código), porque só conta quando
+    TODOS os juízes concordaram, não maioria nem "pelo menos um" (ver build_motivos_summary_data
+    para a versão mais ampla, sem exigir unanimidade)."""
+    resumo = resumo_consenso_por_componente(consenso_divergencia_por_tool(scores_long(records)))
+    if resumo.empty:
+        return []
+    labels = {key: label for key, label, _ in RUBRIC_COMPONENTS}
+    resumo = resumo.copy()
+    resumo["componente_label"] = resumo["componente"].map(lambda k: labels.get(k, k))
+    return resumo.to_dict("records")
 
 
 def build_custo_real_data(records: list[dict]) -> list[dict]:
@@ -1027,6 +1102,56 @@ HTML_TEMPLATE = """<meta charset="UTF-8">
         </table>
       </div>
       <div class="empty-state" id="motivos-summary-empty" hidden>Nenhuma divergência para classificar.</div>
+    </section>
+
+    <section>
+      <h2>Consenso entre juízes: componentes mais afetados</h2>
+      <p class="section-note">Critério mais forte de mudança de nota: só conta quando <b>todos</b> os juízes que avaliaram aquela tool nos dois cenários mudaram a nota do mesmo componente (não maioria, não "pelo menos um") -- exige pelo menos <b id="consenso-min-juizes" class="tabular"></b> juízes cobrindo a tool (ver <code>MIN_JUIZES_CONSENSO</code> em <code>analysis_evaluation_report.py</code>). "Mesma direção" conta só os casos em que, além de todos mudarem, todos mudaram para o mesmo lado (todos subiram ou todos desceram).</p>
+      <div class="overflow-x">
+        <table>
+          <thead>
+            <tr>
+              <th>Componente</th>
+              <th class="num">Tools com consenso</th>
+              <th class="num">Mesma direção</th>
+              <th class="num">Média de juízes</th>
+            </tr>
+          </thead>
+          <tbody id="consenso-summary-rows"></tbody>
+        </table>
+      </div>
+      <div class="empty-state" id="consenso-summary-empty" hidden>Nenhum consenso de mudança entre juízes encontrado.</div>
+    </section>
+
+    <section>
+      <h2>Tools com consenso total de mudança</h2>
+      <p class="section-note">Uma linha por tool × componente em que todo o universo de juízes daquela tool mudou a nota entre <code>description_only</code> e <code>with_source</code>. O diff de cada juiz aparece entre parênteses; "Direção" indica se todos mudaram para o mesmo lado.</p>
+      <div class="tools-toolbar">
+        <input type="text" id="consenso-search" class="tools-search" placeholder="Buscar por nome ou repositório…" autocomplete="off">
+        <select id="consenso-filter-componente" class="tools-filter"><option value="">Todo componente</option></select>
+        <select id="consenso-filter-direction" class="tools-filter">
+          <option value="">Toda direção</option>
+          <option value="mesma">Mesma direção</option>
+          <option value="mista">Direção mista</option>
+        </select>
+        <span class="tools-count" id="consenso-count"></span>
+      </div>
+      <div class="overflow-x">
+        <table>
+          <thead>
+            <tr>
+              <th>Componente</th>
+              <th>Tool</th>
+              <th>Repositório</th>
+              <th class="num">Nº juízes</th>
+              <th>Diffs por juiz</th>
+              <th>Direção</th>
+            </tr>
+          </thead>
+          <tbody id="consenso-rows"></tbody>
+        </table>
+      </div>
+      <div class="empty-state" id="consenso-empty" hidden>Nenhuma tool com consenso total de mudança encontrada.</div>
     </section>
 
     <section>
@@ -1725,6 +1850,77 @@ HTML_TEMPLATE = """<meta charset="UTF-8">
     });
   }
   renderMotivosSummary();
+
+  // ---- consenso entre juízes: resumo por componente (mais forte que motivos: exige
+  // unanimidade, não maioria) ----
+  function renderConsensoSummary() {
+    const tbody = document.getElementById("consenso-summary-rows");
+    const emptyEl = document.getElementById("consenso-summary-empty");
+    tbody.innerHTML = "";
+    const rows = DATA.consenso_summary;
+    emptyEl.hidden = rows.length > 0;
+    rows.forEach(c => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${escapeHtml(c.componente_label)}</td>
+        <td class="num tabular">${c.n_tools_consenso}</td>
+        <td class="num tabular">${c.n_tools_mesma_direcao}</td>
+        <td class="num tabular">${c.media_juizes_por_consenso.toFixed(2)}</td>`;
+      tbody.appendChild(tr);
+    });
+  }
+  renderConsensoSummary();
+  document.getElementById("consenso-min-juizes").textContent = DATA.meta.min_juizes_consenso;
+
+  // ---- consenso entre juízes: detalhe por tool × componente (filtros mirram a tabela de
+  // divergências acima, sem segmentação por juiz porque o universo de juízes já varia por
+  // linha) ----
+  let consensoFilter = "";
+  let activeConsensoComponente = "";
+  let activeConsensoDirection = "";
+
+  const consensoComponenteSelect = document.getElementById("consenso-filter-componente");
+  const consensoDirectionSelect = document.getElementById("consenso-filter-direction");
+  [...new Set(DATA.consenso_juizes.map(c => c.componente_label))].sort().forEach(label => {
+    const opt = document.createElement("option");
+    opt.value = label;
+    opt.textContent = label;
+    consensoComponenteSelect.appendChild(opt);
+  });
+
+  function renderConsensoTable() {
+    const tbody = document.getElementById("consenso-rows");
+    const emptyEl = document.getElementById("consenso-empty");
+    const countEl = document.getElementById("consenso-count");
+    tbody.innerHTML = "";
+
+    const q = consensoFilter.trim().toLowerCase();
+    const rows = DATA.consenso_juizes.filter(c =>
+      (!q || c.tool_name.toLowerCase().includes(q) || c.repo.toLowerCase().includes(q) || c.qualified_name.toLowerCase().includes(q)) &&
+      (!activeConsensoComponente || c.componente_label === activeConsensoComponente) &&
+      (!activeConsensoDirection || (activeConsensoDirection === "mesma" ? c.mesma_direcao : !c.mesma_direcao))
+    );
+    countEl.textContent = `${rows.length} de ${DATA.consenso_juizes.length} tool(s) × componente`;
+    emptyEl.hidden = rows.length > 0;
+
+    rows.forEach(c => {
+      const tr = document.createElement("tr");
+      const diffsHTML = c.juizes.map(j => `${escapeHtml(j.judge_id)} (${j.diff > 0 ? "+" : ""}${j.diff})`).join(" · ");
+      tr.innerHTML = `
+        <td>${escapeHtml(c.componente_label)}</td>
+        <td><span class="name">${escapeHtml(c.tool_name)}</span><span class="qualified">${escapeHtml(c.qualified_name)}</span></td>
+        <td>${escapeHtml(c.repo)}</td>
+        <td class="num tabular">${c.n_juizes}</td>
+        <td class="tabular">${diffsHTML}</td>
+        <td><span class="pill ${c.mesma_direcao ? "ok" : ""}">${c.mesma_direcao ? "mesma" : "mista"}</span></td>`;
+      tbody.appendChild(tr);
+    });
+  }
+  renderConsensoTable();
+
+  document.getElementById("consenso-search").addEventListener("input", (e) => { consensoFilter = e.target.value; renderConsensoTable(); });
+  consensoComponenteSelect.addEventListener("change", (e) => { activeConsensoComponente = e.target.value; renderConsensoTable(); });
+  consensoDirectionSelect.addEventListener("change", (e) => { activeConsensoDirection = e.target.value; renderConsensoTable(); });
 
   // ---- custo real (USD) já gasto, por juiz ----
   function renderCostTiles() {
