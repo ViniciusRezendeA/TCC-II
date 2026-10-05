@@ -9,6 +9,9 @@ __pycache__/
 data/*
 !data/evaluations/
 !data/selected_repos.jsonl
+!data/analysis/
+data/analysis/*
+!data/analysis/consenso_amostra.jsonl
 
 state/
 logs/
