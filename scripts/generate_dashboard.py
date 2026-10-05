@@ -29,6 +29,7 @@ from mcp_pipeline.config import DATA_DIR
 from mcp_pipeline.evaluation.prompts import PROMPT_VERSION, RUBRIC_COMPONENTS
 from mcp_pipeline.logging_setup import setup_logging
 from scripts.analysis_evaluation_report import (
+    JUDGES_EXCLUIDOS_DA_ANALISE,
     MIN_JUIZES_CONSENSO,
     MOTIVO_FALLBACK,
     MUDANCA_MINIMA_QUARTIS,
@@ -94,6 +95,15 @@ def load_records(eval_dir: Path, judge_id: str | None) -> list[dict]:
                 line = line.strip()
                 if line:
                     records.append(json.loads(line))
+
+    # Mesma exclusão de scripts/analysis_evaluation_report.py::load_evaluations() -- ver
+    # JUDGES_EXCLUIDOS_DA_ANALISE lá para o porquê. Precisa ser repetida aqui porque este
+    # loader é próprio do dashboard (não reusa load_evaluations), e as duas pontas não podem
+    # divergir sobre quem conta como "o júri".
+    excluidos = sum(1 for r in records if r["judge"]["id"] in JUDGES_EXCLUIDOS_DA_ANALISE)
+    if excluidos:
+        logger.info("Excluídas %s avaliações de juízes fora de análise (%s)", excluidos, ", ".join(JUDGES_EXCLUIDOS_DA_ANALISE))
+        records = [r for r in records if r["judge"]["id"] not in JUDGES_EXCLUIDOS_DA_ANALISE]
     return records
 
 
