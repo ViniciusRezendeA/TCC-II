@@ -64,6 +64,15 @@ RUBRIC_COMPONENTS = [
     "examples",
 ]
 
+# Juízes excluídos de TODA análise (não só do dashboard) -- qwen3-8b-ollama é um piloto com
+# volume irrelevante (7 avaliações, ante dezenas de milhares dos demais juízes), não um juiz
+# comparável ao resto do júri. Decisão do usuário em 2026-10-03. Filtrado aqui (load_evaluations,
+# usado por este módulo e por scripts/export_consenso_sample.py) e em
+# scripts/generate_dashboard.py::load_records(), que tem seu próprio loader -- as duas pontas
+# precisam do mesmo conjunto para as tabelas/CSVs e o dashboard nunca divergirem sobre quem
+# conta como "o júri".
+JUDGES_EXCLUIDOS_DA_ANALISE = frozenset({"qwen3-8b-ollama"})
+
 
 # --- Carregamento -------------------------------------------------------------
 
@@ -72,6 +81,10 @@ def load_evaluations(evaluations_dir: Path) -> list[dict]:
     records: list[dict] = []
     for path in sorted(evaluations_dir.glob("*.jsonl")):
         records.extend(load_jsonl(path))
+    excluidos = sum(1 for r in records if r["judge"]["id"] in JUDGES_EXCLUIDOS_DA_ANALISE)
+    if excluidos:
+        logger.info("Excluídas %s avaliações de juízes fora de análise (%s)", excluidos, ", ".join(JUDGES_EXCLUIDOS_DA_ANALISE))
+        records = [r for r in records if r["judge"]["id"] not in JUDGES_EXCLUIDOS_DA_ANALISE]
     return records
 
 
