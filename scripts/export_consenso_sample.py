@@ -1,25 +1,20 @@
 #!/usr/bin/env python
-"""Exporta as tools com consenso total de mudança entre juízes, por componente da rubrica.
+"""Exporta as tools com consenso total de mudança entre juízes, uma linha por tool.
 
 Aplica os mesmos 3 filtros de scripts/analysis_evaluation_report.py -- (1) tools avaliadas
 pelos juízes, (2) avaliações cuja nota mudou entre description_only e with_source, (3) só os
 casos em que TODOS os juízes que avaliaram aquela tool mudaram a nota no mesmo componente (ver
-consenso_divergencia_por_tool(), que já encapsula os 3 passos). Por padrão exporta TODAS as
-tools que passaram pelos 3 filtros, sem amostragem -- `--n-por-componente N` muda isso para
-sortear até N por componente (com no máximo --max-por-repo tools do mesmo repositório nesse
-caso, default 6 -- ver MAX_POR_REPO_DEFAULT: a população de consenso é extremamente
-concentrada por repositório, 2 repositórios somam mais de 50% dela, e um sorteio sem esse teto
-reproduz essa concentração na amostra; o teto só faz sentido quando HÁ amostragem, por isso é
-ignorado quando --n-por-componente não é passado). Amostra reprodutível via --seed quando usada
-(mesmo padrão de scripts/test_local_judges.py::load_sample_tools()).
+consenso_divergencia_por_tool(), que já encapsula os 3 passos) -- uma tool entra se atingiu
+esse consenso em PELO MENOS um componente da rubrica.
 
-Cada linha do JSONL de saída é uma tool x componente selecionada; o campo `avaliacoes` traz os
-registros BRUTOS dos juízes (mesmo schema de data/evaluations/{judge_id}.jsonl, ver
-AI_CONTEXT.md §10.2: scores dos 6 componentes, judge, usage, latency_ms, etc. -- nada extraído
-ou achatado), um por (juiz, cenário), para a tool inteira -- não só o componente que disparou o
-consenso, já que cada chamada ao juiz pontua os 6 componentes de uma vez e o contexto completo
-importa para a leitura manual. Uma tool com consenso em mais de um componente pode aparecer em
-mais de uma linha (uma por componente em que foi sorteada), repetindo os mesmos `avaliacoes`.
+Cada linha do JSONL de saída é uma tool (não mais uma tool x componente -- uma tool com
+consenso em vários componentes aparece 1 vez só). `avaliacoes` traz, por juiz que avaliou os
+dois cenários, só os componentes cujo score mudou entre description_only e with_source (ver
+_trim_avaliacoes()): um juiz que não mudou nota em nenhum componente desta tool é omitido
+inteiramente (não participou do consenso que trouxe a tool pra este arquivo). Cada entrada tem
+só `{scenario, provider, scores}` -- nada do resto do registro bruto (schema_version,
+prompt_version, repo, tool, judge completo, status, usage, latency_ms, evaluated_at: ver
+AI_CONTEXT.md §10.2 pro schema bruto original, em data/evaluations/{judge_id}.jsonl).
 
 O campo `source_code` traz o MESMO texto que foi enviado ao juiz no cenário with_source --
 construído via evaluation/payload.py::build_payload() (que chama
@@ -36,8 +31,7 @@ Lê data/evaluations/{judge_id}.jsonl, data/dataset.jsonl e os repositórios clo
 data/repos/ -- não faz nenhuma chamada de API.
 
 Uso:
-  uv run python -m scripts.export_consenso_sample                       # todas as tools, sem amostragem
-  uv run python -m scripts.export_consenso_sample --n-por-componente 100 --seed 7  # amostra de 100/componente
+  uv run python -m scripts.export_consenso_sample
   uv run python -m scripts.export_consenso_sample --output data/analysis/consenso_amostra.jsonl
 """
 
@@ -46,13 +40,11 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-import random
 import sys
 from pathlib import Path
 
 from mcp_pipeline.config import DATA_DIR
 from mcp_pipeline.evaluation.payload import build_payload, repo_src_root_for
-from mcp_pipeline.evaluation.prompts import RUBRIC_COMPONENTS
 from mcp_pipeline.extraction.models import CallGraphNode, ToolRecord
 from mcp_pipeline.logging_setup import setup_logging
 from scripts.analysis_evaluation_report import (
@@ -65,25 +57,6 @@ from scripts.analysis_evaluation_report import (
 from scripts.dedupe_evaluations import dedupe_records
 
 logger = setup_logging("export_consenso_sample")
-
-# None = sem amostragem, exporta todas as tools com consenso de cada componente -- o default
-# atual. Passar --n-por-componente muda para o comportamento antigo (amostra de N por
-# componente, mesma ordem de grandeza da validação manual já usada no TCC, ver docstring do
-# módulo).
-N_POR_COMPONENTE_DEFAULT = None
-
-# A população de tools com consenso é extremamente concentrada por repositório (medido em
-# 2026-10-03: de 4473 pares tool x componente com consenso, codespar/mcp-dev-latam sozinho é
-# 30.9% e google/mcp-security é 20.4% -- 51.3% só desses dois, de 157 repositórios distintos).
-# random.sample() sem limite herda essa concentração (confirmado: um sorteio sem teto deixou
-# esses 2 repos com 46.5% das 600 linhas) -- categorias/padrões extraídos manualmente de uma
-# amostra assim tendem a refletir a convenção de documentação de 2 projetos, não do dataset.
-# 6 é o menor teto por repositório que ainda garantia >= 100 tools disponíveis no componente
-# mais escasso quando --n-por-componente 100 era o default (examples: 155 na população, 38
-# repositórios, 116 tools possíveis com teto 6 vs. só 104 com teto 5 -- margem baixa demais
-# pra mudanças futuras no dataset). Mantido como default de --max-por-repo mesmo com o default
-# de --n-por-componente tendo mudado para "sem limite" (ver N_POR_COMPONENTE_DEFAULT).
-MAX_POR_REPO_DEFAULT = 6
 
 
 def _avaliacoes_por_tool(records: list[dict]) -> dict[str, list[dict]]:
@@ -108,91 +81,75 @@ def _avaliacoes_por_tool(records: list[dict]) -> dict[str, list[dict]]:
     return por_tool
 
 
-def consenso_detalhado_por_componente(records: list[dict]) -> dict[str, list[dict]]:
-    """Uma lista por componente da rubrica (chave: componente), cada item uma tool com
-    consenso total de mudança naquele componente (consenso_divergencia_por_tool() já aplica os
-    passos 1 e 2 -- tools avaliadas pelos juízes e avaliações com mudança de nota entre
-    cenários -- antes de exigir unanimidade), com os registros brutos dos juízes anexados (ver
-    _avaliacoes_por_tool()) para leitura manual sem reabrir data/evaluations/*.jsonl.
+def _trim_avaliacoes(avaliacoes_brutas: list[dict]) -> list[dict]:
+    """Reduz os registros brutos de uma tool (ver _avaliacoes_por_tool()) a, por juiz, só os
+    componentes cujo score mudou entre description_only e with_source -- mesmo conjunto de
+    chaves nas duas entradas (scenario, provider, scores) daquele juiz, já que "mudou" é uma
+    propriedade do par, não de um lado isolado.
+
+    Um juiz com só 1 dos 2 cenários (cobertura parcial) é omitido -- sem o par, não dá pra
+    calcular "mudou". Um juiz cuja nota não mudou em NENHUM componente (não participou de
+    nenhum consenso desta tool -- "espectador") também é omitido inteiramente: incluí-lo com
+    `scores: {}` nos dois cenários não agregaria nada.
+
+    `provider` vem de judge["provider"] (ex: "deepseek", "google", "ollama"), não de
+    judge["id"] -- com os juízes atuais de config/judges.yaml cada provider mapeia pra
+    exatamente 1 juiz, então não há ambiguidade hoje; se isso deixar de valer (dois juízes do
+    mesmo provider), este campo por si só não distingue mais os dois.
+    """
+    por_juiz: dict[str, dict[str, dict]] = {}
+    provider_por_juiz: dict[str, str] = {}
+    for av in avaliacoes_brutas:
+        jid = av["judge"]["id"]
+        por_juiz.setdefault(jid, {})[av["scenario"]] = av
+        provider_por_juiz[jid] = av["judge"]["provider"]
+
+    trimmed: list[dict] = []
+    for jid, por_cenario in por_juiz.items():
+        desc = por_cenario.get("description_only")
+        src = por_cenario.get("with_source")
+        if desc is None or src is None:
+            continue
+        mudaram = [
+            componente
+            for componente, valor in desc["scores"].items()
+            if valor and src["scores"].get(componente) and valor["score"] != src["scores"][componente]["score"]
+        ]
+        if not mudaram:
+            continue
+        provider = provider_por_juiz[jid]
+        for cenario, record in (("description_only", desc), ("with_source", src)):
+            trimmed.append({"scenario": cenario, "provider": provider, "scores": {c: record["scores"][c] for c in mudaram}})
+    return trimmed
+
+
+def consenso_detalhado(records: list[dict], avaliacoes_por_tool: dict[str, list[dict]]) -> list[dict]:
+    """Uma entrada por tool que atingiu consenso total de mudança em PELO MENOS um componente
+    (consenso_divergencia_por_tool() ainda decide quem qualifica, via os 3 filtros de
+    analysis_evaluation_report.py -- só muda que uma tool com consenso em vários componentes
+    agora gera 1 entrada, não 1 por componente). `avaliacoes` já vem reduzida por
+    _trim_avaliacoes().
     """
     long_df = scores_long(records)
     consenso = consenso_divergencia_por_tool(long_df)
-    labels = {key: label for key, label, _ in RUBRIC_COMPONENTS}
-    avaliacoes_por_tool = _avaliacoes_por_tool(records)
+    tool_uids_qualificadas = set(consenso["tool_uid"])
 
-    por_componente: dict[str, list[dict]] = {key: [] for key, _, _ in RUBRIC_COMPONENTS}
-    for (tool_uid, componente), grupo in consenso.groupby(["tool_uid", "componente"]):
-        avaliacoes = avaliacoes_por_tool.get(tool_uid)
-        if not avaliacoes:
+    resultado: list[dict] = []
+    for tool_uid in sorted(tool_uids_qualificadas):
+        avaliacoes_brutas = avaliacoes_por_tool.get(tool_uid)
+        if not avaliacoes_brutas:
             continue
-        primeira_tool = avaliacoes[0]
-        primeira_consenso = grupo.iloc[0]
-        por_componente[componente].append(
+        trimmed = _trim_avaliacoes(avaliacoes_brutas)
+        if not trimmed:
+            continue
+        resultado.append(
             {
                 "tool_uid": tool_uid,
-                "tool_name": primeira_tool["tool"]["name"],
-                "qualified_name": primeira_tool["tool"]["qualified_name"],
-                "repo": primeira_tool["repo"]["name_with_owner"],
-                "language": primeira_tool["repo"].get("primary_language") or "—",
-                "componente": componente,
-                "componente_label": labels.get(componente, componente),
-                "n_juizes": int(primeira_consenso["n_juizes"]),
-                "mesma_direcao": bool(primeira_consenso["mesma_direcao"]),
-                "avaliacoes": avaliacoes,
+                "tool_name": avaliacoes_brutas[0]["tool"]["name"],
+                "avaliacoes": trimmed,
             }
         )
-    return por_componente
-
-
-def amostrar_por_componente(por_componente: dict[str, list[dict]], n: int | None, max_por_repo: int) -> list[dict]:
-    """`n=None` (default): sem amostragem, retorna TODAS as tools de cada componente -- o teto
-    por repositório não é aplicado nesse caso (só existe pra corrigir viés de uma amostra
-    menor que a população; a população inteira não tem "viés de amostragem" a corrigir).
-
-    `n` != None: sorteia até `n` tools de cada componente, com no máximo `max_por_repo` tools
-    do mesmo repositório (ver MAX_POR_REPO_DEFAULT: a população de consenso é extremamente
-    concentrada -- 2 repositórios somam mais de 50% dela -- e random.sample() sem esse teto
-    reproduz essa concentração na amostra, enviesando qualquer categorização manual feita em
-    cima dela para a convenção de documentação de poucos projetos). Chame random.seed() antes,
-    no caller, para reprodutibilidade (mesmo padrão de
-    scripts/test_local_judges.py::load_sample_tools()).
-
-    Implementação da amostragem: embaralha o pool do componente (random.shuffle) e percorre
-    uma única vez, pulando qualquer tool cujo repositório já atingiu o teto -- não corta o laço
-    ao atingir `n` só porque um pool maior ainda pode ter repositórios abaixo do teto mais
-    adiante; corta quando `n` é atingido OU o pool inteiro foi percorrido. Se mesmo assim
-    sobrar menos que `n` (teto baixo demais para a diversidade de repositórios daquele
-    componente), loga aviso em vez de erro e entrega o que deu.
-    """
-    if n is None:
-        return [tool for tools in por_componente.values() for tool in tools]
-
-    amostra = []
-    for componente, tools in por_componente.items():
-        if not tools:
-            continue
-        pool = list(tools)
-        random.shuffle(pool)
-
-        por_repo: dict[str, int] = {}
-        selecionadas = []
-        for tool in pool:
-            if len(selecionadas) >= n:
-                break
-            repo = tool["repo"]
-            if por_repo.get(repo, 0) >= max_por_repo:
-                continue
-            selecionadas.append(tool)
-            por_repo[repo] = por_repo.get(repo, 0) + 1
-
-        if len(selecionadas) < n:
-            logger.warning(
-                "Componente %s: só %s/%s tools sorteadas (teto de %s por repositório esgotou "
-                "a diversidade disponível; população tinha %s tools no total)",
-                componente, len(selecionadas), n, max_por_repo, len(tools),
-            )
-        amostra.extend(selecionadas)
-    return amostra
+    return resultado
 
 
 # Mesma lógica de pipeline/run_step3.py::tool_uid_for(), duplicada aqui (não importada) de
@@ -234,7 +191,7 @@ def _dataset_por_tool_uid(dataset_path: Path) -> dict[str, dict]:
     return index
 
 
-def anexar_codigo_fonte(amostra: list[dict], dataset_path: Path) -> None:
+def anexar_codigo_fonte(amostra: list[dict], dataset_path: Path, avaliacoes_por_tool: dict[str, list[dict]]) -> None:
     """Modifica `amostra` in-place, adicionando `source_code`/`source_code_sha256` a cada
     tool -- construído pelo MESMO caminho de código usado pela Etapa 3 pra montar o payload do
     cenário with_source (evaluation/payload.py::build_payload(), que por sua vez chama
@@ -244,11 +201,13 @@ def anexar_codigo_fonte(amostra: list[dict], dataset_path: Path) -> None:
     repo re-clonado/alterado desde a avaliação original) recebe `source_code: null` -- aviso
     logado, não erro, pra não abortar o resto da amostra (ver docstring do módulo).
 
-    Compara o hash recomputado contra o `source_code_sha256` já gravado numa avaliação
-    with_source da própria tool (gravado pela Etapa 3 quando ela rodou, ver _base_record() em
-    pipeline/run_step3.py) -- qualquer divergência é avisada (conteúdo do repo ou a extração
-    mudaram desde então), mas o código recomputado é anexado do mesmo jeito: é o melhor
-    disponível agora, mesmo que não seja mais bit-a-bit idêntico ao que o juiz viu.
+    `avaliacoes_por_tool` (os registros BRUTOS, não os já reduzidos de `tool["avaliacoes"]` --
+    ver _trim_avaliacoes()) é quem fornece o `source_code_sha256` original para a verificação
+    de integridade abaixo: o formato reduzido não carrega mais esse campo. Uma divergência
+    entre o hash recomputado e o gravado pela Etapa 3 quando a avaliação rodou (ver
+    _base_record() em pipeline/run_step3.py) é avisada (conteúdo do repo ou a extração mudaram
+    desde então), mas o código recomputado é anexado do mesmo jeito: é o melhor disponível
+    agora, mesmo que não seja mais bit-a-bit idêntico ao que o juiz viu.
     """
     dataset_index = _dataset_por_tool_uid(dataset_path)
     n_ausentes = 0
@@ -263,11 +222,12 @@ def anexar_codigo_fonte(amostra: list[dict], dataset_path: Path) -> None:
             n_ausentes += 1
             continue
 
+        name_with_owner = row["repo"]["name_with_owner"]
         try:
             tool_record = ToolRecord.from_dict(row["tool"])
             call_graph = CallGraphNode.from_dict(row["call_graph"])
             payload = build_payload(
-                tool_record, call_graph, repo_src_root_for(tool["repo"]), tool["repo"], include_source=True,
+                tool_record, call_graph, repo_src_root_for(name_with_owner), name_with_owner, include_source=True,
             )
             source_code = payload.get("SOURCE_CODE") or ""
         except OSError as exc:
@@ -284,7 +244,7 @@ def anexar_codigo_fonte(amostra: list[dict], dataset_path: Path) -> None:
         hash_registrado = next(
             (
                 av["source_code_sha256"]
-                for av in tool["avaliacoes"]
+                for av in avaliacoes_por_tool.get(tool["tool_uid"], [])
                 if av["scenario"] == "with_source" and av.get("source_code_sha256")
             ),
             None,
@@ -306,20 +266,11 @@ def anexar_codigo_fonte(amostra: list[dict], dataset_path: Path) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Exporta uma amostra de tools com consenso total de mudança entre juízes, por componente, para validação manual."
+        description="Exporta as tools com consenso total de mudança entre juízes, uma linha por tool, para validação manual."
     )
     parser.add_argument("--evaluations-dir", type=Path, default=None, help="Diretório com {judge_id}.jsonl (default: data/evaluations).")
     parser.add_argument("--dataset", type=Path, default=None, help="Caminho de dataset.jsonl, pra anexar o código-fonte (default: data/dataset.jsonl).")
     parser.add_argument("--output", type=Path, default=None, help="Caminho do JSONL de saída (default: data/analysis/consenso_amostra.jsonl).")
-    parser.add_argument(
-        "--n-por-componente", type=int, default=N_POR_COMPONENTE_DEFAULT,
-        help="Quantas tools sortear por componente (default: sem limite, exporta todas as tools com consenso).",
-    )
-    parser.add_argument(
-        "--max-por-repo", type=int, default=MAX_POR_REPO_DEFAULT,
-        help=f"Só tem efeito junto com --n-por-componente: máximo de tools do mesmo repositório por componente, pra evitar viés de poucos repositórios dominarem a amostra (default: {MAX_POR_REPO_DEFAULT}).",
-    )
-    parser.add_argument("--seed", type=int, default=42, help="Seed para reprodutibilidade da amostra (default: 42).")
     args = parser.parse_args()
 
     evaluations_dir = args.evaluations_dir or (DATA_DIR / "evaluations")
@@ -341,13 +292,10 @@ def main() -> None:
     records = deduped
 
     scoped = registros_versao_ativa(records)
+    avaliacoes_por_tool = _avaliacoes_por_tool(scoped)
 
-    por_componente = consenso_detalhado_por_componente(scoped)
-    for componente, tools in por_componente.items():
-        logger.info("Componente %s: %s tools com consenso total de mudança", componente, len(tools))
-
-    random.seed(args.seed)
-    amostra = amostrar_por_componente(por_componente, args.n_por_componente, args.max_por_repo)
+    amostra = consenso_detalhado(scoped, avaliacoes_por_tool)
+    logger.info("%s tools com consenso total de mudança em pelo menos um componente", len(amostra))
 
     dataset_path = args.dataset or (DATA_DIR / "dataset.jsonl")
     if not dataset_path.exists():
@@ -357,13 +305,13 @@ def main() -> None:
             dataset_path,
         )
         sys.exit(1)
-    anexar_codigo_fonte(amostra, dataset_path)
+    anexar_codigo_fonte(amostra, dataset_path, avaliacoes_por_tool)
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     with open(output_path, "w", encoding="utf-8") as f:
         f.writelines(json.dumps(row, ensure_ascii=False) + "\n" for row in amostra)
 
-    logger.info("%s tools (de %s componentes) salvas em %s", len(amostra), len(por_componente), output_path)
+    logger.info("%s tools salvas em %s", len(amostra), output_path)
 
 
 if __name__ == "__main__":
