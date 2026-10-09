@@ -1,18 +1,17 @@
 #!/usr/bin/env python
-"""Exporta uma amostra de tools com consenso total de mudança entre juízes, por componente da
-rubrica, para validação manual.
+"""Exporta as tools com consenso total de mudança entre juízes, por componente da rubrica.
 
 Aplica os mesmos 3 filtros de scripts/analysis_evaluation_report.py -- (1) tools avaliadas
 pelos juízes, (2) avaliações cuja nota mudou entre description_only e with_source, (3) só os
 casos em que TODOS os juízes que avaliaram aquela tool mudaram a nota no mesmo componente (ver
-consenso_divergencia_por_tool(), que já encapsula os 3 passos) -- e, para cada componente,
-sorteia uma amostra de N tools (default 100) dentre as que passaram pelos 3 filtros, com no
-máximo --max-por-repo tools do mesmo repositório (default 6 -- ver MAX_POR_REPO_DEFAULT: a
-população de consenso é extremamente concentrada por repositório, 2 repositórios somam mais de
-50% dela, e um sorteio sem esse teto reproduz essa concentração na amostra). Mesma ordem de
-grandeza da amostra de validação manual já usada no TCC (ver
-overleaf/sectionsTCCII/05_Resultados_Parciais.tex, "100 pares") e o mesmo padrão de amostra
-reprodutível via --seed de scripts/test_local_judges.py::load_sample_tools().
+consenso_divergencia_por_tool(), que já encapsula os 3 passos). Por padrão exporta TODAS as
+tools que passaram pelos 3 filtros, sem amostragem -- `--n-por-componente N` muda isso para
+sortear até N por componente (com no máximo --max-por-repo tools do mesmo repositório nesse
+caso, default 6 -- ver MAX_POR_REPO_DEFAULT: a população de consenso é extremamente
+concentrada por repositório, 2 repositórios somam mais de 50% dela, e um sorteio sem esse teto
+reproduz essa concentração na amostra; o teto só faz sentido quando HÁ amostragem, por isso é
+ignorado quando --n-por-componente não é passado). Amostra reprodutível via --seed quando usada
+(mesmo padrão de scripts/test_local_judges.py::load_sample_tools()).
 
 Cada linha do JSONL de saída é uma tool x componente selecionada; o campo `avaliacoes` traz os
 registros BRUTOS dos juízes (mesmo schema de data/evaluations/{judge_id}.jsonl, ver
@@ -37,8 +36,8 @@ Lê data/evaluations/{judge_id}.jsonl, data/dataset.jsonl e os repositórios clo
 data/repos/ -- não faz nenhuma chamada de API.
 
 Uso:
-  uv run python -m scripts.export_consenso_sample
-  uv run python -m scripts.export_consenso_sample --n-por-componente 50 --seed 7
+  uv run python -m scripts.export_consenso_sample                       # todas as tools, sem amostragem
+  uv run python -m scripts.export_consenso_sample --n-por-componente 100 --seed 7  # amostra de 100/componente
   uv run python -m scripts.export_consenso_sample --output data/analysis/consenso_amostra.jsonl
 """
 
@@ -67,9 +66,11 @@ from scripts.dedupe_evaluations import dedupe_records
 
 logger = setup_logging("export_consenso_sample")
 
-# Mesma ordem de grandeza da amostra de validação manual já usada no TCC (ver docstring do
-# módulo) -- default, sobrescrevível via --n-por-componente.
-N_POR_COMPONENTE_DEFAULT = 100
+# None = sem amostragem, exporta todas as tools com consenso de cada componente -- o default
+# atual. Passar --n-por-componente muda para o comportamento antigo (amostra de N por
+# componente, mesma ordem de grandeza da validação manual já usada no TCC, ver docstring do
+# módulo).
+N_POR_COMPONENTE_DEFAULT = None
 
 # A população de tools com consenso é extremamente concentrada por repositório (medido em
 # 2026-10-03: de 4473 pares tool x componente com consenso, codespar/mcp-dev-latam sozinho é
@@ -77,10 +78,11 @@ N_POR_COMPONENTE_DEFAULT = 100
 # random.sample() sem limite herda essa concentração (confirmado: um sorteio sem teto deixou
 # esses 2 repos com 46.5% das 600 linhas) -- categorias/padrões extraídos manualmente de uma
 # amostra assim tendem a refletir a convenção de documentação de 2 projetos, não do dataset.
-# 6 é o menor teto por repositório que ainda garante >= N_POR_COMPONENTE_DEFAULT tools
-# disponíveis no componente mais escasso (examples: 155 na população, 38 repositórios,
-# 116 tools possíveis com teto 6 vs. só 104 com teto 5 -- margem baixa demais pra mudanças
-# futuras no dataset).
+# 6 é o menor teto por repositório que ainda garantia >= 100 tools disponíveis no componente
+# mais escasso quando --n-por-componente 100 era o default (examples: 155 na população, 38
+# repositórios, 116 tools possíveis com teto 6 vs. só 104 com teto 5 -- margem baixa demais
+# pra mudanças futuras no dataset). Mantido como default de --max-por-repo mesmo com o default
+# de --n-por-componente tendo mudado para "sem limite" (ver N_POR_COMPONENTE_DEFAULT).
 MAX_POR_REPO_DEFAULT = 6
 
 
@@ -142,21 +144,29 @@ def consenso_detalhado_por_componente(records: list[dict]) -> dict[str, list[dic
     return por_componente
 
 
-def amostrar_por_componente(por_componente: dict[str, list[dict]], n: int, max_por_repo: int) -> list[dict]:
-    """Sorteia até `n` tools de cada componente, com no máximo `max_por_repo` tools do mesmo
-    repositório (ver MAX_POR_REPO_DEFAULT: a população de consenso é extremamente concentrada
-    -- 2 repositórios somam mais de 50% dela -- e random.sample() sem esse teto reproduz essa
-    concentração na amostra, enviesando qualquer categorização manual feita em cima dela para a
-    convenção de documentação de poucos projetos). Chame random.seed() antes, no caller, para
-    reprodutibilidade (mesmo padrão de scripts/test_local_judges.py::load_sample_tools()).
+def amostrar_por_componente(por_componente: dict[str, list[dict]], n: int | None, max_por_repo: int) -> list[dict]:
+    """`n=None` (default): sem amostragem, retorna TODAS as tools de cada componente -- o teto
+    por repositório não é aplicado nesse caso (só existe pra corrigir viés de uma amostra
+    menor que a população; a população inteira não tem "viés de amostragem" a corrigir).
 
-    Implementação: embaralha o pool do componente (random.shuffle) e percorre uma única vez,
-    pulando qualquer tool cujo repositório já atingiu o teto -- não corta o laço ao atingir `n`
-    só porque um pool maior ainda pode ter repositórios abaixo do teto mais adiante; corta
-    quando `n` é atingido OU o pool inteiro foi percorrido. Se mesmo assim sobrar menos que
-    `n` (teto baixo demais para a diversidade de repositórios daquele componente), loga aviso
-    em vez de erro e entrega o que deu.
+    `n` != None: sorteia até `n` tools de cada componente, com no máximo `max_por_repo` tools
+    do mesmo repositório (ver MAX_POR_REPO_DEFAULT: a população de consenso é extremamente
+    concentrada -- 2 repositórios somam mais de 50% dela -- e random.sample() sem esse teto
+    reproduz essa concentração na amostra, enviesando qualquer categorização manual feita em
+    cima dela para a convenção de documentação de poucos projetos). Chame random.seed() antes,
+    no caller, para reprodutibilidade (mesmo padrão de
+    scripts/test_local_judges.py::load_sample_tools()).
+
+    Implementação da amostragem: embaralha o pool do componente (random.shuffle) e percorre
+    uma única vez, pulando qualquer tool cujo repositório já atingiu o teto -- não corta o laço
+    ao atingir `n` só porque um pool maior ainda pode ter repositórios abaixo do teto mais
+    adiante; corta quando `n` é atingido OU o pool inteiro foi percorrido. Se mesmo assim
+    sobrar menos que `n` (teto baixo demais para a diversidade de repositórios daquele
+    componente), loga aviso em vez de erro e entrega o que deu.
     """
+    if n is None:
+        return [tool for tools in por_componente.values() for tool in tools]
+
     amostra = []
     for componente, tools in por_componente.items():
         if not tools:
@@ -303,11 +313,11 @@ def main() -> None:
     parser.add_argument("--output", type=Path, default=None, help="Caminho do JSONL de saída (default: data/analysis/consenso_amostra.jsonl).")
     parser.add_argument(
         "--n-por-componente", type=int, default=N_POR_COMPONENTE_DEFAULT,
-        help=f"Quantas tools sortear por componente (default: {N_POR_COMPONENTE_DEFAULT}).",
+        help="Quantas tools sortear por componente (default: sem limite, exporta todas as tools com consenso).",
     )
     parser.add_argument(
         "--max-por-repo", type=int, default=MAX_POR_REPO_DEFAULT,
-        help=f"Máximo de tools do mesmo repositório por componente, pra evitar viés de poucos repositórios dominarem a amostra (default: {MAX_POR_REPO_DEFAULT}).",
+        help=f"Só tem efeito junto com --n-por-componente: máximo de tools do mesmo repositório por componente, pra evitar viés de poucos repositórios dominarem a amostra (default: {MAX_POR_REPO_DEFAULT}).",
     )
     parser.add_argument("--seed", type=int, default=42, help="Seed para reprodutibilidade da amostra (default: 42).")
     args = parser.parse_args()
