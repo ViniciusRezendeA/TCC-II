@@ -12,6 +12,7 @@ data/*
 !data/analysis/
 data/analysis/*
 !data/analysis/consenso_amostra.jsonl
+!data/analysis/consenso_justificativas.jsonl
 
 state/
 logs/
