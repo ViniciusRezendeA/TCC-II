@@ -39,6 +39,7 @@ import argparse
 import json
 import os
 import sys
+import time
 from pathlib import Path
 
 from google import genai
@@ -74,6 +75,16 @@ DEFAULT_MODEL = "gemini-3.6-flash"
 # individual da Etapa 3 (~1-5k tokens). O _REQUEST_TIMEOUT_MS de gemini_judge.py (60s) é
 # calibrado pra essas chamadas pequenas; esta chamada única e grande precisa de bem mais margem.
 _REQUEST_TIMEOUT_MS = 300_000  # 5 minutos
+
+# JudgeRateLimited por minuto é teto DE CONTA, agregado entre as chaves -- confirmado ao vivo
+# (ver run_sequential_step3.py): todas as 20 chaves levaram o mesmo 429
+# (GenerateContentInputTokensPerModelPerMinute-FreeTier) em sequência rápida, porque trocar de
+# chave não escapa de um teto por conta. Sem esperar antes de tentar a próxima, o laço de
+# fallback simplesmente queima todas as chaves instantaneamente, sem dar tempo da janela de 1
+# minuto resetar -- por isso, diferente do loop de 1 tentativa por chave original, agora
+# espera e dá até 2 passadas completas pelas chaves antes de desistir.
+_DEFAULT_RATE_LIMIT_BACKOFF_SECONDS = 20.0
+_MAX_PASSADAS_RATE_LIMIT = 2
 
 # Mesmo conjunto de evaluation/judges/gemini_judge.py -- finish_reason que indica intervenção
 # do sistema de segurança/política de conteúdo, não uma parada normal.
@@ -186,25 +197,39 @@ def main() -> None:
     logger.info("Carregadas %s justificativas de %s -- enviando em uma única chamada ao modelo %s", len(payload), input_path, args.model)
 
     categories: list[Category] | None = None
-    for i, key in enumerate(keys):
-        try:
-            categories = _call_gemini(payload, args.model, key)
+    daily_exhausted: set[int] = set()
+    for passada in range(1, _MAX_PASSADAS_RATE_LIMIT + 1):
+        if len(daily_exhausted) == len(keys):
             break
-        except JudgeRefusal as e:
-            logger.error("Recusado pelo provedor (categoria=%s) -- trocar de chave não ajuda aqui, abortando.", e.category)
-            sys.exit(1)
-        except JudgeQuotaExhausted as e:
-            logger.warning("Chave %s esgotou a cota diária, tentando a próxima: %s", i, e)
-            continue
-        except JudgeRateLimited as e:
-            logger.warning("Chave %s rate-limited, tentando a próxima: %s", i, e)
-            continue
-        except JudgeError as e:
-            logger.warning("Chave %s: erro técnico, tentando a próxima: %s", i, e)
-            continue
+        for i, key in enumerate(keys):
+            if i in daily_exhausted:
+                continue
+            try:
+                categories = _call_gemini(payload, args.model, key)
+                break
+            except JudgeRefusal as e:
+                logger.error("Recusado pelo provedor (categoria=%s) -- trocar de chave não ajuda aqui, abortando.", e.category)
+                sys.exit(1)
+            except JudgeQuotaExhausted as e:
+                daily_exhausted.add(i)
+                logger.warning("Chave %s esgotou a cota diária, tirando do rodízio: %s", i, e)
+                continue
+            except JudgeRateLimited as e:
+                # Teto por minuto agregado por CONTA (ver _DEFAULT_RATE_LIMIT_BACKOFF_SECONDS)
+                # -- trocar de chave sem esperar não escapa dele, por isso espera antes de ir
+                # pra próxima em vez de só "continue" imediato.
+                backoff = e.retry_after_seconds or _DEFAULT_RATE_LIMIT_BACKOFF_SECONDS
+                logger.warning("Chave %s rate-limited (teto de conta), aguardando %.1fs antes da próxima (passada %s/%s): %s", i, backoff, passada, _MAX_PASSADAS_RATE_LIMIT, e)
+                time.sleep(backoff)
+                continue
+            except JudgeError as e:
+                logger.warning("Chave %s: erro técnico, tentando a próxima: %s", i, e)
+                continue
+        if categories is not None:
+            break
 
     if categories is None:
-        logger.error("Todas as %s chaves falharam -- nenhuma categoria gerada.", len(keys))
+        logger.error("Todas as %s chaves falharam após %s passada(s) -- nenhuma categoria gerada.", len(keys), _MAX_PASSADAS_RATE_LIMIT)
         sys.exit(1)
 
     logger.info("%s categorias identificadas:", len(categories))

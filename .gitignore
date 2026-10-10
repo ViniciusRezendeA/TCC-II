@@ -14,6 +14,9 @@ data/analysis/*
 !data/analysis/consenso_amostra.jsonl
 !data/analysis/consenso_justificativas.jsonl
 !data/analysis/consenso_categorias.json
+!data/analysis/consenso_categorizacao.jsonl
+
+
 
 state/
 logs/
