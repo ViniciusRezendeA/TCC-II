@@ -20,7 +20,7 @@ uv run python -m scripts.generate_consenso_categorization  # 4. classifica cada 
 |---|---|---|---|
 | `export_consenso_sample.py` | `data/evaluations/*.jsonl` + `data/dataset.jsonl` | `data/analysis/consenso_amostra.jsonl` | Filtra tools em que **todos** os juízes que a avaliaram mudaram a nota no mesmo componente entre `description_only`/`with_source` (mínimo 2 juízes); anexa o `source_code` real enviado ao juiz. |
 | `generate_consenso_justifications.py` | `consenso_amostra.jsonl` | `consenso_justificativas.jsonl` | Por tool, pede a um LLM (Gemini) que sintetize, em inglês, o que o código revelou que a descrição não dizia -- grounded na reasoning dos juízes + código, instruído a não inventar conexão sem evidência. |
-| `generate_consenso_categories.py` | `consenso_justificativas.jsonl` (tudo de uma vez) | `consenso_categorias.json` | Análise temática indutiva (Braun & Clarke, 2006): identifica, de baixo para cima, as categorias recorrentes de mecanismo (não de componente da rubrica). |
+| `generate_consenso_categories.py` | `consenso_justificativas.jsonl` (tudo de uma vez) | `consenso_categorias.json` | Análise temática indutiva (Braun & Clarke, 2006): identifica, de baixo para cima, as categorias recorrentes de mecanismo (não de componente da rubrica). Único script do lote que roda em DeepSeek, não Gemini (ver nota abaixo). |
 | `generate_consenso_categorization.py` | `consenso_justificativas.jsonl` + `consenso_categorias.json` | `consenso_categorizacao.jsonl` | Análise de conteúdo dirigida (Hsieh & Shannon, 2005): classifica cada tool contra o conjunto fixo de categorias, uma tool por vez (nunca em lote, para evitar degradação de atenção em entradas/saídas muito longas -- Liu et al., 2024, "Lost in the Middle"). Multi-label, com fallback `"none"`. |
 
 Os três *prompts* usados (geração de justificativa, identificação de categorias,
@@ -28,10 +28,18 @@ classificação) estão reproduzidos na íntegra no Apêndice da metodologia do 
 (`overleaf/sectionsTCCII/Apendice.tex`, seção "Prompts Utilizados na Análise Qualitativa das
 Divergências").
 
-Todos usam `GOOGLE_API_KEYS` (rodízio de múltiplas chaves, mesma variável dos juízes reais da
-Etapa 3 -- rodam em momentos diferentes, não competem por cota na prática), exceto
-`generate_consenso_categories.py`, que por ser uma chamada única (não um lote de milhares)
-roda no modelo mais forte disponível no free tier (`gemini-3.6-flash`).
+`generate_consenso_justifications.py` e `generate_consenso_categorization.py` usam
+`GOOGLE_API_KEYS` (rodízio de múltiplas chaves, mesma variável dos juízes reais da Etapa 3 --
+rodam em momentos diferentes, não competem por cota na prática).
+
+`generate_consenso_categories.py` é a exceção: originalmente rodava uma única chamada em
+`gemini-3.6-flash` (o modelo gratuito mais forte do projeto), mas o payload das ~2685
+justificativas (~392k tokens) excede o teto de 250k tokens/minuto do tier gratuito do
+Gemini -- confirmado como um limite *da conta*, não do modelo (`gemini-3.5-flash-lite` bateu
+no mesmo teto). A chamada única roda em **DeepSeek** (`deepseek-flash`, via `--model
+deepseek-flash`, já integrado ao projeto como juiz pago em `config/judges.yaml`), que não
+publica um teto de tokens/minuto, só um teto de concorrência por conta muito acima do que
+este uso precisa (ver `DEEPSEEK_API_KEY` no `.env.example`).
 
 ## Limitação conhecida e melhoria futura: concordância entre avaliadores (inter-rater reliability)
 

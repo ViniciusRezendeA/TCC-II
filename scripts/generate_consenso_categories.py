@@ -42,6 +42,7 @@ import sys
 import time
 from pathlib import Path
 
+import requests
 from google import genai
 from google.genai import errors as genai_errors
 from google.genai import types as genai_types
@@ -49,6 +50,7 @@ from pydantic import BaseModel, Field
 
 from mcp_pipeline.config import DATA_DIR
 from mcp_pipeline.evaluation.judges.base import (
+    JudgeBalanceExhausted,
     JudgeError,
     JudgeQuotaExhausted,
     JudgeRateLimited,
@@ -69,7 +71,20 @@ logger = setup_logging("generate_consenso_categories")
 # nominal bem mais apertado do 3.6-flash (5 vs 15, ver config/judges.yaml) não é um problema
 # aqui -- e é o modelo gratuito mais forte que o projeto já mapeou, o que importa mais pra uma
 # análise temática de uma passada só do que pra um lote de avaliações repetitivas.
-DEFAULT_MODEL = "gemini-3.6-flash"
+#
+# NA PRÁTICA, essa chamada única nunca coube no tier gratuito: o payload das ~2685
+# justificativas (~392k tokens) excede o teto de 250k tokens/minuto do free tier do Gemini --
+# e esse teto é da CONTA, não do modelo (confirmado ao vivo: gemini-3.5-flash-lite bateu no
+# mesmo "GenerateContentInputTokensPerModelPerMinute-FreeTier, limit: 250000" que o
+# gemini-3.6-flash). Por isso o modelo efetivamente usado nesta etapa é o DeepSeek
+# (deepseek-flash, já integrado como juiz pago em judges.yaml): sem teto de tokens/minuto
+# publicado, só um teto de concorrência por conta (ver deepseek_judge.py).
+DEFAULT_MODEL = "deepseek-flash"
+
+_DEEPSEEK_BASE_URL = "https://api.deepseek.com"
+# Uma chamada com ~392k tokens de entrada demora bem mais que as avaliações individuais de
+# ~1-5k tokens da Etapa 3 (timeout de 90s em deepseek_judge.py) -- 10 minutos de margem.
+_DEEPSEEK_TIMEOUT_SECONDS = 600
 
 # O payload de entrada tem ~400k tokens (2685 justificativas) -- muito maior que uma avaliação
 # individual da Etapa 3 (~1-5k tokens). O _REQUEST_TIMEOUT_MS de gemini_judge.py (60s) é
@@ -167,13 +182,69 @@ def _call_gemini(payload: list[dict], model: str, api_key: str) -> list[Category
     return [c if isinstance(c, Category) else Category.model_validate(c) for c in result]
 
 
+# DeepSeek rejeita response_format="json_schema" pra este modelo (mesma descoberta de
+# openai_compatible_judge.py: HTTP 400 "This response_format type is unavailable now"), e
+# "json_object" exige um objeto JSON no topo, não um array -- por isso o prompt pede um objeto
+# {"categories": [...]} em vez do array puro que o schema do Gemini devolve direto.
+_DEEPSEEK_JSON_OBJECT_HINT = (
+    '\n\nRespond with a single JSON object with exactly one key, "categories", whose value is '
+    "the JSON array described above. Return only the JSON object, no other text."
+)
+
+
+def _call_deepseek(payload: list[dict], model: str, api_key: str) -> list[Category]:
+    url = f"{_DEEPSEEK_BASE_URL}/chat/completions"
+    headers = {"Content-Type": "application/json", "Authorization": f"Bearer {api_key}"}
+    body = {
+        "model": model,
+        "messages": [
+            {"role": "system", "content": SYSTEM_INSTRUCTION + _DEEPSEEK_JSON_OBJECT_HINT},
+            {"role": "user", "content": json.dumps(payload, ensure_ascii=False)},
+        ],
+        "max_tokens": 16_000,
+        "response_format": {"type": "json_object"},
+    }
+
+    try:
+        response = requests.post(url, headers=headers, json=body, timeout=_DEEPSEEK_TIMEOUT_SECONDS)
+        response.raise_for_status()
+    except requests.Timeout as e:
+        raise JudgeError(f"timeout ao chamar deepseek (limite: {_DEEPSEEK_TIMEOUT_SECONDS}s): {e}") from e
+    except requests.RequestException as e:
+        if e.response is not None and e.response.status_code == 402:
+            raise JudgeBalanceExhausted("deepseek: saldo insuficiente (HTTP 402)") from e
+        detail = f" -- corpo da resposta: {e.response.text[:2000]}" if e.response is not None else ""
+        raise JudgeError(f"erro HTTP ao chamar deepseek: {e}{detail}") from e
+
+    result = response.json()
+    if "error" in result:
+        error_info = result.get("error", {})
+        raise JudgeError(f"erro da API deepseek: {error_info.get('message', error_info)}")
+
+    choices = result.get("choices", [])
+    finish_reason = choices[0].get("finish_reason") if choices else None
+    message_content = choices[0].get("message", {}).get("content") if choices else None
+    if not message_content:
+        raise JudgeError(f"resposta de deepseek não contém conteúdo (finish_reason={finish_reason!r})")
+
+    try:
+        parsed = json.loads(message_content)
+    except json.JSONDecodeError as e:
+        raise JudgeError(f"resposta de deepseek não é JSON válido: {e} -- início: {message_content[:500]}") from e
+
+    categories_raw = parsed.get("categories") if isinstance(parsed, dict) else parsed
+    if not isinstance(categories_raw, list):
+        raise JudgeError(f"resposta de deepseek não tem a chave 'categories' esperada: {str(parsed)[:500]}")
+    return [Category.model_validate(c) for c in categories_raw]
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Identifica categorias (análise temática indutiva, Gemini, Braun & Clarke 2006) a partir de todas as justificativas de consenso, em uma única chamada."
     )
     parser.add_argument("--input", type=Path, default=None, help="JSONL de entrada (default: data/analysis/consenso_justificativas.jsonl).")
     parser.add_argument("--output", type=Path, default=None, help="JSON de saída (default: data/analysis/consenso_categorias.json).")
-    parser.add_argument("--model", type=str, default=DEFAULT_MODEL, help=f"model_id do Gemini (default: {DEFAULT_MODEL}).")
+    parser.add_argument("--model", type=str, default=DEFAULT_MODEL, help=f"model_id (default: {DEFAULT_MODEL}; 'deepseek-flash' usa a DeepSeek API, qualquer outro valor usa Gemini).")
     args = parser.parse_args()
 
     input_path = args.input or (DATA_DIR / "analysis" / "consenso_justificativas.jsonl")
@@ -183,54 +254,73 @@ def main() -> None:
         logger.error("%s não encontrado -- rode `uv run python -m scripts.generate_consenso_justifications` primeiro.", input_path)
         sys.exit(1)
 
-    keys_raw = os.environ.get("GOOGLE_API_KEYS", "")
-    keys = [k.strip() for k in keys_raw.split(",") if k.strip()]
-    if not keys:
-        logger.error(
-            "GOOGLE_API_KEYS não definida (ou vazia) no ambiente/.env -- mesma variável usada "
-            "por scripts/run_sequential_step3.py e scripts/generate_consenso_justifications.py. "
-            "Veja .env.example."
-        )
-        sys.exit(1)
-
     payload = [json.loads(line) for line in input_path.read_text(encoding="utf-8").splitlines() if line.strip()]
     logger.info("Carregadas %s justificativas de %s -- enviando em uma única chamada ao modelo %s", len(payload), input_path, args.model)
 
+    use_deepseek = args.model.startswith("deepseek")
     categories: list[Category] | None = None
-    daily_exhausted: set[int] = set()
-    for passada in range(1, _MAX_PASSADAS_RATE_LIMIT + 1):
-        if len(daily_exhausted) == len(keys):
-            break
-        for i, key in enumerate(keys):
-            if i in daily_exhausted:
-                continue
-            try:
-                categories = _call_gemini(payload, args.model, key)
-                break
-            except JudgeRefusal as e:
-                logger.error("Recusado pelo provedor (categoria=%s) -- trocar de chave não ajuda aqui, abortando.", e.category)
-                sys.exit(1)
-            except JudgeQuotaExhausted as e:
-                daily_exhausted.add(i)
-                logger.warning("Chave %s esgotou a cota diária, tirando do rodízio: %s", i, e)
-                continue
-            except JudgeRateLimited as e:
-                # Teto por minuto agregado por CONTA (ver _DEFAULT_RATE_LIMIT_BACKOFF_SECONDS)
-                # -- trocar de chave sem esperar não escapa dele, por isso espera antes de ir
-                # pra próxima em vez de só "continue" imediato.
-                backoff = e.retry_after_seconds or _DEFAULT_RATE_LIMIT_BACKOFF_SECONDS
-                logger.warning("Chave %s rate-limited (teto de conta), aguardando %.1fs antes da próxima (passada %s/%s): %s", i, backoff, passada, _MAX_PASSADAS_RATE_LIMIT, e)
-                time.sleep(backoff)
-                continue
-            except JudgeError as e:
-                logger.warning("Chave %s: erro técnico, tentando a próxima: %s", i, e)
-                continue
-        if categories is not None:
-            break
 
-    if categories is None:
-        logger.error("Todas as %s chaves falharam após %s passada(s) -- nenhuma categoria gerada.", len(keys), _MAX_PASSADAS_RATE_LIMIT)
-        sys.exit(1)
+    if use_deepseek:
+        api_key = os.environ.get("DEEPSEEK_API_KEY", "").strip()
+        if not api_key:
+            logger.error("DEEPSEEK_API_KEY não definida (ou vazia) no ambiente/.env. Veja .env.example.")
+            sys.exit(1)
+        try:
+            categories = _call_deepseek(payload, args.model, api_key)
+        except JudgeRefusal as e:
+            logger.error("Recusado pelo provedor (categoria=%s).", e.category)
+            sys.exit(1)
+        except JudgeBalanceExhausted as e:
+            logger.error("%s", e)
+            sys.exit(1)
+        except JudgeError as e:
+            logger.error("Chamada à deepseek falhou: %s", e)
+            sys.exit(1)
+    else:
+        keys_raw = os.environ.get("GOOGLE_API_KEYS", "")
+        keys = [k.strip() for k in keys_raw.split(",") if k.strip()]
+        if not keys:
+            logger.error(
+                "GOOGLE_API_KEYS não definida (ou vazia) no ambiente/.env -- mesma variável usada "
+                "por scripts/run_sequential_step3.py e scripts/generate_consenso_justifications.py. "
+                "Veja .env.example."
+            )
+            sys.exit(1)
+
+        daily_exhausted: set[int] = set()
+        for passada in range(1, _MAX_PASSADAS_RATE_LIMIT + 1):
+            if len(daily_exhausted) == len(keys):
+                break
+            for i, key in enumerate(keys):
+                if i in daily_exhausted:
+                    continue
+                try:
+                    categories = _call_gemini(payload, args.model, key)
+                    break
+                except JudgeRefusal as e:
+                    logger.error("Recusado pelo provedor (categoria=%s) -- trocar de chave não ajuda aqui, abortando.", e.category)
+                    sys.exit(1)
+                except JudgeQuotaExhausted as e:
+                    daily_exhausted.add(i)
+                    logger.warning("Chave %s esgotou a cota diária, tirando do rodízio: %s", i, e)
+                    continue
+                except JudgeRateLimited as e:
+                    # Teto por minuto agregado por CONTA (ver _DEFAULT_RATE_LIMIT_BACKOFF_SECONDS)
+                    # -- trocar de chave sem esperar não escapa dele, por isso espera antes de ir
+                    # pra próxima em vez de só "continue" imediato.
+                    backoff = e.retry_after_seconds or _DEFAULT_RATE_LIMIT_BACKOFF_SECONDS
+                    logger.warning("Chave %s rate-limited (teto de conta), aguardando %.1fs antes da próxima (passada %s/%s): %s", i, backoff, passada, _MAX_PASSADAS_RATE_LIMIT, e)
+                    time.sleep(backoff)
+                    continue
+                except JudgeError as e:
+                    logger.warning("Chave %s: erro técnico, tentando a próxima: %s", i, e)
+                    continue
+            if categories is not None:
+                break
+
+        if categories is None:
+            logger.error("Todas as %s chaves falharam após %s passada(s) -- nenhuma categoria gerada.", len(keys), _MAX_PASSADAS_RATE_LIMIT)
+            sys.exit(1)
 
     logger.info("%s categorias identificadas:", len(categories))
     for c in categories:

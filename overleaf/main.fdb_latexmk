@@ -1,13 +1,13 @@
 # Fdb version 4
-["bibtex main"] 1791671277.63817 "main.aux" "main.bbl" "main" 1791671543.33423 0
+["bibtex main"] 1791673570.83586 "main.aux" "main.bbl" "main" 1791673573.43513 0
   "./sbc-template.bib" 1791669985.48613 12337 2b07dafee83267c15873cf2cd964989e ""
   "./sbc.bst" 1789957260.10218 21863 e2f961827e28074ef5a2bc27ccb7b310 ""
-  "main.aux" 1791671542.98663 12766 2e9656009332e6afdce2cc34ce34def3 "pdflatex"
+  "main.aux" 1791673573.12529 12766 830a8418a050683811af962fb9c93fa7 "pdflatex"
   (generated)
   "main.bbl"
   "main.blg"
   (rewritten before read)
-["pdflatex"] 1791671540.61379 "main.tex" "main.pdf" "main" 1791671543.33448 0
+["pdflatex"] 1791673570.95737 "main.tex" "main.pdf" "main" 1791673573.4353 0
   "/usr/local/texlive/2026/texmf-dist/fonts/enc/dvips/base/8r.enc" 1165713224 4850 80dc9bab7f31fb78a000ccfed0e27cab ""
   "/usr/local/texlive/2026/texmf-dist/fonts/map/fontname/texfonts.map" 1577235249 3524 cb3e574dea2d1052e39280babc910dc8 ""
   "/usr/local/texlive/2026/texmf-dist/fonts/tfm/adobe/courier/pcrb7t.tfm" 1136768653 960 4ab65358b8406f30ef5496c8c096d22b ""
@@ -196,16 +196,16 @@
   "images/fluxo_etapa2_detalhado.png" 1789957260.01342 177301 9b1cdd3a951aef6a2e0690005d4ff9b1 ""
   "images/fluxo_etapa3_detalhado.png" 1789957260.01451 209988 92bd36b475850a02af176d3337d67f1a ""
   "images/metodologia_v7.png" 1789957260.01962 115096 77d268eb05d8834fac90bca922d3f9b0 ""
-  "main.aux" 1791671542.98663 12766 2e9656009332e6afdce2cc34ce34def3 "pdflatex"
-  "main.bbl" 1791671277.82646 5953 e3c55719c8cfa9cc0db9586765b3f4c4 "bibtex main"
+  "main.aux" 1791673573.12529 12766 830a8418a050683811af962fb9c93fa7 "pdflatex"
+  "main.bbl" 1791673570.95439 5953 e3c55719c8cfa9cc0db9586765b3f4c4 "bibtex main"
   "main.tex" 1791667045.59998 5936 79634e4eaefc0e26b8a33cf390ec1fb9 ""
   "sbc-template.sty" 1789957260.09381 5280 0a277450ee6cfc82a68e4b0b0f92e15e ""
   "sectionsTCCII/01_Introducao.tex" 1789957260.13828 7466 c1a23612d0ef3389978e1f288795af2c ""
   "sectionsTCCII/02_Fundamentacao_Teorica_V3.tex" 1789957260.13893 6765 7f3ec6d4a13940891188506ac0fc99df ""
   "sectionsTCCII/03_Trabalhos_Relacionados.tex" 1789957260.13939 5947 381733ecc1dfa827a7acd16bfd6dd1fc ""
-  "sectionsTCCII/04_Materiais_Metodos.tex" 1791667630.23496 25032 f2e0e3a239332708e7d5e9caaccf1e95 ""
+  "sectionsTCCII/04_Materiais_Metodos.tex" 1791673545.70331 25361 e207372be0da5772ad0d52fae550e7a4 ""
   "sectionsTCCII/05_Resultados_Parciais.tex" 1791671499.68832 16895 e433afca0ef51225dcbf243dfeac558a ""
-  "sectionsTCCII/Apendice.tex" 1791670536.02773 22768 1bcc72cc0afdddcc823d0178751fe256 ""
+  "sectionsTCCII/Apendice.tex" 1791673530.03155 22910 a717011772c45bffbda6e1aafbb7f6fa ""
   (generated)
   "main.aux"
   "main.log"

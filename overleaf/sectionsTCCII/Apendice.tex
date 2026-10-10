@@ -223,7 +223,7 @@ A concentração de ferramentas por repositório também é fortemente assimétr
 \section{Prompts Utilizados na Análise Qualitativa das Divergências}
 \label{apendice:secao-prompts}
 
-Este apêndice reproduz, na íntegra e no idioma original (inglês, mesmo idioma em que a justificativa de cada juiz é produzida), os três \textit{prompts} de sistema (\textit{system instruction}) utilizados nas três etapas da análise qualitativa descrita na Seção~\ref{subsec:analise-comparativa}. Em todos os casos, o modelo recebe o \textit{prompt} de sistema reproduzido abaixo e, na mensagem do usuário, o objeto ou lista JSON de entrada descrito no próprio texto do \textit{prompt}; a saída é restrita a um objeto ou lista JSON, sem texto adicional, por meio do mecanismo de saída estruturada do modelo utilizado (Gemini).
+Este apêndice reproduz, na íntegra e no idioma original (inglês, mesmo idioma em que a justificativa de cada juiz é produzida), os três \textit{prompts} de sistema (\textit{system instruction}) utilizados nas três etapas da análise qualitativa descrita na Seção~\ref{subsec:analise-comparativa}. Em todos os casos, o modelo recebe o \textit{prompt} de sistema reproduzido abaixo e, na mensagem do usuário, o objeto ou lista JSON de entrada descrito no próprio texto do \textit{prompt}; a saída é restrita a um objeto ou lista JSON, sem texto adicional, por meio do mecanismo de saída estruturada do respectivo modelo: Gemini nas Etapas 1 e 3, e DeepSeek na Etapa 2, cuja chamada única processa um payload grande demais para o teto de taxa do tier gratuito do Gemini.
 
 \subsection*{Etapa 1: Geração de Justificativas}
 
