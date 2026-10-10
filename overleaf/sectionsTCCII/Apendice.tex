@@ -174,29 +174,117 @@ como uma resolução certa, preservando essa incerteza para análises
 posteriores.
 
 
-\section{Termos-Gatilho da Classificação por Motivo}
-\label{apendice:secao-motivos}
+\section{Distribuição de Repositórios e Ferramentas por Linguagem de Programação}
+\label{apendice:secao-linguagens}
 
-Este apêndice lista, por extenso, os termos-gatilho (em inglês, idioma da
-justificativa produzida pelo avaliador) usados pela busca por palavras-chave
-que classifica cada divergência de nota entre cenários por motivo
-(Seção~\ref{sec:resultados}). A Tabela~\ref{tab:motivos-termos} apresenta os
-termos de cada uma das seis categorias.
+Este apêndice detalha a distribuição, por linguagem de programação principal, dos repositórios selecionados na Etapa 1 (Seção~\ref{subsec:coleta}) e das ferramentas extraídas na Etapa 2 (Seção~\ref{subsec:extracao}).
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\linewidth]{./images/01_repos_por_linguagem.png}
+    \caption{Repositórios selecionados por linguagem principal (Etapa 1)}
+    \label{fig:repos-linguagem}
+\end{figure}
+
+Python (79, 38,3\%) e TypeScript (45, 21,8\%) concentram 60\% da amostra, seguidos por Rust (26), C\# (21), Java e Go (13 cada); JavaScript, Ruby e Dart somam, juntos, o restante. Nenhum repositório em Kotlin, PHP, Elixir, Lua ou Swift permaneceu na seleção final: os candidatos dessas linguagens que chegaram a ser selecionados foram descartados pelo laço de \textit{backfill} por não confirmarem nenhuma ferramenta na Etapa 2 (Seção~\ref{subsec:extracao}), ou nunca alcançaram o piso de estrelas dentro do pool.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\linewidth]{./images/02_tools_por_linguagem.png}
+    \caption{Ferramentas extraídas por linguagem (Etapa 2)}
+    \label{fig:tools-linguagem}
+\end{figure}
+
+Python concentra 7.251 das 12.171 ferramentas (59,6\%), seguido por TypeScript (3.162, 26,0\%) e Java (793, 6,5\%); as demais linguagens somam, juntas, pouco mais de 7\% do total (Tabela~\ref{tab:media-tools-servidor}).
 
 \begin{table}[H]
 \centering
-\caption{Termos-gatilho por motivo}
-\label{tab:motivos-termos}
-\begin{tabular}{|l|p{9.5cm}|}
+\caption{Repositórios selecionados e total de ferramentas extraídas, por linguagem}
+\label{tab:media-tools-servidor}
+\begin{tabular}{|l|r|r|r|}
 \hline
-\textbf{Motivo} & \textbf{Termos-gatilho} \\ \hline
-\textit{Tool} sem parâmetro & \textit{takes no input parameter, accepts no input parameter, no parameter roles to explain, exposes no user-facing parameter, no user-facing parameter, vacuously satisfied, empty input schema} \\ \hline
-Omissão de parâmetros & \textit{parameter, argument} \\ \hline
-Omissão de funcionalidades & \textit{other supported, additional mode, also filters, also performs, also allows, also supports, also returns, related tools such as, differs from, grouping semantics, selection mode, fuzzy, side effect, broader workflow, versus other, versus alternatives, how this differs} \\ \hline
-Omissão de saídas & \textit{return value, return format, return shape, returned fields, returned match, what is returned, no return value, output schema, returned format, return structure, what a returned, what the returned, result represents, outcome beyond, is returned, are returned, what fields, returned list, result shape, returned user} \\ \hline
-Omissão de limitações & \textit{error, exception, raise, constraint, edge case, corner case, fails to, fail for, failure mode, may fail, rate limit, credential, caveat, required integration, permission} \\ \hline
-Contradição & \textit{contradict, inconsistent*, mismatch, does not match, does not align, conflicts with, diverges from, misleading, not implemented, actually does, actually performs, the code reveals, the implementation shows, does not correspond} \\ \hline
+\textbf{Linguagem} & \textbf{Repositórios} & \textbf{Tools (total)} & \textbf{Média/repositório} \\ \hline
+Python & 79 & 7.251 & 91,78 \\ \hline
+TypeScript & 45 & 3.162 & 70,27 \\ \hline
+Java & 13 & 793 & 61,00 \\ \hline
+C\# & 21 & 423 & 20,14 \\ \hline
+Rust & 26 & 276 & 10,62 \\ \hline
+Go & 13 & 149 & 11,46 \\ \hline
+JavaScript & 6 & 108 & 18,00 \\ \hline
+Ruby & 2 & 5 & 2,50 \\ \hline
+Dart & 1 & 4 & 4,00 \\ \hline
+\textbf{Total} & \textbf{206} & \textbf{12.171} & \textbf{59,08} \\ \hline
 \end{tabular}
 \end{table}
 
-Uma divergência casa com uma categoria quando sua justificativa (\textit{reasoning}) no cenário \textit{with\_source} contém, como substring e sem diferenciar maiúsculas de minúsculas, ao menos um dos termos daquela linha; o asterisco em \textit{inconsistent*} indica que o termo casa tanto com \textit{inconsistent} quanto com variações como \textit{inconsistency}/\textit{inconsistencies}. Uma única exceção às seis categorias serem independentes entre si: uma divergência nunca é classificada simultaneamente como \textit{tool} sem parâmetro e omissão de parâmetros, por descreverem achados opostos sobre o mesmo par (ver Seção~\ref{sec:resultados}).
+A concentração de ferramentas por repositório também é fortemente assimétrica: os três repositórios com mais ferramentas respondem, sozinhos, por 46,6\% de todo o conjunto de dados (20,4\%, 18,4\% e 7,8\%, respectivamente), um deles em TypeScript, os outros dois em Python. Esse resultado eleva consideravelmente a média de ferramentas por repositório nessas duas linguagens (Tabela~\ref{tab:media-tools-servidor}) e deve ser considerado ao interpretar médias agregadas por linguagem.
+
+
+\section{Prompts Utilizados na Análise Qualitativa das Divergências}
+\label{apendice:secao-prompts}
+
+Este apêndice reproduz, na íntegra e no idioma original (inglês, mesmo idioma em que a justificativa de cada juiz é produzida), os três \textit{prompts} de sistema (\textit{system instruction}) utilizados nas três etapas da análise qualitativa descrita na Seção~\ref{subsec:analise-comparativa}. Em todos os casos, o modelo recebe o \textit{prompt} de sistema reproduzido abaixo e, na mensagem do usuário, o objeto ou lista JSON de entrada descrito no próprio texto do \textit{prompt}; a saída é restrita a um objeto ou lista JSON, sem texto adicional, por meio do mecanismo de saída estruturada do modelo utilizado (Gemini).
+
+\subsection*{Etapa 1: Geração de Justificativas}
+
+Aplicado individualmente a cada ferramenta da amostra de consenso (Seção~\ref{subsec:consolidacao}), recebendo como entrada um objeto JSON com os campos \texttt{tool\_uid}, \texttt{tool\_name}, a lista \texttt{avaliacoes} (uma entrada por juiz e cenário, já restrita aos componentes da rubrica cuja nota divergiu) e \texttt{source\_code}.
+
+\begin{lstlisting}[language={}, breaklines=true, basicstyle=\small\ttfamily, caption=Prompt de sistema -- geração de justificativas, label=prompt:justificativas]
+You are a research assistant helping analyze results from an undergraduate thesis ("Model Context Protocol (MCP): Avaliação da Qualidade de Descrições de Tools com Base em Contexto de Código-Fonte") that studies whether giving an LLM-as-judge access to a tool's source code changes its evaluation of the tool's natural-language description. Several judge models independently scored the SAME description on a 1-5 Likert scale across 6 rubric components (Purpose, Guidelines, Limitations, Parameter Explanation, Length & Completeness, Examples), once without the source code ("description_only") and once with it ("with_source"). The judges were instructed to first score the description without considering the source code, and then to use the source code to identify inconsistencies between the description and the implementation, adjusting the initial score accordingly. The instruction does not restrict the direction of that adjustment, so a score change may or may not be grounded in a concrete finding from the code.
+
+You will receive one JSON object describing a single tool for which at least one component's score changed between the two scenarios, for every judge that evaluated it unanimously. It has:
+- "tool_uid": a unique identifier for the tool.
+- "tool_name": the tool's name.
+- "avaliacoes": a list of per-judge, per-scenario entries. Each has "scenario" ("description_only" or "with_source"), "provider" (which judge model), and "scores" -- only the components whose score differs between the two scenarios for that judge, each with the numeric "score" and that judge's own "reasoning" explaining it.
+- "source_code": the actual source snippet(s) the "with_source" judges saw.
+
+Task: read every judge's reasoning for its changed component(s), cross-reference it against "source_code", and write ONE justification (3-5 sentences) explaining WHAT the source code revealed that the plain-text description did not -- e.g. an undocumented parameter, an undisclosed behavior/output, a missing limitation or error case, or a direct contradiction between the description and the implementation. If judges disagree on the reason, or if a judge's reasoning gives no concrete evidence from the code (just a vaguer/stricter reading of the same text), say so plainly instead of inventing a justification.
+
+Ground every claim in specific details from the reasoning and/or the source code. Do not just restate "the score changed" or copy one judge's reasoning verbatim -- synthesize across judges. If different judges changed different components for different reasons, address each briefly, in one paragraph. Always write the justification in English, regardless of the reasoning's original language (it is already in English in this dataset, but do not drop this rule if that ever changes).
+
+Be conservative per component: a strong, well-evidenced finding for one judge/component (e.g. a parameter revealed to be hardcoded, or a disclosed error case) must NOT be stretched to also explain a different judge's or a different component's change unless that other reasoning independently supports it. When a specific score change's reasoning is vague or generic (e.g. "now seems clearer," "provides more context," with no concrete detail cited), say explicitly that no clear code-based reason is evident for that particular change instead of inferring one. Never introduce terminology, named standards, formulas, or mechanisms that do not literally appear in the reasoning or in "source_code" -- even when they would be plausible, typical domain knowledge for a tool like this one. If you are not sure a claim is directly supported by the given text, leave it out.
+
+Output ONLY one JSON object, no text before or after it, in exactly this shape:
+{"tool_uid": "<the tool_uid from the input, verbatim>", "justification": "<your justification>"}
+\end{lstlisting}
+
+\subsection*{Etapa 2: Identificação Indutiva de Categorias}
+
+Aplicado uma única vez, recebendo como entrada o conjunto completo de justificativas produzidas na Etapa 1, no formato de uma lista JSON de objetos \texttt{\{"tool\_uid": ..., "justification": ...\}}.
+
+\begin{lstlisting}[language={}, breaklines=true, basicstyle=\small\ttfamily, caption=Prompt de sistema -- identificação indutiva de categorias, label=prompt:categorias]
+You are a qualitative research assistant conducting a thematic analysis for an undergraduate thesis ("Model Context Protocol (MCP): Avaliação da Qualidade de Descrições de Tools com Base em Contexto de Código-Fonte") that studies whether giving an LLM-as-judge access to a tool's source code changes its evaluation of the tool's natural-language description. For every tool where every judge that evaluated it changed at least one rubric score between the "description_only" and "with_source" scenarios, a short English justification was already written, explaining WHAT the source code revealed that the plain-text description did not.
+
+You will receive a JSON array of {"tool_uid": ..., "justification": ...} objects -- one per tool, every justification independently written from that tool's own judge reasoning and source code.
+
+Task: perform an inductive thematic analysis (open coding, following Braun & Clarke's six-phase method: familiarization, initial coding, searching for themes, reviewing themes, defining and naming themes) across ALL justifications to identify the recurring categories of WHAT KIND of thing the source code tends to reveal that the description does not. Do not start from a predefined list -- let the categories emerge bottom-up from patterns across the justifications themselves. Each category must describe a MECHANISM (what the code exposed), never a rubric component (Purpose, Guidelines, Limitations, Parameter Explanation, Length & Completeness, Examples) and never a direction (score went up/down) -- e.g. "the code reveals a hardcoded parameter the description presents as configurable" is a mechanism; "Limitations score decreased" is not.
+
+Requirements for the final set of categories:
+- Between 5 and 15 categories. Fewer undersegments genuinely distinct patterns; more usually means two categories should be merged, or a category is really a one-off outlier rather than a recurring pattern.
+- Each category must be grounded in multiple justifications across different tools -- never create a category for a single idiosyncratic case.
+- Categories must be mutually distinguishable: if two candidate categories would classify the same justification the same way almost every time, merge them into one.
+- Name each category concisely (2-5 words, a short analytic label, Title Case).
+- Each description must state, in 2-3 sentences: (a) what the category captures, in terms of the specific kind of discrepancy or disclosure found in the code, and (b) one illustrative, paraphrased example pattern drawn from the justifications -- never quote or name a specific tool_uid.
+
+Output ONLY a JSON array, no text before or after it, in exactly this shape:
+[{"category": "<Title Case name>", "description": "<2-3 sentence description>"}, ...]
+
+Write everything in English.
+\end{lstlisting}
+
+\subsection*{Etapa 3: Classificação Dedutiva por Categoria}
+
+Aplicado individualmente a cada ferramenta da amostra de consenso. O trecho reproduzido como \texttt{<lista de categorias da Etapa 2, uma por linha>} é substituído, em tempo de execução, pela lista de categorias produzida na Etapa 2 (nome e descrição de cada uma); \texttt{"none"} é a categoria de reserva explícita, utilizada quando nenhuma das categorias da lista fixa corresponde à justificativa analisada.
+
+\begin{lstlisting}[language={}, breaklines=true, basicstyle=\small\ttfamily, caption=Prompt de sistema -- classificação dedutiva por categoria, label=prompt:categorizacao]
+You are a qualitative research assistant performing directed content analysis for an undergraduate thesis ("Model Context Protocol (MCP): Avaliação da Qualidade de Descrições de Tools com Base em Contexto de Código-Fonte") that studies whether giving an LLM-as-judge access to a tool's source code changes its evaluation of the tool's natural-language description.
+
+A prior inductive thematic analysis identified the following FIXED set of categories, describing the MECHANISM by which the source code revealed something the description did not. Treat this list as closed -- do not invent new categories, rename any, or merge/split any, even if a justification seems to need a slightly different label:
+
+<lista de categorias da Etapa 2, uma por linha>
+
+You will receive one JSON object: {"tool_uid": ..., "justification": ...}. Assign every category above whose description genuinely matches what THIS justification says -- it may match more than one category (do not force a single label), and should match zero categories only if none of them genuinely fits (in that case, output the literal string "none" as the sole entry, never an empty list).
+
+Base your assignment only on this justification's own content, not on any other tool. Output ONLY one JSON object, no text before or after it, in exactly this shape:
+{"tool_uid": "<copied verbatim from the input>", "categories": ["<matching category name(s), or \"none\">"]}
+\end{lstlisting}

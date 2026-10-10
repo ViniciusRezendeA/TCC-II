@@ -1,13 +1,13 @@
 # Fdb version 4
-["bibtex main"] 1789957272.33622 "main.aux" "main.bbl" "main" 1789957274.87177 0
-  "./sbc-template.bib" 1789957260.08331 10529 ba69633c02d69b58d8cf19b8b2e2d441 ""
+["bibtex main"] 1791671277.63817 "main.aux" "main.bbl" "main" 1791671543.33423 0
+  "./sbc-template.bib" 1791669985.48613 12337 2b07dafee83267c15873cf2cd964989e ""
   "./sbc.bst" 1789957260.10218 21863 e2f961827e28074ef5a2bc27ccb7b310 ""
-  "main.aux" 1789957274.57655 11093 ab867d47345a210fdc78f1c4b76707e2 "pdflatex"
+  "main.aux" 1791671542.98663 12766 2e9656009332e6afdce2cc34ce34def3 "pdflatex"
   (generated)
   "main.bbl"
   "main.blg"
   (rewritten before read)
-["pdflatex"] 1789957272.44326 "main.tex" "main.pdf" "main" 1789957274.87196 0
+["pdflatex"] 1791671540.61379 "main.tex" "main.pdf" "main" 1791671543.33448 0
   "/usr/local/texlive/2026/texmf-dist/fonts/enc/dvips/base/8r.enc" 1165713224 4850 80dc9bab7f31fb78a000ccfed0e27cab ""
   "/usr/local/texlive/2026/texmf-dist/fonts/map/fontname/texfonts.map" 1577235249 3524 cb3e574dea2d1052e39280babc910dc8 ""
   "/usr/local/texlive/2026/texmf-dist/fonts/tfm/adobe/courier/pcrb7t.tfm" 1136768653 960 4ab65358b8406f30ef5496c8c096d22b ""
@@ -85,8 +85,11 @@
   "/usr/local/texlive/2026/texmf-dist/tex/generic/pgf/basiclayer/pgfcoreshade.code.tex" 1755201859 35251 5ff5b5b310c5ac882610e0ccc99095e7 ""
   "/usr/local/texlive/2026/texmf-dist/tex/generic/pgf/basiclayer/pgfcoretransformations.code.tex" 1673816307 22012 81b34a0aa8fa1a6158cc6220b00e4f10 ""
   "/usr/local/texlive/2026/texmf-dist/tex/generic/pgf/basiclayer/pgfcoretransparency.code.tex" 1601326656 8893 e851de2175338fdf7c17f3e091d94618 ""
+  "/usr/local/texlive/2026/texmf-dist/tex/generic/pgf/frontendlayer/tikz/libraries/tikzlibraryfit.code.tex" 1673816307 3626 2d87dc681257fa32d07a8b3934b10f88 ""
+  "/usr/local/texlive/2026/texmf-dist/tex/generic/pgf/frontendlayer/tikz/libraries/tikzlibrarypositioning.code.tex" 1601326656 3937 3f208572dd82c71103831da976d74f1a ""
   "/usr/local/texlive/2026/texmf-dist/tex/generic/pgf/frontendlayer/tikz/libraries/tikzlibrarytopaths.code.tex" 1608933718 11518 738408f795261b70ce8dd47459171309 ""
   "/usr/local/texlive/2026/texmf-dist/tex/generic/pgf/frontendlayer/tikz/tikz.code.tex" 1755201859 186859 0445d9a41a87648b4723e04765409541 ""
+  "/usr/local/texlive/2026/texmf-dist/tex/generic/pgf/libraries/pgflibraryarrows.meta.code.tex" 1601326656 58801 1e750fb0692eb99aaac45698bbec96b1 ""
   "/usr/local/texlive/2026/texmf-dist/tex/generic/pgf/libraries/pgflibraryplothandlers.code.tex" 1601326656 32995 ac577023e12c0e4bd8aa420b2e852d1a ""
   "/usr/local/texlive/2026/texmf-dist/tex/generic/pgf/math/pgfint.code.tex" 1557692582 3063 8c415c68a0f3394e45cfeca0b65f6ee6 ""
   "/usr/local/texlive/2026/texmf-dist/tex/generic/pgf/math/pgfmath.code.tex" 1673816307 949 cea70942e7b7eddabfb3186befada2e6 ""
@@ -188,20 +191,21 @@
   "images/RQs/boxplot_com_sem_codigo_apenas_mudou.png" 1789957260.00658 125122 2561564ec58d886d3d40d919feb02377 ""
   "images/RQs/diminuiu_empatou_aumentou.png" 1789957260.0079 87871 1107ebc59a012a4643e204b37cd22df6 ""
   "images/arvoreFinal.png" 1789957260.01115 130462 8cda347417936086d644ba7f7f2d2cd8 ""
+  "images/fluxo_analise_qualitativa_detalhado.png" 1791671039.50108 92115 041c2a015963b97db30f0ccdd0816fce ""
   "images/fluxo_etapa1_detalhado.png" 1789957260.01255 150213 08ba8c09a6b953c0afd89e58a95b9c8a ""
   "images/fluxo_etapa2_detalhado.png" 1789957260.01342 177301 9b1cdd3a951aef6a2e0690005d4ff9b1 ""
   "images/fluxo_etapa3_detalhado.png" 1789957260.01451 209988 92bd36b475850a02af176d3337d67f1a ""
   "images/metodologia_v7.png" 1789957260.01962 115096 77d268eb05d8834fac90bca922d3f9b0 ""
-  "main.aux" 1789957274.57655 11093 ab867d47345a210fdc78f1c4b76707e2 "pdflatex"
-  "main.bbl" 1789957272.44009 5221 a07387093cd2017048ac3d4420afcb27 "bibtex main"
-  "main.tex" 1789957260.02855 5511 22f1f5f43bfdeb859f9aeae4b7720e00 ""
+  "main.aux" 1791671542.98663 12766 2e9656009332e6afdce2cc34ce34def3 "pdflatex"
+  "main.bbl" 1791671277.82646 5953 e3c55719c8cfa9cc0db9586765b3f4c4 "bibtex main"
+  "main.tex" 1791667045.59998 5936 79634e4eaefc0e26b8a33cf390ec1fb9 ""
   "sbc-template.sty" 1789957260.09381 5280 0a277450ee6cfc82a68e4b0b0f92e15e ""
   "sectionsTCCII/01_Introducao.tex" 1789957260.13828 7466 c1a23612d0ef3389978e1f288795af2c ""
   "sectionsTCCII/02_Fundamentacao_Teorica_V3.tex" 1789957260.13893 6765 7f3ec6d4a13940891188506ac0fc99df ""
   "sectionsTCCII/03_Trabalhos_Relacionados.tex" 1789957260.13939 5947 381733ecc1dfa827a7acd16bfd6dd1fc ""
-  "sectionsTCCII/04_Materiais_Metodos.tex" 1789957260.14005 21963 f76342f3c020afa6f56d48161036868d ""
-  "sectionsTCCII/05_Resultados_Parciais.tex" 1789957260.14066 16873 ae4ce3df9fa30651ba78961a8e54633d ""
-  "sectionsTCCII/Apendice.tex" 1789957260.14118 12235 86485bd0b5762c7cd80ad40120950d1b ""
+  "sectionsTCCII/04_Materiais_Metodos.tex" 1791667630.23496 25032 f2e0e3a239332708e7d5e9caaccf1e95 ""
+  "sectionsTCCII/05_Resultados_Parciais.tex" 1791671499.68832 16895 e433afca0ef51225dcbf243dfeac558a ""
+  "sectionsTCCII/Apendice.tex" 1791670536.02773 22768 1bcc72cc0afdddcc823d0178751fe256 ""
   (generated)
   "main.aux"
   "main.log"

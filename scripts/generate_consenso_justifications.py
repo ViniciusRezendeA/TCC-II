@@ -93,7 +93,7 @@ class ToolJustification(BaseModel):
     )
 
 
-SYSTEM_INSTRUCTION = """You are a research assistant helping analyze results from an undergraduate thesis ("Model Context Protocol (MCP): Avaliação da Qualidade de Descrições de Tools com Base em Contexto de Código-Fonte") that studies whether giving an LLM-as-judge access to a tool's source code changes its evaluation of the tool's natural-language description. Several judge models independently scored the SAME description on a 1-5 Likert scale across 6 rubric components (Purpose, Guidelines, Limitations, Parameter Explanation, Length & Completeness, Examples), once without the source code ("description_only") and once with it ("with_source"). The judges were instructed that the source code may only be used to find a concrete inconsistency between the description and the actual implementation, and to adjust the score accordingly when one is found -- never to raise a score just because code is present.
+SYSTEM_INSTRUCTION = """You are a research assistant helping analyze results from an undergraduate thesis ("Model Context Protocol (MCP): Avaliação da Qualidade de Descrições de Tools com Base em Contexto de Código-Fonte") that studies whether giving an LLM-as-judge access to a tool's source code changes its evaluation of the tool's natural-language description. Several judge models independently scored the SAME description on a 1-5 Likert scale across 6 rubric components (Purpose, Guidelines, Limitations, Parameter Explanation, Length & Completeness, Examples), once without the source code ("description_only") and once with it ("with_source"). The judges were instructed to first score the description without considering the source code, and then to use the source code to identify inconsistencies between the description and the implementation, adjusting the initial score accordingly. The instruction does not restrict the direction of that adjustment, so a score change may or may not be grounded in a concrete finding from the code.
 
 You will receive one JSON object describing a single tool for which at least one component's score changed between the two scenarios, for every judge that evaluated it unanimously. It has:
 - "tool_uid": a unique identifier for the tool.
@@ -219,7 +219,7 @@ def run_with_key_rotation(clients: list[JustificationClient], pending: list[dict
                     break
 
             if result is not None:
-                out.write(json.dumps({"tool_uid": result.tool_uid, "justification": result.justification}, ensure_ascii=False) + "\n")
+                out.write(json.dumps({"tool_uid": tool["tool_uid"], "justification": result.justification}, ensure_ascii=False) + "\n")
                 out.flush()
                 recorded += 1
             # não resolvido (rodízio completo sem sucesso, recusa, ou erro técnico): nada é

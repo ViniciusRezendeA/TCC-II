@@ -47,16 +47,7 @@ Selecionados (qualificados pelo laço de \textit{backfill}) & 206 & 1,7\% \\ \hl
 \end{tabular}
 \end{table}
 
-\textcolor{orange}{Diferentemente de um corte simples pelas 206 posições mais bem colocadas, a seleção final passa por um laço de preenchimento (\textit{backfill}): um repositório só permanece selecionado se, após a Etapa 2, confirmar pelo menos uma ferramenta; repositórios desqualificados são substituídos pelo próximo candidato do pool ainda não tentado, e o processo se repete até fechar as 206 vagas ou esgotar o pool. Entre os repositórios selecionados, a distribuição por linguagem principal está longe de ser uniforme (Figura \ref{fig:repos-linguagem}).}
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.8\linewidth]{./images/01_repos_por_linguagem.png}
-    \caption{Repositórios selecionados por linguagem principal (Etapa 1)}
-    \label{fig:repos-linguagem}
-\end{figure}
-
-\textcolor{orange}{Python (79, 38,3\%) e TypeScript (45, 21,8\%) concentram 60\% da amostra, seguidos por Rust (26), C\# (21), Java e Go (13 cada); JavaScript, Ruby e Dart somam, juntos, o restante. Nenhum repositório em Kotlin, PHP, Elixir, Lua ou Swift permaneceu na seleção final: os candidatos dessas linguagens que chegaram a ser selecionados foram descartados pelo laço de \textit{backfill} por não confirmarem nenhuma ferramenta na Etapa 2 (Seção~\ref{subsec:extracao}), ou nunca alcançaram o piso de estrelas dentro do pool.}
+\textcolor{orange}{Diferentemente de um corte simples pelas 206 posições mais bem colocadas, a seleção final passa por um laço de preenchimento (\textit{backfill}): um repositório só permanece selecionado se, após a Etapa 2, confirmar pelo menos uma ferramenta; repositórios desqualificados são substituídos pelo próximo candidato do pool ainda não tentado, e o processo se repete até fechar as 206 vagas ou esgotar o pool. Entre os repositórios selecionados, a distribuição por linguagem principal está longe de ser uniforme, com forte concentração em Python e TypeScript (detalhamento completo no Apêndice~\ref{apendice:secao-linguagens}).}
 
 
 \subsection{Extração das Ferramentas e do Código Relacionado}
@@ -94,38 +85,7 @@ Em seguida, foi realizada a extração do código relacionado a cada ferramenta.
 
 Ao final desta etapa, foi produzido um conjunto de dados estruturado contendo os servidores MCP analisados e as ferramentas identificadas em cada um deles. Para cada ferramenta, \textcolor{orange}{são armazenadas} sua descrição em linguagem natural e o conjunto de métodos obtido a partir da árvore de chamadas. Esse conjunto de dados \textcolor{orange}{serve} como entrada para as etapas subsequentes da pesquisa, nas quais as ferramentas dos repositórios coletados \textcolor{orange}{são avaliadas} quanto à qualidade de suas descrições, com e sem o uso do código correspondente.
 
-\textcolor{orange}{A Etapa 2 extraiu 12.171 ferramentas dos 206 repositórios selecionados; como a seleção final já incorpora o laço de \textit{backfill}, todo repositório selecionado confirma, por construção, pelo menos uma ferramenta. A distribuição de ferramentas por linguagem (Figura~\ref{fig:tools-linguagem}) segue de perto a distribuição de repositórios vista na coleta.}
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.8\linewidth]{./images/02_tools_por_linguagem.png}
-    \caption{Ferramentas extraídas por linguagem (Etapa 2)}
-    \label{fig:tools-linguagem}
-\end{figure}
-
-\textcolor{orange}{Python concentra 7.251 das 12.171 ferramentas (59,6\%), seguido por TypeScript (3.162, 26,0\%) e Java (793, 6,5\%); as demais linguagens somam, juntas, pouco mais de 7\% do total (Tabela~\ref{tab:media-tools-servidor}).}
-
-\begin{table}[H]
-\centering
-\caption{Repositórios selecionados e total de ferramentas extraídas, por linguagem}
-\label{tab:media-tools-servidor}
-\begin{tabular}{|l|r|r|r|}
-\hline
-\textbf{Linguagem} & \textbf{Repositórios} & \textbf{Tools (total)} & \textbf{Média/repositório} \\ \hline
-Python & 79 & 7.251 & 91,78 \\ \hline
-TypeScript & 45 & 3.162 & 70,27 \\ \hline
-Java & 13 & 793 & 61,00 \\ \hline
-C\# & 21 & 423 & 20,14 \\ \hline
-Rust & 26 & 276 & 10,62 \\ \hline
-Go & 13 & 149 & 11,46 \\ \hline
-JavaScript & 6 & 108 & 18,00 \\ \hline
-Ruby & 2 & 5 & 2,50 \\ \hline
-Dart & 1 & 4 & 4,00 \\ \hline
-\textbf{Total} & \textbf{206} & \textbf{12.171} & \textbf{59,08} \\ \hline
-\end{tabular}
-\end{table}
-
-\textcolor{orange}{A concentração de ferramentas por repositório também é fortemente assimétrica: os três repositórios com mais ferramentas respondem, sozinhos, por 46,6\% de todo o conjunto de dados (20,4\%, 18,4\% e 7,8\%, respectivamente), um deles em TypeScript, os outros dois em Python. Esse resultado eleva consideravelmente a média de ferramentas por repositório nessas duas linguagens (Tabela~\ref{tab:media-tools-servidor}) e deve ser considerado ao interpretar médias agregadas por linguagem.}
+\textcolor{orange}{A Etapa 2 extraiu 12.171 ferramentas dos 206 repositórios selecionados; como a seleção final já incorpora o laço de \textit{backfill}, todo repositório selecionado confirma, por construção, pelo menos uma ferramenta. A distribuição de ferramentas por linguagem segue de perto a distribuição de repositórios vista na coleta, com a mesma concentração em Python e TypeScript e uma assimetria adicional por repositório individual (detalhamento completo no Apêndice~\ref{apendice:secao-linguagens}).}
 
 
 
@@ -149,16 +109,37 @@ Em ambos os cenários, a avaliação \textcolor{orange}{é conduzida} com base n
 
 
 \subsection{\textcolor{orange}{Consolidação dos Resultados por Cenário}}
+\label{subsec:consolidacao}
 
 Concluída a etapa de classificação, os resultados produzidos nos dois cenários experimentais \textcolor{orange}{são coletados e estruturados} em uma base de dados unificada. Para cada ferramenta analisada, \textcolor{orange}{são armazenados} identificadores que \textcolor{orange}{permitem} sua associação ao servidor MCP de origem, bem como os resultados obtidos nos cenários com e sem a inclusão de informações provenientes do código, além de qual modelo de IA foi utilizado na avaliação.
 
 A base de dados resultante \textcolor{orange}{contém} os escores atribuídos pelo modelo para cada dimensão de qualidade avaliada, além das classificações finais produzidas em cada execução do experimento. Dessa forma, cada ferramenta \textcolor{orange}{possui} dois conjuntos de resultados por modelo\textcolor{orange}{, diretamente vinculados} à mesma descrição, diferindo apenas pela presença ou ausência das informações extraídas do código. Essa organização \textcolor{orange}{estabelece} um relacionamento direto entre as avaliações realizadas sobre uma mesma ferramenta, preservando o pareamento necessário para as análises estatísticas subsequentes e possibilitando a comparação consistente dos resultados obtidos nos dois cenários experimentais.
 
+\textcolor{orange}{A partir dessa base consolidada, é identificado um subconjunto adicional de ferramentas, denominado amostra de consenso, utilizado como base para a análise qualitativa descrita na Seção~\ref{subsec:analise-comparativa}. Uma ferramenta integra essa amostra quando, para pelo menos uma dimensão da rubrica, TODOS os juízes que a avaliaram nos dois cenários atribuem notas diferentes entre \texttt{description\_only} e \texttt{with\_source}, caracterizando um consenso de divergência entre os avaliadores. Para cada ferramenta selecionada, a amostra de consenso reúne a justificativa (\textit{reasoning}) de cada juiz nos dois cenários e o trecho de código correspondente, reconstruído pelo mesmo mecanismo descrito na Seção~\ref{subsec:extracao}.}
+
 
 \subsection{Análise Comparativa dos Experimentos}
+\label{subsec:analise-comparativa}
 
 Na etapa final, os resultados obtidos \textcolor{orange}{são analisados} com o objetivo de identificar diferenças entre os dois cenários de avaliação. Essa análise busca validar se a utilização do código de fato altera os resultados da avaliação das descrições, além de identificar quais atributos da rubrica utilizada para avaliar a qualidade são mais e menos impactados pela adição do código.
 
 Inicialmente, \textcolor{orange}{realiza-se} uma análise por meio do cálculo de medidas como média, mediana e desvio-padrão dos escores atribuídos a cada dimensão de qualidade avaliada, para identificar se \textcolor{orange}{há} diferença numérica nos resultados gerados com e sem o contexto do código das ferramentas MCP, atendendo ao objetivo específico (ii) desta pesquisa. A partir dessa comparação, é possível avaliar quais atributos \textcolor{orange}{são} mais afetados pela inserção do contexto técnico. \textcolor{orange}{Aplica-se} também o Teste de Postos Sinalizados de Wilcoxon \cite{wilcoxon1945individual}, \textcolor{orange}{individualmente} para cada dimensão de qualidade, a fim de verificar se as diferenças observadas entre as avaliações são estatisticamente significativas, concluindo o objetivo específico (iii). O teste \textcolor{orange}{é aplicado} separadamente para cada modelo de linguagem utilizado, permitindo verificar se o efeito da inclusão do código se mantém consistente entre diferentes avaliadores. Como as duas avaliações são realizadas sobre a mesma ferramenta, o teste é adequado por considerar amostras pareadas e não exigir a suposição de normalidade dos dados. Os resultados dessa análise \textcolor{orange}{fornecem} as evidências empíricas necessárias para apoiar ou refutar a hipótese de que a incorporação do contexto técnico amplia a capacidade de detecção de \textit{smells} em descrições de ferramentas MCP.
 
 \textcolor{orange}{Formalmente, para cada dimensão da rubrica e cada juiz, testa-se a hipótese nula de que a distribuição das diferenças pareadas entre os escores dos cenários \texttt{with\_source} e \texttt{description\_only} é simétrica em torno de zero, contra a hipótese alternativa de que a inclusão do código desloca essa distribuição. Como o teste é repetido para as seis dimensões da rubrica em cada juiz, \textcolor{orange}{avalia-se} a necessidade de correção para comparações múltiplas antes de reportar significância. Pares de ferramentas em que os dois cenários recebem exatamente o mesmo escore (diferença zero) são descartados do cálculo do teste, conforme o tratamento padrão de empates do Teste de Wilcoxon; a proporção de pares descartados por esse motivo \textcolor{orange}{é reportada} junto com o resultado do teste, por dimensão, como indicador adicional do quanto a inclusão do código muda ou não a nota atribuída. Essa análise é implementada no mesmo script de análise dedicado da subseção anterior, a partir da base consolidada ali descrita.}
+
+\textcolor{orange}{Complementando a análise estatística acima, conduz-se uma análise qualitativa sobre a amostra de consenso (Seção~\ref{subsec:consolidacao}), com o objetivo de caracterizar não apenas quais dimensões da rubrica são mais afetadas pela inclusão do código, mas também que tipo de informação o código tende a revelar, e que a descrição, isoladamente, não comunica. Essa análise segue as fases de uma análise temática \cite{braunclarke2006thematic}, complementadas por uma etapa final de análise de conteúdo dirigida \cite{hsiehshannon2005content}, conforme ilustrado na Figura~\ref{fig:fluxo-qualitativa}.}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\linewidth]{./images/fluxo_analise_qualitativa_detalhado.png}
+    \caption{Fluxo detalhado da análise qualitativa sobre a amostra de consenso}
+    \label{fig:fluxo-qualitativa}
+\end{figure}
+
+\textcolor{orange}{Nas duas fases iniciais da análise temática, familiarização com os dados e codificação inicial \cite{braunclarke2006thematic}, para cada ferramenta da amostra de consenso um modelo de linguagem (Gemini) é instruído a ler a justificativa (\textit{reasoning}) de cada juiz nos dois cenários para o(s) componente(s) em que houve divergência, confrontá-la com o trecho de código correspondente, e sintetizar, em inglês, uma única justificativa concisa explicando o que o código revelou e que a descrição não comunicava: uma omissão de parâmetro, um comportamento ou formato de saída não documentado, uma limitação não divulgada, ou uma contradição direta entre descrição e implementação. O modelo é explicitamente instruído a não inferir uma conexão entre a mudança de nota e um achado do código quando a justificativa original do juiz não oferecer evidência concreta para isso, registrando essa ausência de evidência em vez de inventar uma explicação plausível; o texto completo do \textit{prompt} utilizado encontra-se no Apêndice~\ref{apendice:secao-prompts}.}
+
+\textcolor{orange}{Nas três fases seguintes, busca, revisão e definição dos temas \cite{braunclarke2006thematic}, é realizada uma análise sobre o conjunto completo de justificativas produzidas na fase anterior, com o objetivo de identificar, de baixo para cima e sem partir de uma lista pré-definida, as categorias recorrentes que descrevem o mecanismo pelo qual o código revela uma inconsistência, por exemplo um parâmetro documentado como configurável mas na realidade fixado no código, ou uma estrutura de retorno mais rica do que a descrição sugere. Cada categoria resultante é delimitada por uma descrição textual própria e exige estar fundamentada em ocorrências de mais de uma ferramenta, de modo a não introduzir uma categoria em função de um único caso idiossincrático (\textit{prompt} completo no Apêndice~\ref{apendice:secao-prompts}).}
+
+\textcolor{orange}{Concluída a análise temática, aplica-se uma análise de conteúdo dirigida \cite{hsiehshannon2005content}: o conjunto fixo de categorias produzido na fase anterior é utilizado para classificar cada ferramenta da amostra de consenso, permitindo que uma mesma justificativa seja associada a mais de uma categoria, ou a nenhuma quando não houver correspondência, já que um mesmo achado de código pode evidenciar mais de um tipo de omissão simultaneamente. Diferentemente da fase de definição dos temas, na qual o conjunto completo de justificativas é analisado de uma só vez para permitir que os padrões emerjam por comparação entre casos, essa classificação é realizada individualmente, uma ferramenta por vez: ao se solicitar a um modelo de linguagem que classifique milhares de itens em uma única resposta, o desempenho do modelo tende a degradar-se para os itens posicionados no meio da lista \cite{liu2024lost}, risco que a classificação item a item elimina por construção (\textit{prompt} completo no Apêndice~\ref{apendice:secao-prompts}).}
+
+\textcolor{orange}{Como limitação metodológica, declara-se que as três etapas acima são conduzidas por um único "codificador" automatizado, sem um processo paralelo de codificação humana nem cálculo de concordância entre avaliadores (\textit{inter-rater reliability}); uma verificação pontual, por amostragem manual, foi realizada sobre um subconjunto dos resultados produzidos, mas não substitui uma validação sistemática e deve ser interpretada como tal.}

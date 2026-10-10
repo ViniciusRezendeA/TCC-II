@@ -24,8 +24,10 @@
 \usepackage[inline]{enumitem}
 \usepackage{tcolorbox}
 \usepackage{multirow}
-\usepackage{amsmath} 
-\usepackage{booktabs} 
+\usepackage{amsmath}
+\usepackage{booktabs}
+\usepackage{tikz}
+\usetikzlibrary{positioning,fit,arrows.meta}
 
 %%%%%%%%%%%%%%%%% Pacotes para inserção de algoritmos - BEGIN
 \usepackage[ruled,lined]{algorithm2e}
@@ -57,7 +59,14 @@
     breakautoindent=true,
     captionpos=b,
     xleftmargin=0pt,
-    tabsize=2
+    tabsize=2,
+    literate=
+        {á}{{\'a}}1 {é}{{\'e}}1 {í}{{\'i}}1 {ó}{{\'o}}1 {ú}{{\'u}}1
+        {Á}{{\'A}}1 {É}{{\'E}}1 {Í}{{\'I}}1 {Ó}{{\'O}}1 {Ú}{{\'U}}1
+        {à}{{\`a}}1 {ã}{{\~a}}1 {õ}{{\~o}}1 {ç}{{\c c}}1
+        {Ã}{{\~A}}1 {Õ}{{\~O}}1 {Ç}{{\c C}}1
+        {ê}{{\^e}}1 {â}{{\^a}}1 {ô}{{\^o}}1
+        {Ê}{{\^E}}1 {Â}{{\^A}}1 {Ô}{{\^O}}1
 }
 %%%%%%%%%%%%%%%%% Pacotes para inserção de algoritmos - END
 

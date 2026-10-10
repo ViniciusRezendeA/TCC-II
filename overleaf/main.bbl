@@ -6,6 +6,11 @@ Borges, H., Hora, A., and Valente, M.~T. (2016).
 \newblock In {\em Proceedings of the 12th International Conference on
   Predictive Models and Data Analytics in Software Engineering}, pages 1--10.
 
+\bibitem[Braun and Clarke 2006]{braunclarke2006thematic}
+Braun, V. and Clarke, V. (2006).
+\newblock Using thematic analysis in psychology.
+\newblock {\em Qualitative Research in Psychology}, 3(2):77--101.
+
 \bibitem[Chaokromthong et~al. 2021]{chaokromthong2021sample}
 Chaokromthong, K., Sintao, N., et~al. (2021).
 \newblock Sample size estimation using yamane and cochran and krejcie and
@@ -38,6 +43,11 @@ Hasan, M.~M., Li, H., Fallahzadeh, E., Rajbahadur, G.~K., Adams, B., and
 \newblock {\em ACM Trans. Softw. Eng. Methodol.}
 \newblock Just Accepted.
 
+\bibitem[Hsieh and Shannon 2005]{hsiehshannon2005content}
+Hsieh, H.-F. and Shannon, S.~E. (2005).
+\newblock Three approaches to qualitative content analysis.
+\newblock {\em Qualitative Health Research}, 15(9):1277--1288.
+
 \bibitem[{ISO/IEC} 2011]{iso25010}
 {ISO/IEC} (2011).
 \newblock Iso/iec 25010:2011 -- systems and software engineering -- systems and
@@ -59,6 +69,13 @@ Khan, J.~Y., Khondaker, M. T.~I., Uddin, G., and Iqbal, A. (2021).
   perspectives.
 \newblock In {\em 2021 IEEE International Conference on Software Analysis,
   Evolution and Reengineering (SANER)}, pages 318--329.
+
+\bibitem[Liu et~al. 2024]{liu2024lost}
+Liu, N.~F., Lin, K., Hewitt, J., Paranjape, A., Bevilacqua, M., Petroni, F.,
+  and Liang, P. (2024).
+\newblock Lost in the middle: How language models use long contexts.
+\newblock {\em Transactions of the Association for Computational Linguistics},
+  12:157--173.
 
 \bibitem[LLC 2026]{Avaya2026}
 LLC, A. (2026).
