@@ -57,6 +57,9 @@ EVALUATIONS_DIR = RAIZ / "data" / "evaluations"
 OUTPUT_DIR = str(RAIZ / "charts" / "outputs")
 N_MODELOS_ESPERADO = 3  # só tools avaliadas por TODOS os modelos
 
+FIGSIZE = (8, 6)
+
+
 NOME_MEDIA = "Média dos modelos"
 
 ATTRIBUTES = [
@@ -192,19 +195,23 @@ def dados_de_um_modelo(df, modelo):
 # ---------------------------------------------------------------------------
 # INFRAESTRUTURA DE FIGURAS
 #   salvar_graficos gera <nome>_por_modelo.png (N painéis) e <nome>_media.png
+#   ocultar_y_repetido=True: com N painéis, só o primeiro mostra os rótulos do eixo Y
 # ---------------------------------------------------------------------------
 def salvar_graficos(nome, desenhar, agg_modelos, agg_media,
-                    figsize_painel=(10, 6), sharey=False):
+                    figsize_painel=(10, 6), sharey=False, ocultar_y_repetido=False):
     modelos = list(agg_modelos)
     n = len(modelos)
 
     fig, axes = plt.subplots(
         1, n, figsize=(figsize_painel[0] * n, figsize_painel[1]),
-        sharey=sharey, squeeze=False,
+        sharey=(sharey or ocultar_y_repetido), squeeze=False,
     )
     for ax, modelo in zip(axes[0], modelos):
         desenhar(agg_modelos[modelo], ax)
         ax.set_title(modelo, fontsize=13, fontweight="bold")
+    if ocultar_y_repetido:
+        for ax in axes[0][1:]:
+            ax.tick_params(axis="y", labelleft=False)
     fig.tight_layout()
     caminho = f"{OUTPUT_DIR}/{nome}_por_modelo.png"
     fig.savefig(caminho, dpi=200, bbox_inches="tight")
@@ -264,7 +271,8 @@ def _desenhar_diminuiu_empatou_aumentou(agg, ax):
 
 def grafico_diminuiu_empatou_aumentou(agg_modelos, agg_media):
     salvar_graficos("diminuiu_empatou_aumentou", _desenhar_diminuiu_empatou_aumentou,
-                    agg_modelos, agg_media, figsize_painel=(12, 6))
+                    agg_modelos, agg_media, figsize_painel=FIGSIZE,
+                    ocultar_y_repetido=True)
 
 
 # ---------------------------------------------------------------------------
@@ -340,7 +348,7 @@ def _desenhar_boxplot_apenas_mudou(agg, ax):
 
 def grafico_boxplot_apenas_mudou(agg_modelos, agg_media):
     salvar_graficos("boxplot_com_sem_codigo_apenas_mudou", _desenhar_boxplot_apenas_mudou,
-                    agg_modelos, agg_media, figsize_painel=(12, 7), sharey=True)
+                    agg_modelos, agg_media, figsize_painel=FIGSIZE, sharey=True)
 
 
 # ---------------------------------------------------------------------------
