@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.29 (TeX Live 2026) (preloaded format=pdflatex 2026.9.18)  11 OCT 2026 20:05
+This is pdfTeX, Version 3.141592653-2.6-1.40.29 (TeX Live 2026) (preloaded format=pdflatex 2026.9.18)  11 OCT 2026 20:39
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -952,105 +952,105 @@ Underfull \vbox (badness 10000) has occurred while \output is active []
 
  [15])
 (./sectionsTCCII/05_Resultados_Parciais.tex
-LaTeX Font Info:    Font shape `OT1/phv/b/it' in size <10> not available
-(Font)              Font shape `OT1/phv/b/sl' tried instead on input line 16.
-
-Underfull \vbox (badness 2698) has occurred while \output is active []
-
- [16]
-Underfull \hbox (badness 10000) in paragraph at lines 66--66
+Underfull \hbox (badness 10000) in paragraph at lines 65--65
 []|\OT1/ptm/m/n/10 Funcionalidade Anun-ci-ada
  []
 
 
-Underfull \hbox (badness 7740) in paragraph at lines 68--68
+Underfull \hbox (badness 7740) in paragraph at lines 67--67
 []|\OT1/ptm/m/n/10 A es-tru-tura exata do re-torno (cam-pos, ani-nha-mento,
  []
 
 
-Underfull \hbox (badness 1681) in paragraph at lines 70--70
+Underfull \hbox (badness 1681) in paragraph at lines 69--69
 []|\OT1/ptm/m/n/10 Escopo de Pro-ces-sa-mento e
  []
 
 
-Underfull \hbox (badness 4505) in paragraph at lines 70--70
+Underfull \hbox (badness 4505) in paragraph at lines 69--69
 []|\OT1/ptm/m/n/10 A implementa[][]ao re-a-liza bem mais pro-ces-sa-mento ou
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 71--71
+Underfull \hbox (badness 10000) in paragraph at lines 70--70
 []|\OT1/ptm/m/n/10 Sem[]antica de Cor-res-
  []
 
 
-Underfull \hbox (badness 2680) in paragraph at lines 71--71
+Underfull \hbox (badness 2680) in paragraph at lines 70--70
 \OT1/ptm/m/n/10 di-fusa de no-mes) sem que a descri[][]ao men-ci-one essa
  []
 
 
-Underfull \hbox (badness 6094) in paragraph at lines 73--73
+Underfull \hbox (badness 6094) in paragraph at lines 72--72
 []|\OT1/ptm/m/n/10 Confirma[][]ao de En-cap-su-la-
  []
 
-[17] [18] [19]
-<images/RQs/diminuiu_empatou_aumentou_por_modelo.png, id=92, 768.2301pt x 251.8
+[16] [17]
+LaTeX Font Info:    Font shape `OT1/phv/b/it' in size <10> not available
+(Font)              Font shape `OT1/phv/b/sl' tried instead on input line 80.
+ [18]
+<images/RQs/diminuiu_empatou_aumentou_por_modelo.png, id=86, 768.2301pt x 251.8
 6095pt>
 File: images/RQs/diminuiu_empatou_aumentou_por_modelo.png Graphic file (type pn
 g)
 <use images/RQs/diminuiu_empatou_aumentou_por_modelo.png>
 Package pdftex.def Info: images/RQs/diminuiu_empatou_aumentou_por_modelo.png  u
-sed on input line 120.
+sed on input line 119.
 (pdftex.def)             Requested size: 426.79135pt x 139.92282pt.
-<images/RQs/boxplot_com_sem_codigo_apenas_mudou_por_modelo.png, id=93, 981.7879
+<images/RQs/boxplot_com_sem_codigo_apenas_mudou_por_modelo.png, id=87, 981.7879
 5pt x 266.31496pt>
 File: images/RQs/boxplot_com_sem_codigo_apenas_mudou_por_modelo.png Graphic fil
 e (type png)
 <use images/RQs/boxplot_com_sem_codigo_apenas_mudou_por_modelo.png>
 Package pdftex.def Info: images/RQs/boxplot_com_sem_codigo_apenas_mudou_por_mod
-elo.png  used on input line 131.
+elo.png  used on input line 130.
 (pdftex.def)             Requested size: 426.79135pt x 115.76884pt.
- [20 <./images/RQs/diminuiu_empatou_aumentou_por_modelo.png>]
+ [19 <./images/RQs/diminuiu_empatou_aumentou_por_modelo.png>]
 Underfull \vbox (badness 10000) has occurred while \output is active []
 
- [21 <./images/RQs/boxplot_com_sem_codigo_apenas_mudou_por_modelo.png>]) (./mai
+ [20 <./images/RQs/boxplot_com_sem_codigo_apenas_mudou_por_modelo.png>]) (./mai
 n.bbl
-[22] [23]) (./sectionsTCCII/Apendice.tex [24]
+[21] [22]) (./sectionsTCCII/Apendice.tex [23]
 (/usr/local/texlive/2026/texmf-dist/tex/latex/listings/lstlang1.sty
 File: lstlang1.sty 2025/11/14 1.11b listings language file
-) [25]
-<./images/01_repos_por_linguagem.png, id=117, 642.75131pt x 388.45125pt>
+) [24]
+<./images/01_repos_por_linguagem.png, id=113, 642.75131pt x 388.45125pt>
 File: ./images/01_repos_por_linguagem.png Graphic file (type png)
 <use ./images/01_repos_por_linguagem.png>
 Package pdftex.def Info: ./images/01_repos_por_linguagem.png  used on input lin
 e 184.
 (pdftex.def)             Requested size: 341.43437pt x 206.35236pt.
 
-[26]
-<./images/02_tools_por_linguagem.png, id=121, 641.84793pt x 388.45125pt>
+Underfull \vbox (badness 1953) has occurred while \output is active []
+
+ [25]
+<./images/02_tools_por_linguagem.png, id=118, 641.84793pt x 388.45125pt>
 File: ./images/02_tools_por_linguagem.png Graphic file (type png)
 <use ./images/02_tools_por_linguagem.png>
 Package pdftex.def Info: ./images/02_tools_por_linguagem.png  used on input lin
 e 193.
 (pdftex.def)             Requested size: 341.43437pt x 206.63686pt.
- [27 <./images/01_repos_por_linguagem.png> <./images/02_tools_por_linguagem.png
->] [28]
+
+[26 <./images/01_repos_por_linguagem.png> <./images/02_tools_por_linguagem.png>
+] [27]
 Underfull \vbox (badness 10000) has occurred while \output is active []
 
- [29]
+ [28]
 LaTeX Font Info:    Font shape `OMS/pcr/m/n' in size <12> not available
 (Font)              Font shape `OMS/cmsy/m/n' tried instead on input line 253.
 
-[30] [31]) [32] (./main.aux)
+[29] [30]) [31] (./main.aux)
  ***********
 LaTeX2e <2025-11-01>
 L3 programming layer <2026-01-19>
  ***********
  ) 
 Here is how much of TeX's memory you used:
- 21969 strings out of 467525
- 432955 string characters out of 5418982
- 1471072 words of memory out of 5000000
- 50497 multiletter control sequences out of 15000+600000
+ 21965 strings out of 467525
+ 432865 string characters out of 5418982
+ 1470653 words of memory out of 5000000
+ 50493 multiletter control sequences out of 15000+600000
  657655 words of font info for 93 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
  98i,14n,118p,1762b,1829s stack positions out of 10000i,1000n,20000p,200000b,200000s
@@ -1070,10 +1070,10 @@ s/type1/urw/times/utmb8a.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/ur
 w/times/utmbi8a.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/urw/times/u
 tmr8a.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/urw/times/utmri8a.pfb
 >
-Output written on main.pdf (32 pages, 1330663 bytes).
+Output written on main.pdf (31 pages, 1322979 bytes).
 PDF statistics:
- 212 PDF objects out of 1000 (max. 8388607)
- 125 compressed objects within 2 object streams
+ 209 PDF objects out of 1000 (max. 8388607)
+ 123 compressed objects within 2 object streams
  0 named destinations out of 1000 (max. 500000)
  63 words of extra memory for PDF output out of 10000 (max. 10000000)
 
