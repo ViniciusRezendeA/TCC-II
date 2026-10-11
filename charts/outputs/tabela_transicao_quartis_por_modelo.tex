@@ -1,0 +1,53 @@
+\begin{table}[H]
+\centering
+\caption{Transição de quartil das notas (com vs. sem código), por atributo (deepseek-flash). Faixas de quartil definidas a partir da distribuição sem código (pareado por tool).}
+\label{tab:transicao_quartis_deepseek_flash}
+\begin{tabular}{lccc}
+\toprule
+Atributo & Manteve o quartil & Subiu de quartil & Desceu de quartil \\
+\midrule
+Purpose & 72,1\% & 10,0\% & 17,9\% \\
+Parameter Explanation & 72,9\% & 11,9\% & 15,2\% \\
+Length \& Completeness & 81,7\% & 10,5\% & 7,8\% \\
+Guidelines & 82,3\% & 8,0\% & 9,6\% \\
+Limitations & 93,3\% & 3,7\% & 3,0\% \\
+Examples & 97,6\% & 1,5\% & 0,9\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\centering
+\caption{Transição de quartil das notas (com vs. sem código), por atributo (gemini-3.5-flash-lite). Faixas de quartil definidas a partir da distribuição sem código (pareado por tool).}
+\label{tab:transicao_quartis_gemini_3_5_flash_lite}
+\begin{tabular}{lccc}
+\toprule
+Atributo & Manteve o quartil & Subiu de quartil & Desceu de quartil \\
+\midrule
+Purpose & 77,1\% & 15,0\% & 8,0\% \\
+Parameter Explanation & 79,9\% & 18,3\% & 1,8\% \\
+Length \& Completeness & 74,1\% & 24,1\% & 1,8\% \\
+Guidelines & 83,1\% & 13,8\% & 3,1\% \\
+Limitations & 94,7\% & 4,7\% & 0,5\% \\
+Examples & 98,0\% & 1,6\% & 0,4\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\centering
+\caption{Transição de quartil das notas (com vs. sem código), por atributo (qwen3-14b-ollama). Faixas de quartil definidas a partir da distribuição sem código (pareado por tool).}
+\label{tab:transicao_quartis_qwen3_14b_ollama}
+\begin{tabular}{lccc}
+\toprule
+Atributo & Manteve o quartil & Subiu de quartil & Desceu de quartil \\
+\midrule
+Purpose & 70,4\% & 29,3\% & 0,4\% \\
+Parameter Explanation & 71,9\% & 22,7\% & 5,4\% \\
+Length \& Completeness & 67,7\% & 27,4\% & 4,9\% \\
+Guidelines & 51,0\% & 48,8\% & 0,3\% \\
+Limitations & 87,6\% & 11,9\% & 0,5\% \\
+Examples & 95,4\% & 4,5\% & 0,1\% \\
+\bottomrule
+\end{tabular}
+\end{table}
