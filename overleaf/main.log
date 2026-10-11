@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.29 (TeX Live 2026) (preloaded format=pdflatex 2026.9.18)  10 OCT 2026 20:06
+This is pdfTeX, Version 3.141592653-2.6-1.40.29 (TeX Live 2026) (preloaded format=pdflatex 2026.9.18)  10 OCT 2026 20:57
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -939,64 +939,60 @@ se de conte[]udo di-ri-gida
 Underfull \vbox (badness 10000) has occurred while \output is active []
 
  [15]
-Underfull \hbox (badness 2318) in paragraph at lines 39--40
-[]\OT1/ptm/m/n/12 Por ha-ver um n[]umero ele-vado de pa-res juiz-componente-fer
-ramenta com
+Underfull \hbox (badness 10000) in paragraph at lines 54--54
+[]|\OT1/ptm/m/n/10 Pr[]e-condi[][]oes e Blo-queios
  []
 
 
-Underfull \hbox (badness 2990) in paragraph at lines 39--40
-\OT1/ptm/m/n/12 nota dis-tinta en-tre \OT1/ptm/m/it/12 des-crip-tion[]only \OT1
-/ptm/m/n/12 e \OT1/ptm/m/it/12 with[]source \OT1/ptm/m/n/12 a se-rem ana-li-sa-
-dos (con-si-de-
+Underfull \hbox (badness 10000) in paragraph at lines 56--56
+[]|\OT1/ptm/m/n/10 Funcionalidade Anun-ci-ada
  []
 
 
-Underfull \hbox (badness 1112) in paragraph at lines 39--40
-\OT1/ptm/m/n/12 rando o juiz DeepSeek-V4.1-Flash, []unico com co-leta con-clu[]
-^^Pda at[]e o mo-mento),
+Underfull \hbox (badness 7740) in paragraph at lines 58--58
+[]|\OT1/ptm/m/n/10 A es-tru-tura exata do re-torno (cam-pos, ani-nha-mento,
  []
 
 
-Underfull \hbox (badness 5274) in paragraph at lines 39--40
-\OT1/ptm/m/n/12 foi uti-li-zada a F[]ormula de Co-ch-ran para popula[][]oes de 
-ta-ma-nho co-nhe-cido
+Underfull \hbox (badness 6094) in paragraph at lines 61--61
+[]|\OT1/ptm/m/n/10 Confirma[][]ao de En-cap-su-la-
  []
 
 
-Underfull \vbox (badness 6063) has occurred while \output is active []
+Underfull \vbox (badness 10000) has occurred while \output is active []
 
  [16]
-[17]
+LaTeX Font Info:    Trying to load font information for TS1+ptm on input line 7
+6.
+
+(/usr/local/texlive/2026/texmf-dist/tex/latex/psnfss/ts1ptm.fd
+File: ts1ptm.fd 2001/06/04 font definitions for TS1/ptm.
+)
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+ [17]
 <images/RQs/diminuiu_empatou_aumentou.png, id=82, 850.25655pt x 420.97275pt>
 File: images/RQs/diminuiu_empatou_aumentou.png Graphic file (type png)
 <use images/RQs/diminuiu_empatou_aumentou.png>
 Package pdftex.def Info: images/RQs/diminuiu_empatou_aumentou.png  used on inpu
-t line 79.
+t line 88.
 (pdftex.def)             Requested size: 426.79135pt x 211.30806pt.
-
-Underfull \vbox (badness 10000) has occurred while \output is active []
-
- [18]
-<images/RQs/boxplot_com_sem_codigo_apenas_mudou.png, id=86, 854.59274pt x 492.1
+<images/RQs/boxplot_com_sem_codigo_apenas_mudou.png, id=83, 854.59274pt x 492.1
 587pt>
 File: images/RQs/boxplot_com_sem_codigo_apenas_mudou.png Graphic file (type png
 )
 <use images/RQs/boxplot_com_sem_codigo_apenas_mudou.png>
 Package pdftex.def Info: images/RQs/boxplot_com_sem_codigo_apenas_mudou.png  us
-ed on input line 88.
+ed on input line 97.
 (pdftex.def)             Requested size: 426.79135pt x 245.79338pt.
 
-Underfull \vbox (badness 10000) has occurred while \output is active []
-
- [19 <./images/RQs/diminuiu_empatou_aumentou.png>] [20 <./images/RQs/boxplot_co
-m_sem_codigo_apenas_mudou.png>]) (./main.bbl [21] [22]) (./sectionsTCCII/Apendi
-ce.tex
-[23] (/usr/local/texlive/2026/texmf-dist/tex/latex/listings/lstlang1.sty
+[18 <./images/RQs/diminuiu_empatou_aumentou.png>] [19 <./images/RQs/boxplot_com
+_sem_codigo_apenas_mudou.png>]) (./main.bbl [20] [21])
+(./sectionsTCCII/Apendice.tex [22]
+(/usr/local/texlive/2026/texmf-dist/tex/latex/listings/lstlang1.sty
 File: lstlang1.sty 2025/11/14 1.11b listings language file
-)
-[24]
-<./images/01_repos_por_linguagem.png, id=112, 642.75131pt x 388.45125pt>
+) [23]
+<./images/01_repos_por_linguagem.png, id=109, 642.75131pt x 388.45125pt>
 File: ./images/01_repos_por_linguagem.png Graphic file (type png)
 <use ./images/01_repos_por_linguagem.png>
 Package pdftex.def Info: ./images/01_repos_por_linguagem.png  used on input lin
@@ -1005,34 +1001,34 @@ e 184.
 
 Underfull \vbox (badness 1953) has occurred while \output is active []
 
- [25]
-<./images/02_tools_por_linguagem.png, id=117, 641.84793pt x 388.45125pt>
+ [24]
+<./images/02_tools_por_linguagem.png, id=113, 641.84793pt x 388.45125pt>
 File: ./images/02_tools_por_linguagem.png Graphic file (type png)
 <use ./images/02_tools_por_linguagem.png>
 Package pdftex.def Info: ./images/02_tools_por_linguagem.png  used on input lin
 e 193.
 (pdftex.def)             Requested size: 341.43437pt x 206.63686pt.
 
-[26 <./images/01_repos_por_linguagem.png> <./images/02_tools_por_linguagem.png>
-] [27]
+[25 <./images/01_repos_por_linguagem.png> <./images/02_tools_por_linguagem.png>
+] [26]
 Underfull \vbox (badness 10000) has occurred while \output is active []
 
- [28]
+ [27]
 LaTeX Font Info:    Font shape `OMS/pcr/m/n' in size <12> not available
 (Font)              Font shape `OMS/cmsy/m/n' tried instead on input line 253.
 
-[29] [30]) [31] (./main.aux)
+[28] [29]) [30] (./main.aux)
  ***********
 LaTeX2e <2025-11-01>
 L3 programming layer <2026-01-19>
  ***********
  ) 
 Here is how much of TeX's memory you used:
- 21968 strings out of 467525
- 432778 string characters out of 5418982
- 1470522 words of memory out of 5000000
- 50499 multiletter control sequences out of 15000+600000
- 654212 words of font info for 89 fonts, out of 8000000 for 9000
+ 21994 strings out of 467525
+ 433204 string characters out of 5418982
+ 1470283 words of memory out of 5000000
+ 50520 multiletter control sequences out of 15000+600000
+ 656210 words of font info for 92 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
  98i,14n,118p,1762b,1829s stack positions out of 10000i,1000n,20000p,200000b,200000s
 </usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb
@@ -1050,10 +1046,10 @@ t/fonts/type1/urw/times/utmb8a.pfb></usr/local/texlive/2026/texmf-dist/fonts/ty
 pe1/urw/times/utmbi8a.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/urw/t
 imes/utmr8a.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/urw/times/utmri
 8a.pfb>
-Output written on main.pdf (31 pages, 1302942 bytes).
+Output written on main.pdf (30 pages, 1301689 bytes).
 PDF statistics:
- 204 PDF objects out of 1000 (max. 8388607)
- 120 compressed objects within 2 object streams
+ 200 PDF objects out of 1000 (max. 8388607)
+ 117 compressed objects within 2 object streams
  0 named destinations out of 1000 (max. 500000)
  63 words of extra memory for PDF output out of 10000 (max. 10000000)
 
