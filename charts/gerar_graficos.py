@@ -57,7 +57,7 @@ EVALUATIONS_DIR = RAIZ / "data" / "evaluations"
 OUTPUT_DIR = str(RAIZ / "charts" / "outputs")
 N_MODELOS_ESPERADO = 3  # só tools avaliadas por TODOS os modelos
 
-FIGSIZE = (8, 6)
+FIGSIZE = (8, 8)
 
 
 NOME_MEDIA = "Média dos modelos"
