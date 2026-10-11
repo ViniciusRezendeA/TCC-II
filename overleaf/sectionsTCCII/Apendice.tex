@@ -227,7 +227,7 @@ Este apêndice reproduz, na íntegra e no idioma original (inglês, mesmo idioma
 
 \subsection*{Etapa 1: Geração de Justificativas}
 
-Aplicado individualmente a cada ferramenta da amostra de divergência unânime (Seção~\ref{subsec:consolidacao}), recebendo como entrada um objeto JSON com os campos \texttt{tool\_uid}, \texttt{tool\_name}, a lista \texttt{avaliacoes} (uma entrada por juiz e cenário, já restrita aos componentes da rubrica cuja nota divergiu) e \texttt{source\_code}.
+Aplicado individualmente a cada ferramenta da amostra de divergência confirmada (Seção~\ref{subsec:consolidacao}), recebendo como entrada um objeto JSON com os campos \texttt{tool\_uid}, \texttt{tool\_name}, a lista \texttt{avaliacoes} (uma entrada por juiz e cenário, já restrita aos componentes da rubrica cuja nota divergiu) e \texttt{source\_code}.
 
 \begin{lstlisting}[language={}, breaklines=true, basicstyle=\small\ttfamily, caption=Prompt de sistema -- geração de justificativas, label=prompt:justificativas]
 You are a research assistant helping analyze results from an undergraduate thesis ("Model Context Protocol (MCP): Avaliação da Qualidade de Descrições de Tools com Base em Contexto de Código-Fonte") that studies whether giving an LLM-as-judge access to a tool's source code changes its evaluation of the tool's natural-language description. Several judge models independently scored the SAME description on a 1-5 Likert scale across 6 rubric components (Purpose, Guidelines, Limitations, Parameter Explanation, Length & Completeness, Examples), once without the source code ("description_only") and once with it ("with_source"). The judges were instructed to first score the description without considering the source code, and then to use the source code to identify inconsistencies between the description and the implementation, adjusting the initial score accordingly. The instruction does not restrict the direction of that adjustment, so a score change may or may not be grounded in a concrete finding from the code.
@@ -274,7 +274,7 @@ Write everything in English.
 
 \subsection*{Etapa 3: Classificação Dedutiva por Categoria}
 
-Aplicado individualmente a cada ferramenta da amostra de divergência unânime. O trecho reproduzido como \texttt{<lista de categorias da Etapa 2, uma por linha>} é substituído, em tempo de execução, pela lista de categorias produzida na Etapa 2 (nome e descrição de cada uma); \texttt{"none"} é a categoria de reserva explícita, utilizada quando nenhuma das categorias da lista fixa corresponde à justificativa analisada.
+Aplicado individualmente a cada ferramenta da amostra de divergência confirmada. O trecho reproduzido como \texttt{<lista de categorias da Etapa 2, uma por linha>} é substituído, em tempo de execução, pela lista de categorias produzida na Etapa 2 (nome e descrição de cada uma); \texttt{"none"} é a categoria de reserva explícita, utilizada quando nenhuma das categorias da lista fixa corresponde à justificativa analisada.
 
 \begin{lstlisting}[language={}, breaklines=true, basicstyle=\small\ttfamily, caption=Prompt de sistema -- classificação dedutiva por categoria, label=prompt:categorizacao]
 You are a qualitative research assistant performing directed content analysis for an undergraduate thesis ("Model Context Protocol (MCP): Avaliação da Qualidade de Descrições de Tools com Base em Contexto de Código-Fonte") that studies whether giving an LLM-as-judge access to a tool's source code changes its evaluation of the tool's natural-language description.

@@ -3,44 +3,44 @@ Capacity: max_strings=200000, hash_size=200000, hash_prime=170003
 The top-level auxiliary file: main.aux
 The style file: sbc.bst
 Database file #1: sbc-template.bib
-You've used 21 entries,
+You've used 23 entries,
             1935 wiz_defined-function locations,
-            598 strings with 8476 characters,
-and the built_in function-call counts, 9198 in all, are:
-= -- 867
-> -- 528
-< -- 12
-+ -- 188
-- -- 186
-* -- 799
-:= -- 1657
-add.period$ -- 65
-call.type$ -- 21
-change.case$ -- 198
-chr.to.int$ -- 21
-cite$ -- 21
-duplicate$ -- 314
-empty$ -- 540
-format.name$ -- 213
-if$ -- 1751
+            610 strings with 8752 characters,
+and the built_in function-call counts, 9852 in all, are:
+= -- 931
+> -- 542
+< -- 14
++ -- 194
+- -- 190
+* -- 848
+:= -- 1773
+add.period$ -- 71
+call.type$ -- 23
+change.case$ -- 210
+chr.to.int$ -- 23
+cite$ -- 23
+duplicate$ -- 342
+empty$ -- 594
+format.name$ -- 219
+if$ -- 1880
 int.to.chr$ -- 1
 int.to.str$ -- 0
-missing$ -- 18
-newline$ -- 109
-num.names$ -- 65
-pop$ -- 176
+missing$ -- 21
+newline$ -- 119
+num.names$ -- 71
+pop$ -- 185
 preamble$ -- 1
-purify$ -- 194
+purify$ -- 206
 quote$ -- 0
-skip$ -- 246
+skip$ -- 267
 stack$ -- 0
-substring$ -- 494
-swap$ -- 45
+substring$ -- 547
+swap$ -- 47
 text.length$ -- 4
 text.prefix$ -- 0
 top$ -- 0
-type$ -- 124
+type$ -- 134
 warning$ -- 0
-while$ -- 64
+while$ -- 69
 width$ -- 0
-write$ -- 276
+write$ -- 303
