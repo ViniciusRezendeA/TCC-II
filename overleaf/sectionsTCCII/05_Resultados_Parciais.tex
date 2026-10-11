@@ -36,11 +36,11 @@ A inclusão do código reduz o escore médio nas seis dimensões da rubrica, com
 
 O aumento ou a diminuição da nota atribuída a uma \textit{tool} não indica, por si só, uma melhora ou piora na precisão da avaliação da descrição: indica apenas que houve uma divergência na nota após a introdução do código, podendo essa divergência refletir tanto uma melhora real de precisão quanto viés ou ruído introduzido pelo próprio avaliador. Responder à RQ1 exige, portanto, identificar o \textbf{mecanismo} pelo qual o código altera a nota, não apenas a direção da mudança. Saber que a nota mudou no componente \textit{Guidelines}, por exemplo, já está implícito no próprio dado coletado (campo \texttt{componente}), e não revela se o código tornou a avaliação mais precisa.
 
-\textcolor{orange}{Essa identificação foi conduzida pela análise qualitativa descrita na Seção~\ref{subsec:analise-comparativa}, sobre a amostra de consenso (Seção~\ref{subsec:consolidacao}): 2.685 ferramentas em que todos os juízes que as avaliaram concordam que a nota mudou, no mesmo componente, entre \textit{description\_only} e \textit{with\_source}. A análise temática indutiva sobre o conjunto completo de justificativas dessas ferramentas produziu as 16 categorias de mecanismo apresentadas na Tabela~\ref{tab:categorias-mecanismo}, cada uma descrevendo um tipo específico de informação que o código revela e que a descrição, isoladamente, não comunica.}
+\textcolor{orange}{Essa identificação foi conduzida pela análise qualitativa descrita na Seção~\ref{subsec:analise-comparativa}, sobre a amostra de divergência unânime (Seção~\ref{subsec:consolidacao}): 2.685 ferramentas em que todos os juízes que as avaliaram concordam que a nota mudou, no mesmo componente, entre \textit{description\_only} e \textit{with\_source}. A análise temática indutiva sobre o conjunto completo de justificativas dessas ferramentas produziu as 16 categorias de mecanismo apresentadas na Tabela~\ref{tab:categorias-mecanismo}, cada uma descrevendo um tipo específico de informação que o código revela e que a descrição, isoladamente, não comunica.}
 
 \begin{table}[H]
 \centering
-\caption{Categorias de mecanismo identificadas pela análise temática indutiva sobre a amostra de consenso}
+\caption{Categorias de mecanismo identificadas pela análise temática indutiva sobre a amostra de divergência unânime}
 \label{tab:categorias-mecanismo}
 \footnotesize
 \begin{tabular}{|p{4.3cm}|p{8.7cm}|}
@@ -65,11 +65,11 @@ Confirmação de Encapsulamento Trivial & O código é um encaminhamento mínimo
 \end{tabular}
 \end{table}
 
-\textcolor{orange}{A classificação dirigida foi aplicada às 2.685 ferramentas da amostra de consenso contra as 16 categorias da Tabela~\ref{tab:categorias-mecanismo}, permitindo múltiplas categorias por ferramenta. Apenas 3,9\% das ferramentas (106 de 2.685) não casaram com nenhuma categoria (\texttt{none}), indicando que o conjunto de categorias cobre a grande maioria dos mecanismos presentes na amostra. A Tabela~\ref{tab:frequencia-categorias} apresenta a frequência de cada categoria.}
+\textcolor{orange}{A classificação dirigida foi aplicada às 2.685 ferramentas da amostra de divergência unânime contra as 16 categorias da Tabela~\ref{tab:categorias-mecanismo}, permitindo múltiplas categorias por ferramenta. Apenas 3,9\% das ferramentas (106 de 2.685) não casaram com nenhuma categoria (\texttt{none}), indicando que o conjunto de categorias cobre a grande maioria dos mecanismos presentes na amostra. A Tabela~\ref{tab:frequencia-categorias} apresenta a frequência de cada categoria.}
 
 \begin{table}[H]
 \centering
-\caption{Frequência de cada categoria de mecanismo na amostra de consenso (n = 2.685; multi-\textit{label}, a soma excede 100\%)}
+\caption{Frequência de cada categoria de mecanismo na amostra de divergência unânime (n = 2.685; multi-\textit{label}, a soma excede 100\%)}
 \label{tab:frequencia-categorias}
 \footnotesize
 \begin{tabular}{|p{8.7cm}|r|r|}
