@@ -36,7 +36,7 @@ A inclusão do código reduz o escore médio nas seis dimensões da rubrica, com
 
 O aumento ou a diminuição da nota atribuída a uma \textit{tool} não indica, por si só, uma melhora ou piora na precisão da avaliação da descrição: indica apenas que houve uma divergência na nota após a introdução do código, podendo essa divergência refletir tanto uma melhora real de precisão quanto viés ou ruído introduzido pelo próprio avaliador. Responder à RQ1 exige, portanto, identificar o \textbf{mecanismo} pelo qual o código altera a nota, não apenas a direção da mudança: saber que a nota mudou no componente \textit{Guidelines}, por exemplo, já está implícito no próprio dado coletado (campo \texttt{componente}), e não revela se o código tornou a avaliação mais precisa.
 
-\textcolor{orange}{Essa identificação foi conduzida pela análise qualitativa descrita na Seção~\ref{subsec:analise-comparativa}, sobre a amostra de consenso (Seção~\ref{subsec:consolidacao}): 2.685 ferramentas em que todos os juízes que as avaliaram concordam que a nota mudou, no mesmo componente, entre \textit{description\_only} e \textit{with\_source}. A análise temática indutiva sobre o conjunto completo de justificativas dessas 2.685 ferramentas, executada em duas rodadas independentes e reconciliadas numa chamada final de fusão, produziu as 16 categorias de mecanismo apresentadas na Tabela~\ref{tab:categorias-mecanismo} -- cada uma descrevendo um tipo específico de informação que o código revela e que a descrição, isoladamente, não comunica.}
+\textcolor{orange}{Essa identificação foi conduzida pela análise qualitativa descrita na Seção~\ref{subsec:analise-comparativa}, sobre a amostra de consenso (Seção~\ref{subsec:consolidacao}): 2.685 ferramentas em que todos os juízes que as avaliaram concordam que a nota mudou, no mesmo componente, entre \textit{description\_only} e \textit{with\_source}. A análise temática indutiva sobre o conjunto completo de justificativas dessas 2.685 ferramentas, executada em duas rodadas independentes e reconciliadas numa chamada final de fusão, produziu as 16 categorias de mecanismo apresentadas na Tabela~\ref{tab:categorias-mecanismo}, cada uma descrevendo um tipo específico de informação que o código revela e que a descrição, isoladamente, não comunica.}
 
 \begin{table}[H]
 \centering
@@ -72,14 +72,41 @@ n = \frac{\dfrac{Z^2 p(1 - p)}{\varepsilon^2}}{1 + \left( \dfrac{Z^2 p(1 - p)}{\
 \label{eq:cochran}
 \end{equation}
 
-\begin{tcolorbox}[colback=yellow!10,colframe=orange!70!black,title={Em processamento: classificação dirigida da amostra de consenso}]
+\textcolor{orange}{A classificação dirigida foi aplicada às 2.684 ferramentas da amostra de consenso contra as 16 categorias da Tabela~\ref{tab:categorias-mecanismo}, permitindo múltiplas categorias por ferramenta. Apenas 3,9\% das ferramentas (106 de 2.684) não casaram com nenhuma categoria (\texttt{none}), indicando que o conjunto de categorias cobre a grande maioria dos mecanismos presentes na amostra. A Tabela~\ref{tab:frequencia-categorias} apresenta a frequência de cada categoria.}
+
+\begin{table}[H]
+\centering
+\caption{Frequência de cada categoria de mecanismo na amostra de consenso (n = 2.684; multi-\textit{label}, a soma excede 100\%)}
+\label{tab:frequencia-categorias}
 \footnotesize
-Espaço reservado para o resultado da análise de conteúdo dirigida (Seção~\ref{subsec:analise-comparativa}), que classifica cada uma das 2.685 ferramentas da amostra de consenso contra o conjunto fixo de categorias da Tabela~\ref{tab:categorias-mecanismo}. Conteúdo previsto:
-\begin{itemize}
-    \item Frequência de cada categoria na amostra, incluindo a proporção classificada como \texttt{none}.
-    \item Cruzamento das categorias com o componente da rubrica e com a direção da mudança (subiu ou desceu).
-    \item Resultado da verificação manual sobre as 100 ferramentas determinadas pela Equação~\ref{eq:cochran} acima, comparando a categoria atribuída pelo modelo com a leitura manual da justificativa e do código correspondente.
-\end{itemize}
+\begin{tabular}{|p{8.7cm}|r|r|}
+\hline
+\textbf{Categoria} & \textbf{Ocorrências} & \textbf{\%} \\ \hline
+Superfície de Entrada Não Documentada & 1.491 & 55,6\% \\ \hline
+Modos de Falha e Erros Não Divulgados & 700 & 26,1\% \\ \hline
+Estrutura Concreta da Saída & 517 & 19,3\% \\ \hline
+Regras de Validação e Contratos de Formato Não Divulgados & 499 & 18,6\% \\ \hline
+Limites Operacionais, Padrões e Paginação Não Divulgados & 465 & 17,3\% \\ \hline
+Contexto de Fluxo e Ativação & 359 & 13,4\% \\ \hline
+Escopo de Processamento e Mecânica Interna Subestimados & 349 & 13,0\% \\ \hline
+Confirmação de Encapsulamento Trivial & 245 & 9,1\% \\ \hline
+Valores Fixos e Padrões Divergentes & 228 & 8,5\% \\ \hline
+Dependências e Pré-requisitos de Ambiente Ocultos & 205 & 7,6\% \\ \hline
+Controles de Acesso, Papel e Autorização & 143 & 5,3\% \\ \hline
+Semântica de Correspondência e Normalização de Entrada & 127 & 4,7\% \\ \hline
+Parâmetros Fantasmas ou Divergentes & 87 & 3,2\% \\ \hline
+Funcionalidade Anunciada Não Implementada & 83 & 3,1\% \\ \hline
+Efeitos Colaterais Não Divulgados & 77 & 2,9\% \\ \hline
+Sistema-Alvo Divergente & 65 & 2,4\% \\ \hline
+\textit{(nenhuma categoria)} & 106 & 3,9\% \\ \hline
+\end{tabular}
+\end{table}
+
+\textcolor{orange}{Superfície de Entrada Não Documentada domina a amostra, presente em mais da metade das ferramentas (55,6\%): o achado mais comum é que o código aceita parâmetros, filtros ou opções que a descrição simplesmente não menciona. Modos de Falha e Erros Não Divulgados (26,1\%) e Estrutura Concreta da Saída (19,3\%) seguem como o segundo e o terceiro mecanismos mais recorrentes. Mesmo as categorias menos frequentes mostram-se padrões reais, não casos isolados: Sistema-Alvo Divergente e Confirmação de Encapsulamento Trivial, as duas categorias que uma das duas rodadas independentes de análise temática (Seção~\ref{subsec:analise-comparativa}) não havia identificado isoladamente, aparecem em 65 e 245 ferramentas, respectivamente, confirmando que a reconciliação entre as duas rodadas preservou mecanismos genuinamente recorrentes.}
+
+\begin{tcolorbox}[colback=yellow!10,colframe=orange!70!black,title={Em processamento: verificação manual da classificação dirigida}]
+\footnotesize
+Espaço reservado para o resultado da verificação manual sobre as 100 ferramentas determinadas pela Equação~\ref{eq:cochran} acima, comparando a categoria atribuída pelo modelo com a leitura manual da justificativa e do código correspondente.
 \end{tcolorbox}
 
 \subsection{RQ2 Quais atributos da rubrica de qualidade documental são mais afetados pela adição do código da tool?}

@@ -32,7 +32,6 @@ from scipy.stats import false_discovery_control, rankdata, spearmanr, wilcoxon
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from scripts.analysis_evaluation_report import (  # noqa: E402
     load_evaluations,
-    motivos_por_divergencia,
     registros_versao_ativa,
     tool_key_for,
 )
@@ -384,27 +383,7 @@ def transicao_quartis(df):
 
 
 # ---------------------------------------------------------------------------
-# 4. MOTIVOS (busca por palavras-chave), RESUMO POR JUIZ
-# ---------------------------------------------------------------------------
-def resumo_motivos(records):
-    m = motivos_por_divergencia(records)
-    linhas = []
-    for (judge_id, motivo), g in m.groupby(["juiz", "motivo"]):
-        total_div = len(m.loc[m["juiz"] == judge_id, ["componente", "tool_uid"]].drop_duplicates())
-        linhas.append({
-            "judge": judge_id,
-            "motivo": motivo,
-            "ocorrencias": len(g),
-            "total_divergencias": total_div,
-            "pct_das_divergencias": len(g) / total_div * 100,
-            "subiu": int(g["subiu"].sum()),
-            "desceu": int((~g["subiu"]).sum()),
-        })
-    return pd.DataFrame(linhas).sort_values(["judge", "ocorrencias"], ascending=[True, False])
-
-
-# ---------------------------------------------------------------------------
-# 4b. CONCORDÂNCIA ENTRE JUÍZES (notas e direção da mudança)
+# 4. CONCORDÂNCIA ENTRE JUÍZES (notas e direção da mudança)
 # ---------------------------------------------------------------------------
 DIRECOES = (-1, 0, 1)  # desceu, empatou, subiu
 NOMES_CURTOS = {"deepseek-flash": "DeepSeek", "gemini-3.5-flash-lite": "Gemini",
@@ -650,8 +629,6 @@ def main():
     df_quartis = transicao_quartis(df)
     df_quartis.to_csv(os.path.join(OUTPUT_DIR, "transicao_quartis_por_juiz.csv"), index=False)
 
-    df_motivos = resumo_motivos(records)
-    df_motivos.to_csv(os.path.join(OUTPUT_DIR, "motivos_por_juiz.csv"), index=False)
 
     grafico_diminuiu_empatou_aumentou(
         df_stats, os.path.join(OUTPUT_DIR, "diminuiu_empatou_aumentou_por_juiz.png"))
@@ -663,7 +640,6 @@ def main():
     print(f"\nSubconjunto comum aos três juízes: {n_comuns} tools")
     print(delta_comum.round(3).to_string())
     print(df_quartis.round(1).to_string())
-    print(df_motivos.round(1).to_string())
 
 
 if __name__ == "__main__":
