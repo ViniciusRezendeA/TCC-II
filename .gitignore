@@ -13,8 +13,12 @@ data/*
 data/analysis/*
 !data/analysis/consenso_amostra.jsonl
 !data/analysis/consenso_justificativas.jsonl
+!data/analysis/consenso_justificativas_v2.jsonl
 !data/analysis/consenso_categorias.json
 !data/analysis/consenso_categorizacao.jsonl
+!data/analysis/consenso_categorizacao_v2.jsonl
+!data/analysis/consenso_categorias_v2.json
+!data/analysis/consenso_categorias_reconciliadas.json
 
 
 

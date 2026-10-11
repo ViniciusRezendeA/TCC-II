@@ -1,0 +1,66 @@
+[
+  {
+    "category": "Undocumented Input Surface",
+    "description": "Captures cases where the implementation's signature or input schema carries parameters, filters, pagination controls, overrides, flags, session identifiers, required combinations, types, or optionality that the natural-language description never mentions or only vaguely gestures at. A recurring pattern is a description that names one or two inputs while the code actually accepts many more, so the text communicates only a fraction of the callable interface and leaves expected values implicit."
+  },
+  {
+    "category": "Phantom or Mismatched Parameters",
+    "description": "Captures cases where the description documents parameters that the implementation does not contain, or names and types them differently from what the code accepts. The typical pattern is text telling the caller to pass an identifier, coded value, or option that has been renamed, removed, or replaced in the underlying function signature."
+  },
+  {
+    "category": "Hardcoded Values and Divergent Defaults",
+    "description": "Captures cases where the code fixes a value internally, or defaults it differently, than the description implies is user-settable or claims as the default. A recurring pattern is a parameter presented as configurable that turns out to be hardcoded, or a documented default (page size, unit, sender, window) that differs from the value actually used in the implementation."
+  },
+  {
+    "category": "Undisclosed Operational Limits, Defaults, and Pagination",
+    "description": "Captures hard caps, clamps, truncation thresholds, timeouts, size or record ceilings, result limits, pagination behavior, and unstated default values applied by the implementation but never stated in the text. The recurring pattern is silent limiting: results are cut to a maximum count, arguments are clamped into a range, operations abort after a fixed interval, or the tool defaults to a small result set without the description warning about it."
+  },
+  {
+    "category": "Undisclosed Failure Modes and Errors",
+    "description": "Captures error handling, raised exceptions, returned error payloads, dependency failures, missing resources, authentication errors, and empty-state messages that the description omits entirely. The recurring pattern is that the implementation fails in specific, structured ways for unknown identifiers, ambiguous names, missing permissions, unsupported values, invalid states, or upstream errors, none of which the text prepares the caller for."
+  },
+  {
+    "category": "Hidden Dependencies and Environment Prerequisites",
+    "description": "Captures required external services, environment variables, credentials, binaries, packages, database files, configuration prerequisites, feature gates, and enabled capabilities that the code depends on but the description leaves unmentioned. A recurring pattern is a tool that needs an API key, an installed command-line utility, a preloaded data source, a loaded snapshot, or an enabled feature to work."
+  },
+  {
+    "category": "Access, Role, and Authorization Gates",
+    "description": "Captures permissions, authentication, administrator or role checks, session requirements, change-request gating, and other access controls enforced in the code but absent from the description. A recurring pattern is an operation that requires an authenticated or privileged caller, an administrator user, or a specific change-request number before it can run, and otherwise fails closed."
+  },
+  {
+    "category": "Undisclosed Side Effects",
+    "description": "Captures state changes and downstream consequences the code performs beyond the advertised action, such as cascading or soft deletions, persistent file writes, emitted notifications, cache invalidation, credential stripping, persistence, or termination of related workflows. The recurring pattern is a simply worded operation whose implementation also touches dependent records, external systems, or persistent artifacts, including irreversible or destructive effects."
+  },
+  {
+    "category": "Advertised Capability Not Implemented",
+    "description": "Captures cases where the code exposes stubs, no-ops, ignored inputs, mock or hardcoded returns, or an outright absence of the described functionality, including dummy, static, or not-yet-implemented behavior. The recurring pattern is a description promising a real operation while the implementation raises an unimplemented error, returns a fixed message or placeholder URL instead of doing the work, or accepts an argument it never uses."
+  },
+  {
+    "category": "Mismatched Target System",
+    "description": "Captures cases where the code reveals a different platform, file format, data source, or resource granularity than the description states. The recurring pattern is entity drift: the text names one service, subsystem, or scope level while the implementation is bound to another one entirely."
+  },
+  {
+    "category": "Concrete Output Payload Structure",
+    "description": "Captures the exact shape, fields, nesting, formatting, type variations, truncation notices, and enrichment of what the tool returns, where the description only gestures at details or a dictionary. The recurring pattern is a response assembled from a specific set of record attributes or rendered as a formatted text block, or different structures on success versus failure, none of which the prose enumerates."
+  },
+  {
+    "category": "Undisclosed Validation Rules and Format Contracts",
+    "description": "Captures allowed value sets, enum members, accepted formats, casing rules, pattern requirements, range limits, mutual exclusivity, required non-empty fields, and date or identifier validation fixed by the code but left open in the description. The recurring pattern is an argument that in practice accepts only a defined list of options or demands a strict identifier, date, or code format and rejects anything else without the text warning users."
+  },
+  {
+    "category": "Understated Processing Scope and Internal Mechanics",
+    "description": "Captures implementations that perform substantially more computation, composition, or sequencing than the summary suggests, including orchestration of multiple internal sub-calls, multi-stage parsing, retries, aggregation across sources, conditional post-processing, caching, background tasks, temporary file input/output, network calls, fallback branches, and asynchronous behavior. The recurring pattern is a single described lookup that actually chains several queries and transformations or performs hidden runtime operations not explained in the prose."
+  },
+  {
+    "category": "Input Matching and Normalization Semantics",
+    "description": "Captures how inputs are actually processed, such as case-insensitive or substring matching, alias normalization, fuzzy name resolution, accent stripping, path resolution, and identifier coercion. The recurring pattern is that the code matches names by substring, normalizes competition aliases, or coerces numeric strings to integers without the description mentioning these semantics."
+  },
+  {
+    "category": "Workflow and Activation Context",
+    "description": "Captures conditions for when the tool should be used, how it relates to sibling tools, session-state prerequisites, sequencing guidance, and ambient context implied by the code but not articulated in the description. The recurring pattern is an implementation that requires a preceding creation step, prefers one lookup tool over another, or relies on a loaded session, snapshot, or ambient case context."
+  },
+  {
+    "category": "Trivial Wrapper Confirmation",
+    "description": "Captures cases where the code exposes only a minimal delegation, parameterless passthrough, or mock whose behavior matches the text exactly, so no new inputs, constraints, or behaviors surface. The recurring pattern is a one-line handler forwarding to an external call and returning a plain success, which leaves re-scoring resting on stricter reading of the same prose rather than on any disclosed implementation detail."
+  }
+]

@@ -1,0 +1,54 @@
+[
+  {
+    "category": "Undocumented Parameters",
+    "description": "Captures cases where the source code exposes parameter names, types, defaults, optionality, or required combinations that the natural-language description never mentions or only vaguely gestures at. For example, implementations often accept additional filters, session identifiers, or override flags that users would not know to supply from the description alone."
+  },
+  {
+    "category": "Description-Implementation Contradictions",
+    "description": "Captures direct conflicts where the source code shows a documented parameter, capability, return value, or behavior does not exist, is named differently, is hardcoded, or operates opposite to the text. For example, a description may present a configurable unit or field while the code hardcodes it or omits it entirely."
+  },
+  {
+    "category": "Undisclosed Validation Rules",
+    "description": "Captures input rules enforced by the code, such as allowed enum values, range limits, mutual exclusivity, required non-empty fields, format checks, and date or identifier validation, that the description omits. For example, the implementation may reject invalid values or require one of several mutually exclusive arguments without the text warning users."
+  },
+  {
+    "category": "Hidden Defaults, Caps, and Pagination",
+    "description": "Captures default values, maximums, truncation thresholds, result limits, pagination behavior, and automatic clamping that the code applies but the description does not state. For example, a tool may default to a small result set, silently cap a parameter, or truncate output after a fixed size."
+  },
+  {
+    "category": "Undisclosed Failure Modes and Errors",
+    "description": "Captures runtime failure paths and error handling revealed by the code, including exceptions, error dictionaries, dependency failures, missing resources, authentication errors, timeouts, and empty-state messages. For example, the description may omit that invalid identifiers, missing configuration, or upstream errors produce specific error responses."
+  },
+  {
+    "category": "Internal Execution Mechanics",
+    "description": "Captures operational mechanics such as caching, retries, timeouts, background tasks, file input and output, network calls, fallback branches, and asynchronous behavior that the code performs but the description does not explain. For example, the implementation may cache results, write temporary files, or retry requests without the description mentioning it."
+  },
+  {
+    "category": "Hidden Dependencies and Environment Prerequisites",
+    "description": "Captures required external services, environment variables, credentials, binaries, packages, database files, or configuration prerequisites that the code depends on but the description leaves unmentioned. For example, a tool may need an API key, an installed command-line utility, or a preloaded data source to work."
+  },
+  {
+    "category": "Access, Role, and Authorization Gates",
+    "description": "Captures permissions, authentication, administrator or role checks, session requirements, change-request gating, and other access controls enforced in the code but absent from the description. For example, an operation may require an administrator user, an authenticated session, or a change-request number before it can run."
+  },
+  {
+    "category": "Unstated Output Structures",
+    "description": "Captures return values, JSON or dictionary shapes, field names, formatting conventions, type variations, and enrichment of output that the code exposes but the description does not describe. For example, a tool may return nested metadata, counts, or different structures on success versus failure."
+  },
+  {
+    "category": "State Changes and Side Effects",
+    "description": "Captures mutations, persistence, soft deletion, cascading cleanup, notifications, writes, and irreversible or destructive effects performed by the implementation but not stated in the description. For example, a delete tool may soft-delete, remove related records, or silently discard unsaved state."
+  },
+  {
+    "category": "Input Matching and Normalization Semantics",
+    "description": "Captures how inputs are actually processed, such as case-insensitive or substring matching, alias normalization, fuzzy name resolution, accent stripping, path resolution, and identifier coercion. For example, the code may match names by substring, normalize competition aliases, or coerce numeric strings to integers."
+  },
+  {
+    "category": "Workflow and Activation Context",
+    "description": "Captures conditions for when the tool should be used, how it relates to sibling tools, session-state prerequisites, and sequencing guidance that the code implies but the description does not articulate. For example, the implementation may require a preceding creation step, prefer one lookup tool over another, or rely on ambient case context."
+  },
+  {
+    "category": "Mock, Stub, or Placeholder Behavior",
+    "description": "Captures cases where the implementation is a mock, dummy, hardcoded, static, or not-yet-implemented behavior that contradicts the apparent functionality. For example, a tool may return a fixed message, a hardcoded URL, or raise a not-implemented error rather than performing the promised action."
+  }
+]
