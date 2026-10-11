@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.29 (TeX Live 2026) (preloaded format=pdflatex 2026.9.18)  10 OCT 2026 20:57
+This is pdfTeX, Version 3.141592653-2.6-1.40.29 (TeX Live 2026) (preloaded format=pdflatex 2026.9.18)  11 OCT 2026 00:03
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -939,22 +939,37 @@ se de conte[]udo di-ri-gida
 Underfull \vbox (badness 10000) has occurred while \output is active []
 
  [15]
-Underfull \hbox (badness 10000) in paragraph at lines 54--54
-[]|\OT1/ptm/m/n/10 Pr[]e-condi[][]oes e Blo-queios
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 56--56
+Underfull \hbox (badness 10000) in paragraph at lines 57--57
 []|\OT1/ptm/m/n/10 Funcionalidade Anun-ci-ada
  []
 
 
-Underfull \hbox (badness 7740) in paragraph at lines 58--58
+Underfull \hbox (badness 7740) in paragraph at lines 59--59
 []|\OT1/ptm/m/n/10 A es-tru-tura exata do re-torno (cam-pos, ani-nha-mento,
  []
 
 
-Underfull \hbox (badness 6094) in paragraph at lines 61--61
+Underfull \hbox (badness 1681) in paragraph at lines 61--61
+[]|\OT1/ptm/m/n/10 Escopo de Pro-ces-sa-mento e
+ []
+
+
+Underfull \hbox (badness 4505) in paragraph at lines 61--61
+[]|\OT1/ptm/m/n/10 A implementa[][]ao re-a-liza bem mais pro-ces-sa-mento ou
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 62--62
+[]|\OT1/ptm/m/n/10 Sem[]antica de Cor-res-
+ []
+
+
+Underfull \hbox (badness 2680) in paragraph at lines 62--62
+\OT1/ptm/m/n/10 di-fusa de no-mes) sem que a descri[][]ao men-ci-one essa
+ []
+
+
+Underfull \hbox (badness 6094) in paragraph at lines 64--64
 []|\OT1/ptm/m/n/10 Confirma[][]ao de En-cap-su-la-
  []
 
@@ -962,37 +977,44 @@ Underfull \hbox (badness 6094) in paragraph at lines 61--61
 Underfull \vbox (badness 10000) has occurred while \output is active []
 
  [16]
+Underfull \vbox (badness 1210) has occurred while \output is active []
+
+ [17]
 LaTeX Font Info:    Trying to load font information for TS1+ptm on input line 7
-6.
+9.
 
 (/usr/local/texlive/2026/texmf-dist/tex/latex/psnfss/ts1ptm.fd
 File: ts1ptm.fd 2001/06/04 font definitions for TS1/ptm.
 )
-Underfull \vbox (badness 10000) has occurred while \output is active []
-
- [17]
-<images/RQs/diminuiu_empatou_aumentou.png, id=82, 850.25655pt x 420.97275pt>
+<images/RQs/diminuiu_empatou_aumentou.png, id=81, 850.25655pt x 420.97275pt>
 File: images/RQs/diminuiu_empatou_aumentou.png Graphic file (type png)
 <use images/RQs/diminuiu_empatou_aumentou.png>
 Package pdftex.def Info: images/RQs/diminuiu_empatou_aumentou.png  used on inpu
-t line 88.
+t line 91.
 (pdftex.def)             Requested size: 426.79135pt x 211.30806pt.
-<images/RQs/boxplot_com_sem_codigo_apenas_mudou.png, id=83, 854.59274pt x 492.1
+
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+ [18]
+<images/RQs/boxplot_com_sem_codigo_apenas_mudou.png, id=86, 854.59274pt x 492.1
 587pt>
 File: images/RQs/boxplot_com_sem_codigo_apenas_mudou.png Graphic file (type png
 )
 <use images/RQs/boxplot_com_sem_codigo_apenas_mudou.png>
 Package pdftex.def Info: images/RQs/boxplot_com_sem_codigo_apenas_mudou.png  us
-ed on input line 97.
+ed on input line 100.
 (pdftex.def)             Requested size: 426.79135pt x 245.79338pt.
 
-[18 <./images/RQs/diminuiu_empatou_aumentou.png>] [19 <./images/RQs/boxplot_com
-_sem_codigo_apenas_mudou.png>]) (./main.bbl [20] [21])
-(./sectionsTCCII/Apendice.tex [22]
-(/usr/local/texlive/2026/texmf-dist/tex/latex/listings/lstlang1.sty
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+ [19 <./images/RQs/diminuiu_empatou_aumentou.png>] [20 <./images/RQs/boxplot_co
+m_sem_codigo_apenas_mudou.png>]) (./main.bbl [21] [22]) (./sectionsTCCII/Apendi
+ce.tex
+[23] (/usr/local/texlive/2026/texmf-dist/tex/latex/listings/lstlang1.sty
 File: lstlang1.sty 2025/11/14 1.11b listings language file
-) [23]
-<./images/01_repos_por_linguagem.png, id=109, 642.75131pt x 388.45125pt>
+)
+[24]
+<./images/01_repos_por_linguagem.png, id=112, 642.75131pt x 388.45125pt>
 File: ./images/01_repos_por_linguagem.png Graphic file (type png)
 <use ./images/01_repos_por_linguagem.png>
 Package pdftex.def Info: ./images/01_repos_por_linguagem.png  used on input lin
@@ -1001,23 +1023,23 @@ e 184.
 
 Underfull \vbox (badness 1953) has occurred while \output is active []
 
- [24]
-<./images/02_tools_por_linguagem.png, id=113, 641.84793pt x 388.45125pt>
+ [25]
+<./images/02_tools_por_linguagem.png, id=117, 641.84793pt x 388.45125pt>
 File: ./images/02_tools_por_linguagem.png Graphic file (type png)
 <use ./images/02_tools_por_linguagem.png>
 Package pdftex.def Info: ./images/02_tools_por_linguagem.png  used on input lin
 e 193.
 (pdftex.def)             Requested size: 341.43437pt x 206.63686pt.
 
-[25 <./images/01_repos_por_linguagem.png> <./images/02_tools_por_linguagem.png>
-] [26]
+[26 <./images/01_repos_por_linguagem.png> <./images/02_tools_por_linguagem.png>
+] [27]
 Underfull \vbox (badness 10000) has occurred while \output is active []
 
- [27]
+ [28]
 LaTeX Font Info:    Font shape `OMS/pcr/m/n' in size <12> not available
 (Font)              Font shape `OMS/cmsy/m/n' tried instead on input line 253.
 
-[28] [29]) [30] (./main.aux)
+[29] [30]) [31] (./main.aux)
  ***********
 LaTeX2e <2025-11-01>
 L3 programming layer <2026-01-19>
@@ -1026,7 +1048,7 @@ L3 programming layer <2026-01-19>
 Here is how much of TeX's memory you used:
  21994 strings out of 467525
  433204 string characters out of 5418982
- 1470283 words of memory out of 5000000
+ 1470280 words of memory out of 5000000
  50520 multiletter control sequences out of 15000+600000
  656210 words of font info for 92 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
@@ -1046,10 +1068,10 @@ t/fonts/type1/urw/times/utmb8a.pfb></usr/local/texlive/2026/texmf-dist/fonts/ty
 pe1/urw/times/utmbi8a.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/urw/t
 imes/utmr8a.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/urw/times/utmri
 8a.pfb>
-Output written on main.pdf (30 pages, 1301689 bytes).
+Output written on main.pdf (31 pages, 1303218 bytes).
 PDF statistics:
- 200 PDF objects out of 1000 (max. 8388607)
- 117 compressed objects within 2 object streams
+ 204 PDF objects out of 1000 (max. 8388607)
+ 120 compressed objects within 2 object streams
  0 named destinations out of 1000 (max. 500000)
  63 words of extra memory for PDF output out of 10000 (max. 10000000)
 

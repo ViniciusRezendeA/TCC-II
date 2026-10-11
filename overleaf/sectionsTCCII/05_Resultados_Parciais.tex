@@ -36,7 +36,7 @@ A inclusão do código reduz o escore médio nas seis dimensões da rubrica, com
 
 O aumento ou a diminuição da nota atribuída a uma \textit{tool} não indica, por si só, uma melhora ou piora na precisão da avaliação da descrição: indica apenas que houve uma divergência na nota após a introdução do código, podendo essa divergência refletir tanto uma melhora real de precisão quanto viés ou ruído introduzido pelo próprio avaliador. Responder à RQ1 exige, portanto, identificar o \textbf{mecanismo} pelo qual o código altera a nota, não apenas a direção da mudança: saber que a nota mudou no componente \textit{Guidelines}, por exemplo, já está implícito no próprio dado coletado (campo \texttt{componente}), e não revela se o código tornou a avaliação mais precisa.
 
-\textcolor{orange}{Essa identificação foi conduzida pela análise qualitativa descrita na Seção~\ref{subsec:analise-comparativa}, sobre a amostra de consenso (Seção~\ref{subsec:consolidacao}): 2.685 ferramentas em que todos os juízes que as avaliaram concordam que a nota mudou, no mesmo componente, entre \textit{description\_only} e \textit{with\_source}. A análise temática indutiva sobre o conjunto completo de justificativas dessas 2.685 ferramentas produziu as 13 categorias de mecanismo apresentadas na Tabela~\ref{tab:categorias-mecanismo} -- cada uma descrevendo um tipo específico de informação que o código revela e que a descrição, isoladamente, não comunica.}
+\textcolor{orange}{Essa identificação foi conduzida pela análise qualitativa descrita na Seção~\ref{subsec:analise-comparativa}, sobre a amostra de consenso (Seção~\ref{subsec:consolidacao}): 2.685 ferramentas em que todos os juízes que as avaliaram concordam que a nota mudou, no mesmo componente, entre \textit{description\_only} e \textit{with\_source}. A análise temática indutiva sobre o conjunto completo de justificativas dessas 2.685 ferramentas, executada em duas rodadas independentes e reconciliadas numa chamada final de fusão, produziu as 16 categorias de mecanismo apresentadas na Tabela~\ref{tab:categorias-mecanismo} -- cada uma descrevendo um tipo específico de informação que o código revela e que a descrição, isoladamente, não comunica.}
 
 \begin{table}[H]
 \centering
@@ -46,18 +46,21 @@ O aumento ou a diminuição da nota atribuída a uma \textit{tool} não indica, 
 \begin{tabular}{|p{4.3cm}|p{8.7cm}|}
 \hline
 \textbf{Categoria} & \textbf{Descrição} \\ \hline
-Superfície de Entrada Não Documentada & A assinatura ou o esquema de entrada do código aceita parâmetros, filtros ou opções que a descrição nunca menciona. \\ \hline
+Superfície de Entrada Não Documentada & A assinatura ou o esquema de entrada do código aceita parâmetros, filtros, identificadores de sessão ou combinações obrigatórias que a descrição nunca menciona. \\ \hline
 Parâmetros Fantasmas ou Divergentes & A descrição documenta parâmetros que o código não possui, ou que foram renomeados, removidos ou substituídos na implementação. \\ \hline
 Valores Fixos e Padrões Divergentes & Um valor apresentado como configurável está, na realidade, fixado no código, ou o valor padrão documentado diverge do valor efetivamente usado. \\ \hline
-Limites Operacionais Não Divulgados & Tetos, truncamentos, \textit{timeouts} ou limites de tamanho impostos pela implementação não são mencionados na descrição. \\ \hline
-Modos de Falha Não Divulgados & Tratamentos de erro, validações e exceções específicas da implementação não são antecipados pela descrição. \\ \hline
-Pré-condições e Bloqueios Ocultos & Pré-requisitos de autenticação, permissão ou configuração necessários para o sucesso da chamada não são declarados. \\ \hline
+Limites Operacionais, Padrões e Paginação Não Divulgados & Tetos, truncamentos, \textit{timeouts}, paginação e valores padrão não declarados são impostos pela implementação sem menção na descrição. \\ \hline
+Modos de Falha e Erros Não Divulgados & Tratamentos de erro, exceções, falhas de dependência e mensagens de estado vazio da implementação não são antecipados pela descrição. \\ \hline
+Dependências e Pré-requisitos de Ambiente Ocultos & Serviços externos, variáveis de ambiente, credenciais, binários ou configurações exigidos pelo código não são mencionados na descrição. \\ \hline
+Controles de Acesso, Papel e Autorização & Permissões, autenticação, verificações de papel/administrador e outras restrições de acesso aplicadas no código estão ausentes da descrição. \\ \hline
 Efeitos Colaterais Não Divulgados & O código produz efeitos colaterais (exclusões em cascata, escrita de arquivos, notificações) além da ação anunciada pela descrição. \\ \hline
 Funcionalidade Anunciada Não Implementada & O código expõe um \textit{stub}, um retorno fixo, ou simplesmente não implementa a funcionalidade que a descrição promete. \\ \hline
 Sistema-Alvo Divergente & O código revela uma plataforma, formato de arquivo ou granularidade de recurso diferente da que a descrição declara. \\ \hline
-Estrutura Concreta da Saída & A estrutura exata do retorno (campos, aninhamento, formatação) é mais específica do que a descrição sugere. \\ \hline
-Valores Enumerados e Contratos de Formato & O código aceita apenas um conjunto fixo de valores ou formatos que a descrição apresenta como livres. \\ \hline
-Escopo de Processamento Subestimado & A implementação realiza bem mais processamento (múltiplas sub-chamadas, etapas, agregações) do que a descrição sugere. \\ \hline
+Estrutura Concreta da Saída & A estrutura exata do retorno (campos, aninhamento, formatação, variações por sucesso/falha) é mais específica do que a descrição sugere. \\ \hline
+Regras de Validação e Contratos de Formato Não Divulgados & Conjuntos de valores permitidos, formatos, regras de exclusão mútua ou campos obrigatórios fixados no código não são declarados na descrição. \\ \hline
+Escopo de Processamento e Mecânica Interna Subestimados & A implementação realiza bem mais processamento ou mecânica interna (múltiplas sub-chamadas, \textit{cache}, chamadas de rede, lógica assíncrona) do que a descrição sugere. \\ \hline
+Semântica de Correspondência e Normalização de Entrada & O código processa entradas de forma não óbvia (correspondência por substring, normalização de apelidos, resolução difusa de nomes) sem que a descrição mencione essa semântica. \\ \hline
+Contexto de Fluxo e Ativação & O código revela pré-requisitos de estado de sessão, ordem de chamadas entre ferramentas irmãs, ou contexto ambiente que a descrição não articula. \\ \hline
 Confirmação de Encapsulamento Trivial & O código é um encaminhamento mínimo cujo comportamento já correspondia exatamente ao texto, sem revelar nada novo. \\ \hline
 \end{tabular}
 \end{table}

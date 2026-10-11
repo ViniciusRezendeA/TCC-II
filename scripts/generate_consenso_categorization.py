@@ -245,11 +245,11 @@ def run_with_key_rotation(
                     n_categoria_invalida += 1
                     logger.warning(
                         "Tool %s: categoria(s) fora da lista fixa descartada(s): %s",
-                        result.tool_uid, sorted(set(result.categories) - set(categorias_validas)),
+                        item["tool_uid"], sorted(set(result.categories) - set(categorias_validas)),
                     )
                 if not categorias_validas:
                     categorias_validas = [NONE_CATEGORY]
-                out.write(json.dumps({"tool_uid": result.tool_uid, "categories": categorias_validas}, ensure_ascii=False) + "\n")
+                out.write(json.dumps({"tool_uid": item["tool_uid"], "categories": categorias_validas}, ensure_ascii=False) + "\n")
                 out.flush()
                 recorded += 1
             # não resolvido (rodízio completo sem sucesso, recusa, ou erro técnico): nada é
