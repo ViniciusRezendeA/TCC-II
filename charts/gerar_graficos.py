@@ -368,10 +368,6 @@ def _formatar_cientifico_latex(valor, casas=2):
 def _estrelas_significancia(p):
     if pd.isna(p):
         return ""
-    if p < 0.001:
-        return "***"
-    if p < 0.01:
-        return "**"
     if p < 0.05:
         return "*"
     return ""
@@ -414,13 +410,24 @@ def teste_wilcoxon_por_atributo(agg):
 def montar_tabela_latex_wilcoxon(df_resultados, nome_escopo, label):
     linhas = []
     for _, row in df_resultados.iterrows():
-        if pd.isna(row["p_valor"]):
-            p_fmt, w_fmt = "--", "--"
+        p_valor = row["p_valor"]
+        if pd.isna(p_valor):
+            p_fmt = "--"
         else:
-            p_fmt = (_formatar_cientifico_latex(row["p_valor"]) if row["p_valor"] < 0.001
-                     else _formatar_numero_br(row["p_valor"], 3))
-            p_fmt += _estrelas_significancia(row["p_valor"])
-            w_fmt = _formatar_numero_br(row["estatistica_W"], 1)
+            p_fmt = (
+                _formatar_cientifico_latex(p_valor)
+                if p_valor < 0.001
+                else _formatar_numero_br(p_valor, 3)
+            )
+            p_fmt += _estrelas_significancia(p_valor)
+            if p_valor >= 0.05:
+                p_fmt = "--"
+
+        w_fmt = (
+            "--"
+            if pd.isna(row["estatistica_W"])
+            else _formatar_numero_br(row["estatistica_W"], 1)
+        )
         linhas.append(
             f"{_escapar_latex(row['attribute_label'])} & {row['n_diferentes']} & {w_fmt} & {p_fmt} \\\\"
         )
@@ -440,7 +447,7 @@ def montar_tabela_latex_wilcoxon(df_resultados, nome_escopo, label):
         "\\bottomrule\n"
         "\\end{tabular}\n"
         "\\\\[4pt]\n"
-        "{\\footnotesize *** $p<0.001$;\\; ** $p<0.01$;\\; * $p<0.05$}\n"
+        "{\\footnotesize * $p<0.05$}\n"
         "\\end{table}\n"
     )
 

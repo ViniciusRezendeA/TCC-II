@@ -138,22 +138,22 @@ Para responder à RQ3, foram empregados dois métodos de verificação da signif
 
 \begin{table}[H]
 \centering
-\caption{Resultados do Teste de Postos Sinalizados de Wilcoxon comparando as notas com e sem código, por atributo (pareado por tool, média entre modelos).}
-\label{tab:wilcoxon}
+\caption{Resultados do Teste de Postos Sinalizados de Wilcoxon comparando as notas com e sem código, por atributo (Média dos modelos; pareado por tool).}
+\label{tab:wilcoxon_media}
 \begin{tabular}{lccc}
 \toprule
 Atributo & $n$ diferentes & $W$ & $p$-valor \\
 \midrule
-Purpose & 656 & 90683,0 & $1,39 \times 10^{-4}$*** \\
-Parameter Explanation & 588 & 63454,0 & $3,21 \times 10^{-9}$*** \\
-Length \& Completeness & 507 & 37002,5 & $3,84 \times 10^{-20}$*** \\
-Guidelines & 351 & 27684,0 & 0,069 \\
-Limitations & 211 & 10907,0 & 0,739 \\
-Examples & 84 & 1330,0 & 0,032* \\
+Purpose & 6130 & 5031832,0 & $9,84 \times 10^{-222}$* \\
+Parameter Explanation & 5626 & 4526255,5 & $1,34 \times 10^{-171}$* \\
+Length \& Completeness & 5380 & 2145338,0 & $< 10^{-300}$* \\
+Guidelines & 5956 & 1973603,0 & $< 10^{-300}$* \\
+Limitations & 2430 & 667277,0 & $2,30 \times 10^{-123}$* \\
+Examples & 902 & 67412,5 & $3,64 \times 10^{-69}$* \\
 \bottomrule
 \end{tabular}
 \\[4pt]
-{\footnotesize *** $p<0.001$;\; ** $p<0.01$;\; * $p<0.05$}
+{\footnotesize * $p<0.05$}
 \end{table}
 
 Como é possível observar na Tabela~\ref{tab:wilcoxon}, os atributos \textit{Purpose}, \textit{Parameter Explanation} e \textit{Length \& Completeness} apresentaram diferenças estatisticamente significativas entre os cenários analisados ($p < 0{,}05$). Por outro lado, os atributos \textit{Guidelines} e \textit{Limitations} apresentaram $p$-valores superiores ao nível de significância adotado ($\alpha = 0{,}05$), indicando que as variações observadas nesses casos não possuem significância estatística. Já o atributo \textit{Examples}, embora tenha apresentado um $p$-valor superior aos três primeiros atributos, permaneceu dentro do limite de significância estatística estipulado no estudo.
