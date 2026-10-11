@@ -289,6 +289,76 @@ def gerar_tabela_latex_correlacao_geral(df_corr, output_path):
     print(f"[OK] {output_path}")
 
 
+def subconjunto_consenso(df):
+    """Pares (tool, componente) em que os três juízes mudaram a nota (Δ != 0 nos três),
+    o mesmo critério da amostra de consenso (scripts/export_consenso_sample.py), restrito
+    às tools avaliadas pelos três juízes."""
+    sub = subconjunto_comum(df)
+    mudou = (sub.pivot_table(index=["tool_uid", "attribute"], columns="judge",
+                             values="diff", observed=True) != 0).all(axis=1)
+    chaves = set(mudou[mudou].index)
+    return sub[[k in chaves for k in zip(sub["tool_uid"], sub["attribute"])]]
+
+
+def correlacao_consenso(df_consenso):
+    """Por par de juízes, sobre os pares (tool, componente) do consenso: Spearman de S, C
+    e Δ, e % dos pares em que os dois juízes mudaram a nota no mesmo sentido."""
+    largos = {k: df_consenso.pivot_table(index=["tool_uid", "attribute"], columns="judge",
+                                         values=v, observed=True)
+              for k, v in {"S": "score_sem_codigo", "C": "score_com_codigo", "Δ": "diff"}.items()}
+    linhas = []
+    for a, b in combinations(JUDGES, 2):
+        d = largos["Δ"]
+        linhas.append({
+            "juiz_a": a, "juiz_b": b,
+            "n_pares": len(d),
+            "n_tools": d.index.get_level_values("tool_uid").nunique(),
+            "rho_S": spearmanr(largos["S"][a], largos["S"][b]).statistic,
+            "rho_C": spearmanr(largos["C"][a], largos["C"][b]).statistic,
+            "rho_delta": spearmanr(d[a], d[b]).statistic,
+            "pct_mesmo_sentido": ((d[a] > 0) == (d[b] > 0)).mean() * 100,
+        })
+    return pd.DataFrame(linhas)
+
+
+def gerar_tabela_latex_correlacao_consenso(df_cons, output_path):
+    nomes_curtos = {"deepseek-flash": "DeepSeek", "gemini-3.5-flash-lite": "Gemini",
+                    "qwen3-14b-ollama": "Qwen3"}
+    fmt = lambda v: f"{v:.2f}".replace(".", ",").replace("-", "$-$")
+
+    linhas = [
+        f"{nomes_curtos[r.juiz_a]} $\\times$ {nomes_curtos[r.juiz_b]} & {fmt(r.rho_S)} & "
+        f"{fmt(r.rho_C)} & {fmt(r.rho_delta)} & "
+        + f"{r.pct_mesmo_sentido:.1f}".replace(".", ",") + "\\% \\\\"
+        for r in df_cons.itertuples()
+    ]
+    n_pares = f"{df_cons['n_pares'].iloc[0]:,}".replace(",", ".")
+    n_tools = f"{df_cons['n_tools'].iloc[0]:,}".replace(",", ".")
+    corpo = "\n".join(linhas)
+    tabela = (
+        "\\begin{table}[H]\n"
+        "\\centering\n"
+        "\\caption{Correlação de Spearman ($\\rho$) entre os juízes restrita à amostra de "
+        f"consenso: {n_pares} pares ferramenta-componente ({n_tools} ferramentas) em que os três "
+        "juízes alteraram a nota entre os cenários. S: nota sem código; C: nota com código; "
+        "$\\Delta = C - S$; última coluna: proporção dos pares em que os dois juízes alteraram "
+        "a nota no mesmo sentido.}\n"
+        "\\label{tab:correlacao-juizes-consenso}\n"
+        "\\begin{tabular}{lrrrr}\n"
+        "\\toprule\n"
+        "\\textbf{Par de juízes} & \\textbf{S} & \\textbf{C} & \\textbf{$\\Delta$} & "
+        "\\textbf{Mesmo sentido} \\\\\n"
+        "\\midrule\n"
+        f"{corpo}\n"
+        "\\bottomrule\n"
+        "\\end{tabular}\n"
+        "\\end{table}\n"
+    )
+    with open(output_path, "w", encoding="utf-8") as f:
+        f.write(tabela)
+    print(f"[OK] {output_path}")
+
+
 # ---------------------------------------------------------------------------
 # 3. TRANSIÇÃO DE QUARTIS (faixas definidas pela distribuição sem código)
 # ---------------------------------------------------------------------------
@@ -331,6 +401,156 @@ def resumo_motivos(records):
             "desceu": int((~g["subiu"]).sum()),
         })
     return pd.DataFrame(linhas).sort_values(["judge", "ocorrencias"], ascending=[True, False])
+
+
+# ---------------------------------------------------------------------------
+# 4b. CONCORDÂNCIA ENTRE JUÍZES (notas e direção da mudança)
+# ---------------------------------------------------------------------------
+DIRECOES = (-1, 0, 1)  # desceu, empatou, subiu
+NOMES_CURTOS = {"deepseek-flash": "DeepSeek", "gemini-3.5-flash-lite": "Gemini",
+                "qwen3-14b-ollama": "Qwen3"}
+
+
+def _kappa_cohen(a, b):
+    """Kappa de Cohen (Cohen, 1960) para dois juízes sobre as três direções."""
+    po = (a == b).mean()
+    pe = sum((a == c).mean() * (b == c).mean() for c in DIRECOES)
+    return po, pe, (po - pe) / (1 - pe)
+
+
+def _kappa_fleiss(rotulos):
+    """Kappa de Fleiss (Fleiss, 1971); `rotulos` é uma matriz itens x juízes."""
+    n, k = rotulos.shape
+    contagens = np.stack([(rotulos == c).sum(axis=1) for c in DIRECOES], axis=1)
+    po = ((contagens * (contagens - 1)).sum(axis=1) / (k * (k - 1))).mean()
+    pe = ((contagens.sum(axis=0) / (n * k)) ** 2).sum()
+    return po, pe, (po - pe) / (1 - pe)
+
+
+def concordancia_entre_juizes(df):
+    """Sobre as tools avaliadas pelos três juízes (subconjunto_comum), por componente e
+    no geral (componentes empilhados):
+      - rho_S / rho_C: Spearman das notas sem e com código, por par de juízes;
+      - kappa: Cohen da direção da mudança (desceu/empatou/subiu), por par;
+      - po / pe: concordância observada e esperada ao acaso que compõem o kappa;
+    e uma linha extra por componente com o kappa de Fleiss dos três juízes juntos."""
+    largos = {k: df.pivot_table(index=["tool_uid", "attribute"], columns="judge",
+                                values=v, observed=True)
+              for k, v in {"S": "score_sem_codigo", "C": "score_com_codigo",
+                           "D": "diff"}.items()}
+    direcao = np.sign(largos["D"])
+    linhas = []
+    for attr in ATTRIBUTES + ["geral"]:
+        sel = (lambda x: x) if attr == "geral" else (lambda x: x.xs(attr, level="attribute"))
+        s, c, d = sel(largos["S"]), sel(largos["C"]), sel(direcao)
+        for a, b in combinations(JUDGES, 2):
+            po, pe, kappa = _kappa_cohen(d[a].to_numpy(), d[b].to_numpy())
+            linhas.append({
+                "attribute": attr, "par": f"{NOMES_CURTOS[a]} × {NOMES_CURTOS[b]}",
+                "n_itens": len(d),
+                "rho_S": spearmanr(s[a], s[b]).statistic,
+                "rho_C": spearmanr(c[a], c[b]).statistic,
+                "po": po, "pe": pe, "kappa": kappa,
+            })
+        po, pe, kappa = _kappa_fleiss(d[list(JUDGES)].to_numpy())
+        linhas.append({"attribute": attr, "par": "Três juízes (Fleiss)", "n_itens": len(d),
+                       "rho_S": np.nan, "rho_C": np.nan, "po": po, "pe": pe, "kappa": kappa})
+    return pd.DataFrame(linhas)
+
+
+def grafico_concordancia(df_conc, output_path):
+    """Mapa de calor em três painéis, mesma escala sequencial (0 a 1) para todos, para
+    que a diferença de magnitude entre concordar na nota e concordar na mudança seja
+    visível: (a) Spearman sem código, (b) Spearman com código, (c) kappa da direção."""
+    pares = [p for p in df_conc["par"].unique() if "Fleiss" not in p]
+    linhas_ordem = ATTRIBUTES + ["geral"]
+    rotulos_linhas = [ATTR_LABELS.get(a, "Geral") for a in linhas_ordem]
+    paineis = [
+        ("(a) Notas sem código\nSpearman ρ", "rho_S", pares),
+        ("(b) Notas com código\nSpearman ρ", "rho_C", pares),
+        ("(c) Direção da mudança\nkappa κ", "kappa", pares + ["Três juízes (Fleiss)"]),
+    ]
+    rampa = plt.matplotlib.colors.LinearSegmentedColormap.from_list(
+        "azul", ["#f7fbff", "#cde2fb", "#86b6ef", "#3987e5", "#1c5cab", "#0d366b"])
+
+    fig, axes = plt.subplots(1, 3, figsize=(17, 6.2),
+                             gridspec_kw={"width_ratios": [3, 3, 4]})
+    for ax, (titulo, coluna, cols) in zip(axes, paineis):
+        matriz = np.array([[df_conc.query("attribute == @a and par == @p")[coluna].iloc[0]
+                            for p in cols] for a in linhas_ordem])
+        ax.imshow(np.clip(matriz, 0, 1), cmap=rampa, vmin=0, vmax=1, aspect="auto")
+        for i in range(matriz.shape[0]):
+            for j in range(matriz.shape[1]):
+                v = matriz[i, j]
+                ax.text(j, i, f"{v:.2f}".replace(".", ",").replace("-", "\u2212"),
+                        ha="center", va="center", fontsize=11,
+                        fontweight="bold" if linhas_ordem[i] == "geral" else "normal",
+                        color="white" if v >= 0.55 else "#1a1a1a")
+        ax.set_xticks(range(len(cols)))
+        ax.set_xticklabels([p.replace(" × ", "\n× ").replace(" (Fleiss)", "\n(Fleiss)")
+                            for p in cols], fontsize=10)
+        ax.set_yticks(range(len(linhas_ordem)))
+        ax.set_yticklabels(rotulos_linhas if ax is axes[0] else [])
+        ax.axhline(len(ATTRIBUTES) - 0.5, color="white", linewidth=3)
+        ax.set_title(titulo, fontsize=12)
+        ax.grid(False)
+        for spine in ax.spines.values():
+            spine.set_visible(False)
+        ax.tick_params(length=0)
+
+    barra = fig.colorbar(plt.cm.ScalarMappable(norm=plt.Normalize(0, 1), cmap=rampa),
+                         ax=axes, orientation="horizontal", fraction=0.05, pad=0.12,
+                         aspect=50)
+    barra.set_label("Valor do coeficiente (0 = sem concordância; 1 = concordância total)")
+    barra.ax.xaxis.set_major_formatter(VIRGULA)
+    fig.savefig(output_path, dpi=200, bbox_inches="tight")
+    plt.close(fig)
+    print(f"[OK] {output_path}")
+
+
+def gerar_tabela_latex_kappa(df_conc, output_path):
+    """Detalhe do painel (c): concordância observada, esperada ao acaso e kappa."""
+    fmt = lambda v: f"{v:.2f}".replace(".", ",").replace("-", "$-$")
+    pares = list(df_conc["par"].unique())
+    cab = " & ".join(f"\\multicolumn{{3}}{{c}}{{\\textbf{{{p.replace(' × ', ' $\\times$ ').replace('Três juízes (Fleiss)', 'Fleiss (3 juízes)')}}}}}"
+                     for p in pares)
+    cmid = " ".join(f"\\cmidrule(lr){{{2 + 3 * i}-{4 + 3 * i}}}" for i in range(len(pares)))
+    linhas = []
+    for attr in ATTRIBUTES + ["geral"]:
+        valores = []
+        for p in pares:
+            r = df_conc.query("attribute == @attr and par == @p").iloc[0]
+            valores += [fmt(r.po), fmt(r.pe), fmt(r.kappa)]
+        if attr == "geral":
+            linhas.append("\\midrule")
+        rotulo = "\\textbf{Geral}" if attr == "geral" else ATTR_LABELS[attr].replace("&", "\\&")
+        linhas.append(f"{rotulo} & " + " & ".join(valores) + " \\\\")
+    n = f"{df_conc['n_itens'].iloc[0]:,}".replace(",", ".")
+    tabela = (
+        "\\begin{table}[H]\n"
+        "\\centering\n"
+        "\\caption{Concordância entre os juízes quanto à direção da mudança da nota com a "
+        "inclusão do código (diminuiu, manteve ou aumentou), por componente, sobre as "
+        f"{n} ferramentas avaliadas pelos três juízes: concordância observada ($p_o$), "
+        "concordância esperada ao acaso ($p_e$) e kappa ($\\kappa$) de Cohen, por par, e de "
+        "Fleiss, para os três juízes.}\n"
+        "\\label{tab:kappa-direcao}\n"
+        "\\scriptsize\n"
+        "\\setlength{\\tabcolsep}{2.5pt}\n"
+        "\\begin{tabular}{l" + "rrr" * len(pares) + "}\n"
+        "\\toprule\n"
+        f" & {cab} \\\\\n"
+        f"{cmid}\n"
+        "\\textbf{Componente}" + " & $p_o$ & $p_e$ & $\\kappa$" * len(pares) + " \\\\\n"
+        "\\midrule\n"
+        + "\n".join(linhas) + "\n"
+        "\\bottomrule\n"
+        "\\end{tabular}\n"
+        "\\end{table}\n"
+    )
+    with open(output_path, "w", encoding="utf-8") as f:
+        f.write(tabela)
+    print(f"[OK] {output_path}")
 
 
 # ---------------------------------------------------------------------------
@@ -416,6 +636,16 @@ def main():
     gerar_tabela_latex_correlacao(df_corr, os.path.join(OUTPUT_DIR, "tabela_correlacao_juizes.tex"))
     gerar_tabela_latex_correlacao_geral(
         df_corr, os.path.join(OUTPUT_DIR, "tabela_correlacao_juizes_geral.tex"))
+
+    df_cons = correlacao_consenso(subconjunto_consenso(df))
+    df_cons.to_csv(os.path.join(OUTPUT_DIR, "correlacao_entre_juizes_consenso.csv"), index=False)
+    gerar_tabela_latex_correlacao_consenso(
+        df_cons, os.path.join(OUTPUT_DIR, "tabela_correlacao_juizes_consenso.tex"))
+
+    df_conc = concordancia_entre_juizes(subconjunto_comum(df))
+    df_conc.to_csv(os.path.join(OUTPUT_DIR, "concordancia_entre_juizes.csv"), index=False)
+    grafico_concordancia(df_conc, os.path.join(OUTPUT_DIR, "concordancia_entre_juizes.png"))
+    gerar_tabela_latex_kappa(df_conc, os.path.join(OUTPUT_DIR, "tabela_kappa_direcao.tex"))
 
     df_quartis = transicao_quartis(df)
     df_quartis.to_csv(os.path.join(OUTPUT_DIR, "transicao_quartis_por_juiz.csv"), index=False)

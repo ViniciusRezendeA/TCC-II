@@ -2,47 +2,62 @@
 Análise RQ2 — Quais atributos da rubrica são mais afetados pela adição do
 código na avaliação da qualidade documental das tools?
 
-Entrada esperada (JSON): lista de tools, cada uma com uma lista "evaluations",
-cada evaluation com "model", "with_source" e "description_only", e dentro de
-cada um desses, os atributos da rubrica (score + reasoning).
+Entrada: lê diretamente data/evaluations/{judge_id}.jsonl (saída da Etapa 3),
+com o mesmo carregamento, deduplicação, filtro de versão de prompt e chave de
+pareamento de scripts/analysis_evaluation_report.py (load_evaluations,
+dedupe_records, registros_versao_ativa, tool_key_for). Antes, a entrada era o
+snapshot charts/file.json, gerado por organize_tools_evaluations.ts.
 
-Estrutura esperada de cada evaluation:
-{
-  "model": "nome-do-modelo",
-  "with_source": {
-      "purpose": {"score": int, "reasoning": str},
-      "guidelines": {...}, "limitations": {...},
-      "parameter_explanation": {...}, "length_completeness": {...},
-      "examples": {...}
-  },
-  "description_only": { ... mesma estrutura ... }
-}
+A chave de pareamento é tool_key_for() (tool_uid + tool.name), não o tool_uid
+bruto: nos padrões "lowlevel" de SDK, várias tools distintas compartilham o
+mesmo tool_uid, e agrupar só por ele parearia a nota de uma tool com a de
+outra.
+
+Uma tool entra na análise quando pelo menos dois modelos a avaliaram nos dois
+cenários (description_only e with_source), mesmo critério do antigo file.json.
 
 Como há mais de um modelo de IA avaliando cada tool, todos os gráficos usam
 a MÉDIA entre os modelos (um único gráfico, não um por modelo). O boxplot
 compara "Com código" vs "Sem código" — não compara modelos entre si.
 
-Gera 3 figuras em /mnt/user-data/outputs/:
-  1. barras_divergentes.png       — diferença média por atributo
-  2. boxplot_com_sem_codigo.png   — distribuição das notas, com vs sem código
-  3. quantidade_magnitude.png     — % de casos que mudaram + magnitude média
+Gera em charts/outputs/:
+  1. barras_divergentes.png                  — diferença média por atributo
+  2. boxplot_com_sem_codigo.png              — distribuição das notas, com vs sem código
+  3. boxplot_com_sem_codigo_apenas_mudou.png — mesmo boxplot, só tools que mudaram
+  4. quantidade_magnitude.png                — % de casos que mudaram
+  5. diminuiu_empatou_aumentou.png           — % diminuiu/empatou/aumentou
+  e as tabelas LaTeX/CSV do Wilcoxon e da transição de quartis.
+
+Rodar da raiz do projeto:
+    uv run python charts/gerar_graficos.py
 
 E salva um CSV "long format" (nível tool x modelo x atributo) para reuso.
 """
 
-import json
 import os
+import sys
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from scipy.stats import wilcoxon
 
+RAIZ = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(RAIZ))
+from scripts.analysis_evaluation_report import (  # noqa: E402
+    load_evaluations,
+    registros_versao_ativa,
+    tool_key_for,
+)
+from scripts.dedupe_evaluations import dedupe_records  # noqa: E402
+
 # ---------------------------------------------------------------------------
 # CONFIGURAÇÃO
 # ---------------------------------------------------------------------------
-INPUT_JSON = "file.json"   # ajuste para o caminho real do seu arquivo
-OUTPUT_DIR = "outputs"
+EVALUATIONS_DIR = RAIZ / "data" / "evaluations"
+OUTPUT_DIR = str(RAIZ / "charts" / "outputs")
+MIN_MODELOS_POR_TOOL = 2
 
 ATTRIBUTES = [
     "purpose",
@@ -89,38 +104,46 @@ def _sem_grade_vertical(ax):
 # ---------------------------------------------------------------------------
 # 1. CARREGAR DADOS (nível tool x modelo x atributo)
 # ---------------------------------------------------------------------------
-def carregar_dados(path):
-    with open(path, "r", encoding="utf-8") as f:
-        data = json.load(f)
+def carregar_dados(evaluations_dir):
+    records = registros_versao_ativa(dedupe_records(load_evaluations(evaluations_dir)))
+
+    # (tool, modelo) -> {cenário: scores}, pareando pela chave corrigida
+    scores = {}
+    for r in records:
+        if r.get("status") != "ok" or not r.get("scores"):
+            continue
+        scores.setdefault((tool_key_for(r), r["judge"]["id"]), {})[r["scenario"]] = r["scores"]
 
     rows = []
-    for tool in data:
-        tool_id = tool.get("tool_id")
-        for ev in tool.get("evaluations", []):
-            model = ev.get("model")
-            with_src = ev.get("with_source", {})
-            without_src = ev.get("description_only", {})
+    for (tool_id, model), cenarios in scores.items():
+        with_src = cenarios.get("with_source")
+        without_src = cenarios.get("description_only")
+        if with_src is None or without_src is None:
+            continue
 
-            for attr in ATTRIBUTES:
-                score_com = (with_src or {}).get(attr, {}).get("score")
-                score_sem = (without_src or {}).get(attr, {}).get("score")
+        for attr in ATTRIBUTES:
+            score_com = (with_src.get(attr) or {}).get("score")
+            score_sem = (without_src.get(attr) or {}).get("score")
 
-                if score_com is None or score_sem is None:
-                    continue
+            if score_com is None or score_sem is None:
+                continue
 
-                rows.append(
-                    {
-                        "tool_id": tool_id,
-                        "model": model,
-                        "attribute": attr,
-                        "attribute_label": ATTR_LABELS.get(attr, attr),
-                        "score_com_codigo": score_com,
-                        "score_sem_codigo": score_sem,
-                        "diff": score_com - score_sem,
-                    }
-                )
+            rows.append(
+                {
+                    "tool_id": tool_id,
+                    "model": model,
+                    "attribute": attr,
+                    "attribute_label": ATTR_LABELS.get(attr, attr),
+                    "score_com_codigo": score_com,
+                    "score_sem_codigo": score_sem,
+                    "diff": score_com - score_sem,
+                }
+            )
 
-    return pd.DataFrame(rows)
+    df = pd.DataFrame(rows)
+    n_modelos = df.groupby("tool_id")["model"].nunique()
+    tools_validas = n_modelos[n_modelos >= MIN_MODELOS_POR_TOOL].index
+    return df[df["tool_id"].isin(tools_validas)].reset_index(drop=True)
 
 
 def agregar_entre_modelos(df):
@@ -448,6 +471,9 @@ def _formatar_numero_br(valor, casas=3):
 
 def _formatar_cientifico_latex(valor, casas=2):
     """Formata em notação científica real para LaTeX: 'a,bc \\times 10^{n}'."""
+    if valor == 0:
+        # abaixo do menor float representável: o p-valor exato é só "menor que" isso
+        return "$< 10^{-300}$"
     texto = f"{valor:.{casas}e}"
     mantissa, expoente = texto.split("e")
     mantissa = mantissa.replace(".", ",")
@@ -625,8 +651,10 @@ def checar_concordancia(df):
 def main():
     os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-    df = carregar_dados(INPUT_JSON)
+    df = carregar_dados(EVALUATIONS_DIR)
     print(f"Total de linhas (tool x modelo x atributo): {len(df)}")
+    print(f"Tools: {df['tool_id'].nunique()}; modelos por tool: "
+          f"{df.groupby('tool_id')['model'].nunique().value_counts().sort_index().to_dict()}")
 
     csv_path = f"{OUTPUT_DIR}/dados_long_format.csv"
     df.to_csv(csv_path, index=False)

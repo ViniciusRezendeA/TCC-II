@@ -1,0 +1,57 @@
+% ============================================================================
+% Subseção pronta para inserir em 05_Resultados_Parciais.tex.
+% Figura: overleaf/images/RQs/concordancia_entre_juizes.png
+% Tabela: gerada por charts/gerar_resultados_por_juiz.py (tabela_kappa_direcao.tex)
+% Referências novas em sbc-template.bib: spearman1904proof, cohen1960coefficient,
+% fleiss1971measuring, landis1977measurement.
+% ============================================================================
+
+\subsection{Concordância entre os Juízes}
+\label{subsec:concordancia-juizes}
+
+Como os três juízes avaliam as mesmas ferramentas nos mesmos dois cenários, é possível verificar em que medida eles concordam entre si, tanto na nota atribuída a cada descrição quanto na mudança que o código provoca nessa nota. Essa verificação foi feita sobre as 9.548 ferramentas avaliadas pelos três juízes (DeepSeek-V4.1-Flash, Gemini 3.5 Flash-Lite e Qwen3-14B), de modo que todos os pares de juízes são comparados sobre o mesmo conjunto de itens. Cada item é um par ferramenta-componente, e os resultados são apresentados por componente da rubrica e no geral, com os seis componentes considerados em conjunto.
+
+Foram utilizadas duas medidas, uma para cada pergunta. Para a concordância nas notas, utilizou-se a correlação de postos de Spearman ($\rho$) \cite{spearman1904proof}, calculada para cada par de juízes, separadamente no cenário sem código e no cenário com código. Como as notas pertencem a uma escala Likert, que é ordinal, o coeficiente de Spearman é preferível ao de Pearson, por considerar apenas a ordem das notas, e não a distância numérica entre elas. Um valor de $\rho$ próximo de 1 indica que os dois juízes ordenam as descrições da mesma forma, isto é, concordam sobre quais descrições são melhores e quais são piores.
+
+Para a concordância na mudança provocada pelo código, cada item foi classificado, para cada juiz, em uma de três categorias de acordo com a direção da diferença entre os cenários: a nota diminuiu, manteve-se ou aumentou com a inclusão do código. A concordância entre dois juízes nessa classificação foi medida pelo coeficiente kappa de Cohen ($\kappa$) \cite{cohen1960coefficient}, e a concordância entre os três juízes simultaneamente, pelo kappa de Fleiss \cite{fleiss1971measuring}. O kappa compara a concordância observada ($p_o$), isto é, a proporção de itens em que os juízes atribuem a mesma direção, com a concordância esperada ao acaso ($p_e$), calculada a partir da frequência com que cada juiz usa cada categoria, na forma $\kappa = (p_o - p_e)/(1 - p_e)$. Um valor de $\kappa$ igual a 0 indica concordância não superior à esperada ao acaso, e um valor igual a 1 indica concordância total. Essa correção é necessária neste contexto: como a maioria das notas não muda entre os cenários, dois juízes concordariam com frequência na categoria ``manteve-se'' mesmo que suas decisões fossem independentes. Para a interpretação de $\kappa$, adotou-se a escala de Landis e Koch \cite{landis1977measurement}: até 0,20, concordância leve; de 0,21 a 0,40, razoável; de 0,41 a 0,60, moderada; de 0,61 a 0,80, substancial; e acima de 0,80, quase perfeita.
+
+A Figura~\ref{fig:concordancia-juizes} reúne os três resultados em uma mesma escala de cor, de 0 a 1, de forma que a diferença de magnitude entre os painéis seja comparável visualmente. A Tabela~\ref{tab:kappa-direcao} detalha os componentes do kappa apresentado no painel (c).
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\linewidth]{images/RQs/concordancia_entre_juizes.png}
+    \caption{Concordância entre os juízes por componente da rubrica, sobre as 9.548 ferramentas avaliadas pelos três juízes: (a) correlação de Spearman das notas no cenário sem código; (b) correlação de Spearman das notas no cenário com código; (c) kappa da direção da mudança da nota (diminuiu, manteve ou aumentou), de Cohen por par de juízes e de Fleiss para os três juízes.}
+    \label{fig:concordancia-juizes}
+\end{figure}
+
+\begin{table}[H]
+\centering
+\caption{Concordância entre os juízes quanto à direção da mudança da nota com a inclusão do código (diminuiu, manteve ou aumentou), por componente, sobre as 9.548 ferramentas avaliadas pelos três juízes: concordância observada ($p_o$), concordância esperada ao acaso ($p_e$) e kappa ($\kappa$) de Cohen, por par, e de Fleiss, para os três juízes.}
+\label{tab:kappa-direcao}
+\scriptsize
+\setlength{\tabcolsep}{2.5pt}
+\begin{tabular}{lrrrrrrrrrrrr}
+\toprule
+ & \multicolumn{3}{c}{\textbf{DeepSeek $\times$ Gemini}} & \multicolumn{3}{c}{\textbf{DeepSeek $\times$ Qwen3}} & \multicolumn{3}{c}{\textbf{Gemini $\times$ Qwen3}} & \multicolumn{3}{c}{\textbf{Fleiss (3 juízes)}} \\
+\cmidrule(lr){2-4} \cmidrule(lr){5-7} \cmidrule(lr){8-10} \cmidrule(lr){11-13}
+\textbf{Componente} & $p_o$ & $p_e$ & $\kappa$ & $p_o$ & $p_e$ & $\kappa$ & $p_o$ & $p_e$ & $\kappa$ & $p_o$ & $p_e$ & $\kappa$ \\
+\midrule
+Purpose & 0,51 & 0,48 & 0,06 & 0,42 & 0,41 & 0,03 & 0,49 & 0,46 & 0,05 & 0,48 & 0,46 & 0,02 \\
+Parameter Explanation & 0,56 & 0,51 & 0,11 & 0,52 & 0,48 & 0,07 & 0,62 & 0,55 & 0,16 & 0,57 & 0,52 & 0,10 \\
+Length \& Completeness & 0,60 & 0,57 & 0,06 & 0,54 & 0,52 & 0,04 & 0,55 & 0,52 & 0,04 & 0,56 & 0,55 & 0,03 \\
+Guidelines & 0,70 & 0,64 & 0,16 & 0,43 & 0,41 & 0,03 & 0,49 & 0,45 & 0,07 & 0,54 & 0,53 & 0,01 \\
+Limitations & 0,81 & 0,77 & 0,18 & 0,76 & 0,70 & 0,18 & 0,81 & 0,75 & 0,23 & 0,79 & 0,74 & 0,19 \\
+Examples & 0,94 & 0,92 & 0,25 & 0,92 & 0,90 & 0,23 & 0,94 & 0,91 & 0,32 & 0,93 & 0,91 & 0,26 \\
+\midrule
+\textbf{Geral} & 0,69 & 0,63 & 0,15 & 0,60 & 0,55 & 0,10 & 0,65 & 0,59 & 0,15 & 0,64 & 0,60 & 0,12 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{Concordância nas notas.} No cenário sem código (painel a), os juízes apresentam correlação forte entre si: $\rho$ varia de 0,61 a 0,85 entre os componentes e atinge 0,86 (DeepSeek $\times$ Gemini), 0,77 (DeepSeek $\times$ Qwen3) e 0,83 (Gemini $\times$ Qwen3) no geral. Os três modelos, portanto, concordam de forma consistente sobre quais descrições são de melhor ou pior qualidade, o que sustenta o uso da rubrica com avaliadores baseados em LLM como instrumento de medida da qualidade documental. No cenário com código (painel b), a concordância diminui em todos os pares no geral (para 0,83, 0,73 e 0,77, respectivamente). A queda é mais acentuada em \textit{Parameter Explanation}, que passa de 0,71 a 0,85 para 0,51 a 0,58, e em \textit{Purpose}, componentes que, nos resultados das RQ2 e RQ3, estão entre os mais afetados pela inclusão do código. Em vez de aproximar as avaliações, o código tende a afastá-las justamente nos componentes em que mais altera as notas.
+
+\textbf{Concordância na mudança.} O painel (c) mostra um quadro distinto. A concordância dos juízes quanto à direção da mudança é leve em todos os componentes, com kappa de Fleiss entre 0,01 (\textit{Guidelines}) e 0,26 (\textit{Examples}), e de 0,12 no geral. Nos componentes em que o código mais altera as notas, a concordância é praticamente nula: \textit{Purpose} (0,02), \textit{Guidelines} (0,01) e \textit{Length \& Completeness} (0,03). Ou seja, quando um juiz altera a nota de uma ferramenta em razão do código, os demais não tendem a alterar a nota da mesma ferramenta, nem na mesma direção, mais do que fariam ao acaso.
+
+A Tabela~\ref{tab:kappa-direcao} evidencia a importância da correção pelo acaso. Em \textit{Examples}, os juízes DeepSeek-V4.1-Flash e Gemini 3.5 Flash-Lite atribuem a mesma direção em 94\% dos itens ($p_o = 0{,}94$), mas a concordância esperada ao acaso já é de 92\% ($p_e = 0{,}92$), pois quase todas as notas desse componente se mantêm entre os cenários; o kappa resultante, de 0,25, indica que a concordância real, além da trivial, é pequena. Os maiores valores de $\kappa$ ocorrem em \textit{Limitations} e \textit{Examples}, componentes em que a nota raramente muda, e não nos componentes em que a mudança é frequente. Cabe ainda observar que o valor geral, calculado com os seis componentes em conjunto, é superior ao de quatro dos seis componentes isoladamente, porque a agregação mistura componentes com proporções de mudança muito diferentes; por isso, os valores por componente são a referência mais adequada para a interpretação.
+
+\textbf{Implicações.} Os juízes concordam sobre a qualidade das descrições, mas não sobre o efeito que o código tem sobre essa avaliação. Esse resultado é coerente com a diferença de direção observada entre os juízes, em que o DeepSeek-V4.1-Flash tende a reduzir as notas com o código e o Gemini 3.5 Flash-Lite e o Qwen3-14B tendem a elevá-las, e indica que a mudança provocada pelo código é, em grande parte, específica de cada avaliador. Se o código revelasse de forma objetiva deficiências da descrição, seria esperado que juízes distintos alterassem a nota das mesmas ferramentas e no mesmo sentido, o que não se observa. O resultado também afeta a interpretação da amostra de consenso (Seção~\ref{subsec:consolidacao}): entre as 9.548 ferramentas avaliadas pelos três juízes, 19,1\% possuem ao menos um componente em que os três alteraram a nota, enquanto a proporção esperada caso os juízes decidissem de forma independente seria de 13,2\%. Além disso, entre os 2.239 pares ferramenta-componente em que os três juízes alteraram a nota, apenas 41,9\% apresentam a mesma direção nos três, sendo 859 elevações e 80 reduções. A amostra de consenso reúne, portanto, ferramentas em que os três juízes alteraram a nota, e não ferramentas em que concordaram sobre a alteração.
