@@ -1,0 +1,23 @@
+\begin{table}[H]
+\centering
+\caption{Correlação de Spearman ($\rho$) entre os juízes, por componente da rubrica: nota no cenário sem código (S), nota no cenário com código (C) e mudança da nota ($\Delta = C - S$), sobre as 9.548 ferramentas avaliadas pelos três juízes.}
+\label{tab:correlacao-juizes}
+\footnotesize
+\setlength{\tabcolsep}{3.5pt}
+\begin{tabular}{lrrrrrrrrr}
+\toprule
+ & \multicolumn{3}{c}{\textbf{DeepSeek $\times$ Gemini}} & \multicolumn{3}{c}{\textbf{DeepSeek $\times$ Qwen3}} & \multicolumn{3}{c}{\textbf{Gemini $\times$ Qwen3}} \\
+\cmidrule(lr){2-4} \cmidrule(lr){5-7} \cmidrule(lr){8-10}
+\textbf{Componente} & S & C & $\Delta$ & S & C & $\Delta$ & S & C & $\Delta$ \\
+\midrule
+Purpose & 0,77 & 0,73 & 0,10 & 0,73 & 0,68 & 0,05 & 0,79 & 0,72 & 0,08 \\
+Parameter Explanation & 0,72 & 0,54 & 0,16 & 0,71 & 0,51 & 0,10 & 0,85 & 0,58 & 0,15 \\
+Length \& Completeness & 0,84 & 0,77 & 0,02 & 0,69 & 0,70 & $-$0,01 & 0,73 & 0,68 & 0,04 \\
+Guidelines & 0,82 & 0,81 & 0,07 & 0,82 & 0,70 & 0,06 & 0,79 & 0,71 & 0,14 \\
+Limitations & 0,72 & 0,77 & $-$0,04 & 0,70 & 0,67 & $-$0,06 & 0,74 & 0,66 & 0,14 \\
+Examples & 0,70 & 0,74 & 0,06 & 0,61 & 0,62 & 0,03 & 0,72 & 0,65 & 0,23 \\
+\midrule
+\textbf{Geral} & 0,86 & 0,83 & 0,08 & 0,77 & 0,73 & 0,03 & 0,83 & 0,77 & 0,12 \\
+\bottomrule
+\end{tabular}
+\end{table}

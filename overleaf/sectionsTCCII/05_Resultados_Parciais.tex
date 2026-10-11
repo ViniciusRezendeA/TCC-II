@@ -4,29 +4,37 @@
 
 %% TALVEZ AQUI VALHA FAZER TIPO UM FILTRO DE PEGAR IGUALMENTE OU IGUALMENTE DISTRIBUIDA AS DIFERENÇAS ENTRE TOPICOS OU REPOSITORIOS OU SEI LA
 
-Esta seção apresenta os resultados da avaliação por rubrica descrita na Seção~\ref{sec:materiais}, obtidos até o momento da redação deste artigo com o juiz DeepSeek-V4.1-Flash: 8.648 avaliações concluídas, das quais 4.304 ferramentas foram avaliadas nos dois cenários experimentais (\textit{description\_only} e \textit{with\_source}), permitindo o pareamento necessário para o Teste de Wilcoxon. A avaliação pelos demais juízes configurados no pipeline (Gemini 3.5 Flash-Lite e Qwen2.5-14B-Instruct, Seção~\ref{sec:materiais}) está em execução; a comparação entre avaliadores distintos é tratada como direção de trabalho futuro.
+Esta seção apresenta os resultados da avaliação por rubrica descrita na Seção~\ref{sec:materiais}, com base nas avaliações concluídas pelos três juízes: DeepSeek-V4.1-Flash e Gemini 3.5 Flash-Lite, cada um com as 12.171 ferramentas da base avaliadas nos dois cenários experimentais (sem código e com código), e Qwen3-14B, executado localmente, com 9.548 ferramentas avaliadas.
+%\subsection{Comparação entre Cenários e Significância Estatística}
+%\label{subsec:comparacao-cenarios}
 
-\subsection{Comparação entre Cenários e Significância Estatística}
-
-A Tabela~\ref{tab:comparacao-deepseek} apresenta, para o juiz DeepSeek-V4.1-Flash, o escore médio de cada componente da rubrica nos dois cenários (apenas descrição \textit{versus} descrição com código), a diferença entre eles ($\Delta$) e o resultado do Teste de Postos Sinalizados de Wilcoxon, com correção de Benjamini-Hochberg para comparações múltiplas entre as seis dimensões. A proporção de empates (pares em que os dois cenários recebem exatamente o mesmo escore) varia por dimensão, de 61,8\% a 94,6\%.
-
-\begin{table}[H]
-\centering
-\caption{Comparação entre cenários por componente da rubrica: DeepSeek-V4.1-Flash (n pareado = 4.304)}
-\label{tab:comparacao-deepseek}
-\begin{tabular}{|l|r|r|r|r|c|}
-\hline
-\textbf{Componente} & \textbf{Só descrição} & \textbf{Desc.+código} & \textbf{$\Delta$} & \textbf{p (BH)} & \textbf{Signif.} \\ \hline
-Purpose & 3,43 & 3,30 & -0,13 & $<$0,001 & Sim \\ \hline
-Guidelines & 1,64 & 1,62 & -0,03 & $<$0,001 & Sim \\ \hline
-Limitations & 1,33 & 1,30 & -0,03 & $<$0,001 & Sim \\ \hline
-Parameter Explanation & 2,03 & 1,97 & -0,06 & $<$0,001 & Sim \\ \hline
-Length and Completeness & 1,81 & 1,80 & -0,02 & 0,044 & Sim \\ \hline
-Examples & 1,20 & 1,20 & -0,00 & 0,425 & Não \\ \hline
-\end{tabular}
-\end{table}
-
-A inclusão do código reduz o escore médio nas seis dimensões da rubrica, com diferença estatisticamente significativa em cinco delas (todas exceto \textit{Examples}); a maior queda ocorre em \textit{Purpose} ($\Delta = -0,13$), seguida por \textit{Parameter Explanation} ($\Delta = -0,06$). Esse padrão é compatível com a hipótese de que o código expõe lacunas da descrição não percebidas quando apenas o texto é avaliado: ao confrontar a descrição com uma implementação mais completa do que o texto sugere, o avaliador atribui uma pontuação mais conservadora. A generalização desse resultado para outros juízes depende da conclusão da coleta de avaliações e é tratada como direção de trabalho futuro.
+%A Tabela~\ref{tab:wilcoxon-por-juiz} apresenta, para cada juiz e cada componente da rubrica, a diferença média entre os escores dos dois cenários ($\Delta$ = com código menos sem código), o tamanho de efeito ($r$, correlação \textit{rank-biserial} pareada) \cite{kerby2014simple} e o resultado do Teste de Postos Sinalizados de Wilcoxon, com correção de Benjamini-Hochberg para comparações múltiplas entre as seis dimensões de cada juiz. Como o número de pares é elevado, diferenças pequenas tendem a ser estatisticamente significativas; por isso, o teste é acompanhado do tamanho de efeito, que varia de $-1$ (todas as mudanças são reduções) a $+1$ (todas são elevações). Para a interpretação de $|r|$, adotam-se as referências de 0,1 (pequeno), 0,3 (médio) e 0,5 (grande) \cite{cohen1988statistical}.
+%
+%\begin{table}[H]
+%\centering
+%\caption{Teste de Postos Sinalizados de Wilcoxon por componente e por juiz: diferença média ($\Delta$), tamanho de efeito ($r$, \textit{rank-biserial}) e significância após correção de Benjamini-Hochberg.}
+%\label{tab:wilcoxon-por-juiz}
+%\footnotesize
+%\setlength{\tabcolsep}{3.5pt}
+%\begin{tabular}{lrrcrrcrrc}
+%\toprule
+% & \multicolumn{3}{c}{\textbf{DeepSeek}} & \multicolumn{3}{c}{\textbf{Gemini}} & \multicolumn{3}{c}{\textbf{Qwen3}} \\
+%\cmidrule(lr){2-4} \cmidrule(lr){5-7} \cmidrule(lr){8-10}
+%\textbf{Componente} & $\Delta$ & $r$ & Sig. & $\Delta$ & $r$ & Sig. & $\Delta$ & $r$ & Sig. \\
+%\midrule
+%Purpose & $-$0,099 & $-$0,25 & *** & +0,054 & 0,17 & *** & +0,416 & 0,80 & *** \\
+%Parameter Explanation & $-$0,082 & $-$0,18 & *** & +0,226 & 0,63 & *** & +0,299 & 0,72 & *** \\
+%Length \& Completeness & $-$0,013 & $-$0,06 & ** & +0,240 & 0,83 & *** & +0,250 & 0,63 & *** \\
+%Guidelines & $-$0,042 & $-$0,19 & *** & +0,109 & 0,50 & *** & +0,588 & 0,99 & *** \\
+%Limitations & $-$0,057 & $-$0,33 & *** & +0,075 & 0,58 & *** & +0,179 & 0,85 & *** \\
+%Examples & $-$0,003 & $-$0,04 & ns & +0,030 & 0,65 & *** & +0,066 & 0,91 & *** \\
+%\bottomrule
+%\end{tabular}
+%\\[4pt]
+%{\footnotesize *** $p<0{,}001$;\; ** $p<0{,}01$;\; * $p<0{,}05$;\; ns: não significativo (todos os $p$ já corrigidos por Benjamini-Hochberg)}
+%\end{table}
+%
+%O DeepSeek-V4.1-Flash é o único juiz em que a inclusão do código reduz o escore médio nas seis dimensões; o efeito é grande em \textit{Limitations} ($r = -0,33$) e pequeno a médio nas demais, exceto em \textit{Examples}, cuja diferença não é estatisticamente significativa. O Gemini 3.5 Flash-Lite e o Qwen3-14B apresentam o padrão oposto: a inclusão do código eleva o escore médio nas seis dimensões para ambos, com tamanhos de efeito de médios a muito grandes, chegando a $r = 0,99$ em \textit{Guidelines} no Qwen3-14B. Em todos os 18 pares juiz-componente, exceto DeepSeek/\textit{Examples}, a diferença é estatisticamente significativa após a correção de Benjamini-Hochberg; a magnitude do efeito, no entanto, só acompanha a significância nos modelos Gemini e Qwen3: no DeepSeek, mesmo as diferenças significativas têm, em geral, tamanho de efeito pequeno a médio, indicando uma mudança mais sutil e consistentemente discreta do que a observada nos outros dois juízes.
 
 
 
@@ -34,13 +42,13 @@ A inclusão do código reduz o escore médio nas seis dimensões da rubrica, com
 
 \subsection{RQ1: O fornecimento do código da \textit{tool} ao avaliador aumenta a precisão da avaliação da qualidade de sua descrição, em relação à avaliação baseada apenas na descrição?}
 
-O aumento ou a diminuição da nota atribuída a uma \textit{tool} não indica, por si só, uma melhora ou piora na precisão da avaliação da descrição: indica apenas que houve uma divergência na nota após a introdução do código, podendo essa divergência refletir tanto uma melhora real de precisão quanto viés ou ruído introduzido pelo próprio avaliador. Responder à RQ1 exige, portanto, identificar o \textbf{mecanismo} pelo qual o código altera a nota, não apenas a direção da mudança: saber que a nota mudou no componente \textit{Guidelines}, por exemplo, já está implícito no próprio dado coletado (campo \texttt{componente}), e não revela se o código tornou a avaliação mais precisa.
+O aumento ou a diminuição da nota atribuída a uma \textit{tool} não indica, por si só, uma melhora ou piora na precisão da avaliação da descrição: indica apenas que houve uma divergência na nota após a introdução do código, podendo essa divergência refletir tanto uma melhora real de precisão quanto viés ou ruído introduzido pelo próprio avaliador. Responder à RQ1 exige, portanto, identificar o \textbf{mecanismo} pelo qual o código altera a nota, não apenas a direção da mudança. Saber que a nota mudou no componente \textit{Guidelines}, por exemplo, já está implícito no próprio dado coletado (campo \texttt{componente}), e não revela se o código tornou a avaliação mais precisa.
 
-\textcolor{orange}{Essa identificação foi conduzida pela análise qualitativa descrita na Seção~\ref{subsec:analise-comparativa}, sobre a amostra de consenso (Seção~\ref{subsec:consolidacao}): 2.685 ferramentas em que todos os juízes que as avaliaram concordam que a nota mudou, no mesmo componente, entre \textit{description\_only} e \textit{with\_source}. A análise temática indutiva sobre o conjunto completo de justificativas dessas 2.685 ferramentas, executada em duas rodadas independentes e reconciliadas numa chamada final de fusão, produziu as 16 categorias de mecanismo apresentadas na Tabela~\ref{tab:categorias-mecanismo}, cada uma descrevendo um tipo específico de informação que o código revela e que a descrição, isoladamente, não comunica.}
+\textcolor{orange}{Essa identificação foi conduzida pela análise qualitativa descrita na Seção~\ref{subsec:analise-comparativa}, sobre a amostra de divergência confirmada (Seção~\ref{subsec:consolidacao}): 2.685 ferramentas (22,1\% das 12.171 ferramentas extraídas na Etapa 2) em que todos os juízes que as avaliaram concordam que a nota mudou, no mesmo componente, entre sem codigo e com codigo. A análise temática indutiva sobre o conjunto completo de justificativas dessas ferramentas produziu as 16 categorias de mecanismo apresentadas na Tabela~\ref{tab:categorias-mecanismo}, cada uma descrevendo um tipo específico de informação que o código revela e que a descrição, isoladamente, não comunica.}
 
 \begin{table}[H]
 \centering
-\caption{Categorias de mecanismo identificadas pela análise temática indutiva sobre a amostra de consenso}
+\caption{Categorias de mecanismo identificadas pela análise temática indutiva sobre a amostra de divergência confirmada}
 \label{tab:categorias-mecanismo}
 \footnotesize
 \begin{tabular}{|p{4.3cm}|p{8.7cm}|}
@@ -65,30 +73,23 @@ Confirmação de Encapsulamento Trivial & O código é um encaminhamento mínimo
 \end{tabular}
 \end{table}
 
-A verificação manual dos resultados da classificação dirigida que utilizará essas categorias, a ser realizada após sua execução sobre a amostra completa, segue o mesmo cálculo de tamanho amostral já empregado neste trabalho: a Fórmula de Cochran para populações de tamanho conhecido \cite{chaokromthong2021sample} (Equação~\ref{eq:cochran}), que fornece o número mínimo de casos a observar sem prejudicar a validade do estudo. De forma semelhante ao estudo de Hasan et al. (2026) \nocite{2026arXiv260214878M}, foi utilizada uma taxa de 95\% de nível de confiança (Z = 1,96), uma proporção de população estimada de 0,5 (p) e 10\% de margem de erro ($\varepsilon$), o que levou ao resultado de n = 96, valor que arredondamos para 100 ferramentas a serem verificadas manualmente.
-
-\begin{equation}
-n = \frac{\dfrac{Z^2 p(1 - p)}{\varepsilon^2}}{1 + \left( \dfrac{Z^2 p(1 - p)}{\varepsilon^2 N} \right)}
-\label{eq:cochran}
-\end{equation}
-
-\textcolor{orange}{A classificação dirigida foi aplicada às 2.684 ferramentas da amostra de consenso contra as 16 categorias da Tabela~\ref{tab:categorias-mecanismo}, permitindo múltiplas categorias por ferramenta. Apenas 3,9\% das ferramentas (106 de 2.684) não casaram com nenhuma categoria (\texttt{none}), indicando que o conjunto de categorias cobre a grande maioria dos mecanismos presentes na amostra. A Tabela~\ref{tab:frequencia-categorias} apresenta a frequência de cada categoria.}
+\textcolor{orange}{A classificação dirigida foi aplicada às 2.685 ferramentas da amostra de divergência confirmada contra as 16 categorias da Tabela~\ref{tab:categorias-mecanismo}, permitindo múltiplas categorias por ferramenta. Apenas 3,9\% das ferramentas (106 de 2.685) não casaram com nenhuma categoria (\texttt{none}), indicando que o conjunto de categorias cobre a grande maioria dos mecanismos presentes na amostra. A Tabela~\ref{tab:frequencia-categorias} apresenta a frequência de cada categoria.}
 
 \begin{table}[H]
 \centering
-\caption{Frequência de cada categoria de mecanismo na amostra de consenso (n = 2.684; multi-\textit{label}, a soma excede 100\%)}
+\caption{Frequência de cada categoria de mecanismo na amostra de divergência confirmada (n = 2.685; multi-\textit{label}, a soma excede 100\%)}
 \label{tab:frequencia-categorias}
 \footnotesize
 \begin{tabular}{|p{8.7cm}|r|r|}
 \hline
 \textbf{Categoria} & \textbf{Ocorrências} & \textbf{\%} \\ \hline
-Superfície de Entrada Não Documentada & 1.491 & 55,6\% \\ \hline
+Superfície de Entrada Não Documentada & 1.492 & 55,6\% \\ \hline
 Modos de Falha e Erros Não Divulgados & 700 & 26,1\% \\ \hline
 Estrutura Concreta da Saída & 517 & 19,3\% \\ \hline
-Regras de Validação e Contratos de Formato Não Divulgados & 499 & 18,6\% \\ \hline
+Regras de Validação e Contratos de Formato Não Divulgados & 500 & 18,6\% \\ \hline
 Limites Operacionais, Padrões e Paginação Não Divulgados & 465 & 17,3\% \\ \hline
 Contexto de Fluxo e Ativação & 359 & 13,4\% \\ \hline
-Escopo de Processamento e Mecânica Interna Subestimados & 349 & 13,0\% \\ \hline
+Escopo de Processamento e Mecânica Interna Subestimados & 350 & 13,0\% \\ \hline
 Confirmação de Encapsulamento Trivial & 245 & 9,1\% \\ \hline
 Valores Fixos e Padrões Divergentes & 228 & 8,5\% \\ \hline
 Dependências e Pré-requisitos de Ambiente Ocultos & 205 & 7,6\% \\ \hline
@@ -102,42 +103,47 @@ Sistema-Alvo Divergente & 65 & 2,4\% \\ \hline
 \end{tabular}
 \end{table}
 
-\textcolor{orange}{Superfície de Entrada Não Documentada domina a amostra, presente em mais da metade das ferramentas (55,6\%): o achado mais comum é que o código aceita parâmetros, filtros ou opções que a descrição simplesmente não menciona. Modos de Falha e Erros Não Divulgados (26,1\%) e Estrutura Concreta da Saída (19,3\%) seguem como o segundo e o terceiro mecanismos mais recorrentes. Mesmo as categorias menos frequentes mostram-se padrões reais, não casos isolados: Sistema-Alvo Divergente e Confirmação de Encapsulamento Trivial, as duas categorias que uma das duas rodadas independentes de análise temática (Seção~\ref{subsec:analise-comparativa}) não havia identificado isoladamente, aparecem em 65 e 245 ferramentas, respectivamente, confirmando que a reconciliação entre as duas rodadas preservou mecanismos genuinamente recorrentes.}
+\textcolor{orange}{Superfície de Entrada Não Documentada domina a amostra, presente em mais da metade das ferramentas (55,6\%): o achado mais comum é que o código aceita parâmetros, filtros ou opções que a descrição simplesmente não menciona. Modos de Falha e Erros Não Divulgados (26,1\%) e Estrutura Concreta da Saída (19,3\%) seguem como o segundo e o terceiro mecanismos mais recorrentes. Mesmo as categorias menos frequentes mostram-se padrões reais, não casos isolados: Sistema-Alvo Divergente e Confirmação de Encapsulamento Trivial, as duas categorias menos frequentes da Tabela~\ref{tab:frequencia-categorias}, ainda assim aparecem em 65 e 245 ferramentas, respectivamente.}
 
-\begin{tcolorbox}[colback=yellow!10,colframe=orange!70!black,title={Em processamento: verificação manual da classificação dirigida}]
-\footnotesize
-Espaço reservado para o resultado da verificação manual sobre as 100 ferramentas determinadas pela Equação~\ref{eq:cochran} acima, comparando a categoria atribuída pelo modelo com a leitura manual da justificativa e do código correspondente.
-\end{tcolorbox}
+\textcolor{orange}{A verificação manual confirmou a categoria atribuída pelo modelo em 72 das 100 ferramentas da amostra (72,0\%). Nas 28 ferramentas restantes, a leitura independente da justificativa não sustentou a categoria atribuída; a maior parte desses casos concentra-se em confusões entre categorias de mecanismo com fronteiras próximas, por exemplo entre Contexto de Fluxo e Ativação e Superfície de Entrada Não Documentada, ou entre Parâmetros Fantasmas ou Divergentes e Valores Fixos e Padrões Divergentes, em vez de atribuições sem nenhuma relação com o conteúdo real da justificativa.}
 
-\subsection{RQ2 Quais atributos da rubrica de qualidade documental são mais afetados pela adição do código da tool?}
+\textcolor{orange}{Em resposta à RQ1, a análise qualitativa indica que, na maior parte dos casos (89,6\% das ferramentas da amostra, 2.406 de 2.685), a mudança de nota é rastreável a um achado concreto e identificável no código, além de \texttt{none} e de Confirmação de Encapsulamento Trivial, não a ruído ou a uma leitura meramente mais rigorosa do mesmo texto: isso é evidência de que a mudança de nota tem, na maioria dos casos, uma causa específica no código, consistente com a hipótese de que o fornecimento do código aumenta a precisão da avaliação. Essa conclusão, porém, é limitada pela ausência de um padrão-ouro humano de qualidade de descrição neste estudo: o que se verifica é que a nota muda por um motivo identificável, não que a nota resultante é, em algum sentido absoluto, mais correta. A própria verificação manual (Seção~\ref{subsec:analise-comparativa}) confronta a categoria atribuída com a justificativa sintetizada e com o \textit{reasoning} original dos juízes, não diretamente com o código-fonte da ferramenta, de modo que essa cadeia de validação nunca retorna ao código em si. Nos 10,4\% restantes, a ferramenta não casou com nenhuma categoria (\texttt{none}) ou casou apenas com Confirmação de Encapsulamento Trivial, caso em que o código não revela nenhuma informação nova e a mudança de nota reflete apenas uma leitura mais rigorosa do mesmo texto; para essas ferramentas, especificamente, a mudança de nota não pode ser atribuída a um ganho de precisão.}
 
-Ao comparar os atributos avaliados nos cenários com e sem acesso ao código, observa-se que a inclusão do código no método de avaliação impacta cada atributo de maneira distinta. A Figura~\ref{fig:grafico_distribuicao} apresenta a proporção de casos em que a análise com acesso ao código resultou em melhora, piora ou manutenção da pontuação atribuída à descrição da \textit{tool}.
+
+\subsection{RQ2 Quais atributos da rubrica de qualidade documental são mais afetados pela adição do código da \textit{tool}?}
+
+Ao comparar os atributos avaliados nos cenários com e sem acesso ao código, observa-se que a inclusão do código no método de avaliação impacta cada atributo de maneira distinta. A Figura~\ref{fig:grafico_distribuicao} apresenta a proporção de casos em que a análise com acesso ao código resultou em melhora, piora ou manutenção da pontuação atribuída à descrição da \textit{tool} para cada modelo de IA utilizado.
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=1.0\linewidth]{images/RQs/diminuiu_empatou_aumentou.png}
+    \includegraphics[width=1.0\linewidth]{images/RQs/diminuiu_empatou_aumentou_por_modelo.png}
     \caption{Distribuição proporcional da alteração nas pontuações por atributo.}
     \label{fig:grafico_distribuicao}
 \end{figure}
 
-Entre os atributos analisados, \textit{Purpose} apresenta a maior proporção de alterações, registrando redução da pontuação em 28\% dos casos e elevação em 22\%, o que totaliza 50\% de divergência e 50\% de manutenção da nota. Por outro lado, o atributo \textit{Examples} exibe a menor variação, com redução em 2\% dos casos, elevação em 4\% e manutenção da pontuação nos 94\% restantes. Os demais atributos do estudo (\textit{Guidelines}, \textit{Limitations}, \textit{Parameter Explanation} e \textit{Length \& Completeness}) apresentam comportamentos intermediários quanto à estabilidade das notas. Para analisar o comportamento e a distribuição das pontuações em cada cenário, a Figura~\ref{fig:boxplot} apresenta uma série de \textit{boxplots} comparando as avaliações com e sem acesso ao código para cada um dos atributos considerados.
+Entre os modelos utilizados é possível perceber que o Deepseek teve, entre os três, uma maior tendência em diminuir a nota na avaliação com código em comparação a avaliação sem código da descrição das tools. Em contrapartida os modelos Gemini e Qwen3 tiveram uma tendência em aumentar a nota na avaliação com o código, sendo os resultados do Qwen3 o mais discrepante entre os três, o que evidencia uma menor concordância dele com os outros dois modelos utilizados.
+
+Em vista dos atributos analisados, \textit{Limitations} e \textit{Examples} são os que apresentam menor variação de nota entre as avaliações com e sem código para todos os três modelos utilizados. \textit{Purpose} é a que, em média, apresenta a maior variação de notas. Já o atributo de \textit{Guidelines} possui uma grande discrepância da sua avaliação feita pelo Qwen3 em relação aos outros, sendo o terceiro com menos variação no Deppseek e Gemini, e sendo o único com menor numero de empates que aumentos de nota entre todas as avaliações pelo Qwen3. Para analisar o comportamento e a distribuição das pontuações em cada cenário, a Figura~\ref{fig:boxplot} apresenta uma série de \textit{boxplots} comparando as avaliações com e sem acesso ao código para cada um dos atributos considerados em cada modelo.
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=1\linewidth]{images/RQs/boxplot_com_sem_codigo_apenas_mudou.png}
+    \includegraphics[width=1\linewidth]{images/RQs/boxplot_com_sem_codigo_apenas_mudou_por_modelo.png}
     \caption{Distribuição das notas nos cenários com e sem código para os casos com alteração de pontuação. (média entre modelos)}
     \label{fig:boxplot}
 \end{figure}
 
-Na construção dos \textit{boxplots} da Figura~\ref{fig:boxplot}, foram consideradas apenas as avaliações que apresentaram diferença de nota. A escolha dessa abordagem ocorreu porque a maioria das avaliações resultou em empate, o que gerava gráficos muito parecidos e sem utilidade para a análise. Ao analisar apenas as descrições com notas diferentes, observa-se que a distribuição de cada atributo mudou de forma distinta. No atributo \textit{Purpose}, a distribuição permaneceu semelhante entre os cenários, com alteração apenas no valor mínimo registrado. Nos atributos \textit{Limitations} e \textit{Guidelines}, houve elevação da mediana de 1,5 para 2,0 no cenário com acesso ao código. No atributo \textit{Examples}, o terceiro quartil subiu de 3,5 para 4,0. Já o atributo \textit{Length \& Completeness} apresentou aumento na mediana (de 1,5 para 2,0) e no terceiro quartil (de 2,5 para 3,0). Por fim, em \textit{Parameter Explanation}, observou-se uma mudança na distribuição com aumento geral nas notas atribuídas às descrições.
+Na construção dos \textit{boxplots} da Figura~\ref{fig:boxplot}, foram consideradas apenas as avaliações que apresentaram diferença de nota. A escolha dessa abordagem ocorreu porque a maioria das avaliações resultou em empate, o que ocultava a real diferença das avaliações com e sem código. Ao analisar apenas as descrições com notas diferentes, observa-se para o modelo do Deepseek uma tendência maior em diminuir a nota nas avaliações com código, isso pode ser afirmado pela diminuição da mediana nos atributos de \textit{Purpose} e \textit{Limitations}, e pela diminuição da média em todos os atributos com exceção de \textit{Length \& Completeness} e \textit{Examples}. Por outro lado os modelos utilizados do Gemini e do Qwen3 obtiveram a tendência oposta de aumentar a nota das avaliações do cenário com código em comparação ao cenário sem código, tendo a média e a mediana elevadas em todos os atributos, sendo os resultados do Qwen3 mais extremos em comparação ao dos outros dois modelos de IA.
 
 
 \subsection{RQ3 as diferenças observadas entre os escores dos cenários com e sem código são estatisticamente significativas?}
+\label{subsec:rq3}
 
-Para responder à RQ3, foram empregados dois métodos de verificação da significância estatística das diferenças entre as duas medições: o Teste de Wilcoxon para Amostras Pareadas, cujos resultados estão apresentados na Tabela~\ref{tab:wilcoxon}, e a análise de transição de quartis, detalhada na Tabela~\ref{tab:transicao_quartis}. Para a aplicação do Teste de Wilcoxon, adotou-se o nível de significância de 5\% ($\alpha = 0{,}05$). Para a análise de transição de quartis, utilizaram-se como referência os quartis obtidos no cenário sem código, comparando-se a posição de cada par \textit{tool}-atributo entre a avaliação sem código e a avaliação com código. Em ambos os métodos, utilizou-se a média das notas atribuídas pelos modelos de inteligência artificial analisados neste estudo.
+Para responder à RQ3, foram empregados dois métodos de verificação da significância estatística das diferenças entre as duas medições: o Teste de Wilcoxon para Amostras Pareadas, cujos resultados estão apresentados na Tabela~\ref{tab:wilcoxon_media}, e a análise de transição de quartis, detalhada na Tabela~\ref{tab:transicao_quartis_media}. Para a aplicação do Teste de Wilcoxon, adotou-se o nível de significância de 5\% ($\alpha = 0{,}05$). Para a análise de transição de quartis, utilizaram-se como referência os quartis obtidos no cenário sem código, comparando-se a posição de cada par \textit{tool}-atributo entre a avaliação sem código e a avaliação com código. Em ambos os métodos, utilizou-se a média das notas atribuídas pelos modelos de IA analisados neste estudo.
 
 \begin{table}[H]
 \centering
+\caption{Resultados do Teste de Postos Sinalizados de Wilcoxon comparando as notas com e sem código, por atributo (Média dos modelos; pareado por tool).}
+\label{tab:wilcoxon_media}
 \caption{Resultados do Teste de Postos Sinalizados de Wilcoxon comparando as notas com e sem código, por atributo (Média dos modelos; pareado por tool).}
 \label{tab:wilcoxon_media}
 \begin{tabular}{lccc}
@@ -156,26 +162,26 @@ Examples & 902 & 67412,5 & $3,64 \times 10^{-69}$* \\
 {\footnotesize * $p<0.05$}
 \end{table}
 
-Como é possível observar na Tabela~\ref{tab:wilcoxon}, os atributos \textit{Purpose}, \textit{Parameter Explanation} e \textit{Length \& Completeness} apresentaram diferenças estatisticamente significativas entre os cenários analisados ($p < 0{,}05$). Por outro lado, os atributos \textit{Guidelines} e \textit{Limitations} apresentaram $p$-valores superiores ao nível de significância adotado ($\alpha = 0{,}05$), indicando que as variações observadas nesses casos não possuem significância estatística. Já o atributo \textit{Examples}, embora tenha apresentado um $p$-valor superior aos três primeiros atributos, permaneceu dentro do limite de significância estatística estipulado no estudo.
+
+A Tabela~\ref{tab:wilcoxon_media} apresenta, para cada um dos seis atributos, o número de ferramentas com avaliações diferentes entre os cenários ($n$), a estatística do teste de Wilcoxon ($W$) e o respectivo valor-p. Como é possível observar, as avaliações de todos os seis atributos apresentam diferenças estatisticamente significativas entre os cenários analisados ($p < 0{,}05$).
 
 \begin{table}[H]
 \centering
-\caption{Transição de quartil das notas (com vs. sem código), por atributo. Faixas de quartil definidas a partir da distribuição sem código (pareado por tool, média entre modelos).}
-\label{tab:transicao_quartis}
+\caption{Transição de quartil das notas (com vs. sem código), por atributo (Média dos modelos). Faixas de quartil definidas a partir da distribuição sem código (pareado por tool).}
+\label{tab:transicao_quartis_media}
 \begin{tabular}{lccc}
 \toprule
 Atributo & Manteve o quartil & Subiu de quartil & Desceu de quartil \\
 \midrule
-Purpose & 70,0\% & 12,1\% & 17,9\% \\
-Parameter Explanation & 72,6\% & 18,8\% & 8,6\% \\
-Length \& Completeness & 72,9\% & 21,7\% & 5,4\% \\
-Guidelines & 84,1\% & 10,4\% & 5,5\% \\
-Limitations & 93,3\% & 4,6\% & 2,1\% \\
-Examples & 98,8\% & 0,9\% & 0,3\% \\
+Purpose & 66,2\% & 24,7\% & 9,2\% \\
+Parameter Explanation & 62,1\% & 29,5\% & 8,4\% \\
+Length \& Completeness & 64,2\% & 30,2\% & 5,7\% \\
+Guidelines & 60,5\% & 38,2\% & 1,3\% \\
+Limitations & 89,0\% & 9,3\% & 1,8\% \\
+Examples & 95,8\% & 3,6\% & 0,6\% \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-Ao analisar os dados da Tabela~\ref{tab:transicao_quartis} em conjunto com os resultados da Tabela~\ref{tab:wilcoxon}, observa-se uma convergência entre as métricas. Os atributos que registraram maior proporção de mudança de quartil foram \textit{Purpose}, \textit{Parameter Explanation} e \textit{Length \& Completeness}, com 20,0\%, 27,4\% e 27,1\% dos casos totais alterados, respectivamente. Em contrapartida, os demais atributos apresentaram menor variação na distribuição por quartis, destacando-se o atributo \textit{Examples}, que registrou apenas 1,2\% de alteração entre as avaliações, o que reforça a baixa alteração observada nessa categoria.
 
-
+Ao analisar os dados da Tabela~\ref{tab:transicao_quartis_media} observa-se que os atributos que registraram maior proporção de mudança de quartil foram: \textit{Purpose}, \textit{Parameter Explanation}, \textit{Length \& Completeness} e \textit{Guidelines}, com 33,9\%, 37,9\%, 35,9\% e 39,5\%  dos casos totais alterados, respectivamente. Em contrapartida, os demais atributos apresentaram menor variação na distribuição por quartis, com os atributos \textit{Limitations} e \textit{Examples} registrando 11,1\% e  4,2\% de alteração entre as avaliações, o que concorda com os Ws registrados na Tabela~\ref{tab:wilcoxon_media} que apresentava valores mais baixos justamente para esses dois parâmetros.

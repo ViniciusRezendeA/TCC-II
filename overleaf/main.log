@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.29 (TeX Live 2026) (preloaded format=pdflatex 2026.9.18)  11 OCT 2026 12:35
+This is pdfTeX, Version 3.141592653-2.6-1.40.29 (TeX Live 2026) (preloaded format=pdflatex 2026.9.18)  11 OCT 2026 20:39
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -921,93 +921,100 @@ pt>
 File: ./images/fluxo_analise_qualitativa_detalhado.png Graphic file (type png)
 <use ./images/fluxo_analise_qualitativa_detalhado.png>
 Package pdftex.def Info: ./images/fluxo_analise_qualitativa_detalhado.png  used
- on input line 134.
+ on input line 138.
 (pdftex.def)             Requested size: 426.79135pt x 77.84132pt.
-
-Underfull \hbox (badness 10000) in paragraph at lines 141--142
+ [14 <./images/fluxo_analise_qualitativa_detalhado.png (PNG copy)>]
+Underfull \hbox (badness 10000) in paragraph at lines 145--146
 [][]\OT1/ptm/m/n/12 Nas tr[]es fa-ses se-guin-tes, busca, re-vis[]ao e defini[]
 []ao dos te-mas
  []
 
-[14 <./images/fluxo_analise_qualitativa_detalhado.png (PNG copy)>]
-Underfull \hbox (badness 1688) in paragraph at lines 143--144
+
+Underfull \hbox (badness 1688) in paragraph at lines 147--148
 [][]\OT1/ptm/m/n/12 Conclu[]^^Pda a an[]alise tem[]atica, aplica-se uma an[]ali
 se de conte[]udo di-ri-gida
  []
 
-) (./sectionsTCCII/05_Resultados_Parciais.tex
+
+Underfull \hbox (badness 1292) in paragraph at lines 149--150
+[][]\OT1/ptm/m/n/12 A classifica[][]ao di-ri-gida pro-du-zida na etapa an-te-ri
+or []e, por sua vez, sub-
+ []
+
+
+Underfull \hbox (badness 1005) in paragraph at lines 149--150
+\OT1/ptm/m/n/12 me-tida a uma verifica[][]ao ma-nual so-bre uma amos-tra de fer
+-ra-men-tas, cujo ta-ma-
+ []
+
+
 Underfull \vbox (badness 10000) has occurred while \output is active []
 
- [15]
-Underfull \hbox (badness 10000) in paragraph at lines 57--57
+ [15])
+(./sectionsTCCII/05_Resultados_Parciais.tex
+Underfull \hbox (badness 10000) in paragraph at lines 65--65
 []|\OT1/ptm/m/n/10 Funcionalidade Anun-ci-ada
  []
 
 
-Underfull \hbox (badness 7740) in paragraph at lines 59--59
+Underfull \hbox (badness 7740) in paragraph at lines 67--67
 []|\OT1/ptm/m/n/10 A es-tru-tura exata do re-torno (cam-pos, ani-nha-mento,
  []
 
 
-Underfull \hbox (badness 1681) in paragraph at lines 61--61
+Underfull \hbox (badness 1681) in paragraph at lines 69--69
 []|\OT1/ptm/m/n/10 Escopo de Pro-ces-sa-mento e
  []
 
 
-Underfull \hbox (badness 4505) in paragraph at lines 61--61
+Underfull \hbox (badness 4505) in paragraph at lines 69--69
 []|\OT1/ptm/m/n/10 A implementa[][]ao re-a-liza bem mais pro-ces-sa-mento ou
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 62--62
+Underfull \hbox (badness 10000) in paragraph at lines 70--70
 []|\OT1/ptm/m/n/10 Sem[]antica de Cor-res-
  []
 
 
-Underfull \hbox (badness 2680) in paragraph at lines 62--62
+Underfull \hbox (badness 2680) in paragraph at lines 70--70
 \OT1/ptm/m/n/10 di-fusa de no-mes) sem que a descri[][]ao men-ci-one essa
  []
 
 
-Underfull \hbox (badness 6094) in paragraph at lines 64--64
+Underfull \hbox (badness 6094) in paragraph at lines 72--72
 []|\OT1/ptm/m/n/10 Confirma[][]ao de En-cap-su-la-
  []
 
-
-Underfull \vbox (badness 10000) has occurred while \output is active []
-
- [16]
-Underfull \vbox (badness 1210) has occurred while \output is active []
-
- [17]
+[16] [17]
 LaTeX Font Info:    Font shape `OT1/phv/b/it' in size <10> not available
-(Font)              Font shape `OT1/phv/b/sl' tried instead on input line 79.
-
-[18]
-<images/RQs/diminuiu_empatou_aumentou.png, id=86, 850.25655pt x 420.97275pt>
-File: images/RQs/diminuiu_empatou_aumentou.png Graphic file (type png)
-<use images/RQs/diminuiu_empatou_aumentou.png>
-Package pdftex.def Info: images/RQs/diminuiu_empatou_aumentou.png  used on inpu
-t line 118.
-(pdftex.def)             Requested size: 426.79135pt x 211.30806pt.
-<images/RQs/boxplot_com_sem_codigo_apenas_mudou.png, id=87, 854.59274pt x 492.1
-587pt>
-File: images/RQs/boxplot_com_sem_codigo_apenas_mudou.png Graphic file (type png
-)
-<use images/RQs/boxplot_com_sem_codigo_apenas_mudou.png>
-Package pdftex.def Info: images/RQs/boxplot_com_sem_codigo_apenas_mudou.png  us
-ed on input line 127.
-(pdftex.def)             Requested size: 426.79135pt x 245.79338pt.
-
+(Font)              Font shape `OT1/phv/b/sl' tried instead on input line 80.
+ [18]
+<images/RQs/diminuiu_empatou_aumentou_por_modelo.png, id=86, 768.2301pt x 251.8
+6095pt>
+File: images/RQs/diminuiu_empatou_aumentou_por_modelo.png Graphic file (type pn
+g)
+<use images/RQs/diminuiu_empatou_aumentou_por_modelo.png>
+Package pdftex.def Info: images/RQs/diminuiu_empatou_aumentou_por_modelo.png  u
+sed on input line 119.
+(pdftex.def)             Requested size: 426.79135pt x 139.92282pt.
+<images/RQs/boxplot_com_sem_codigo_apenas_mudou_por_modelo.png, id=87, 981.7879
+5pt x 266.31496pt>
+File: images/RQs/boxplot_com_sem_codigo_apenas_mudou_por_modelo.png Graphic fil
+e (type png)
+<use images/RQs/boxplot_com_sem_codigo_apenas_mudou_por_modelo.png>
+Package pdftex.def Info: images/RQs/boxplot_com_sem_codigo_apenas_mudou_por_mod
+elo.png  used on input line 130.
+(pdftex.def)             Requested size: 426.79135pt x 115.76884pt.
+ [19 <./images/RQs/diminuiu_empatou_aumentou_por_modelo.png>]
 Underfull \vbox (badness 10000) has occurred while \output is active []
 
- [19 <./images/RQs/diminuiu_empatou_aumentou.png>] [20 <./images/RQs/boxplot_co
-m_sem_codigo_apenas_mudou.png>]) (./main.bbl [21] [22]) (./sectionsTCCII/Apendi
-ce.tex
-[23] (/usr/local/texlive/2026/texmf-dist/tex/latex/listings/lstlang1.sty
+ [20 <./images/RQs/boxplot_com_sem_codigo_apenas_mudou_por_modelo.png>]) (./mai
+n.bbl
+[21] [22]) (./sectionsTCCII/Apendice.tex [23]
+(/usr/local/texlive/2026/texmf-dist/tex/latex/listings/lstlang1.sty
 File: lstlang1.sty 2025/11/14 1.11b listings language file
-)
-[24]
+) [24]
 <./images/01_repos_por_linguagem.png, id=113, 642.75131pt x 388.45125pt>
 File: ./images/01_repos_por_linguagem.png Graphic file (type png)
 <use ./images/01_repos_por_linguagem.png>
@@ -1040,10 +1047,10 @@ L3 programming layer <2026-01-19>
  ***********
  ) 
 Here is how much of TeX's memory you used:
- 21972 strings out of 467525
- 432846 string characters out of 5418982
- 1470413 words of memory out of 5000000
- 50500 multiletter control sequences out of 15000+600000
+ 21965 strings out of 467525
+ 432865 string characters out of 5418982
+ 1470653 words of memory out of 5000000
+ 50493 multiletter control sequences out of 15000+600000
  657655 words of font info for 93 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
  98i,14n,118p,1762b,1829s stack positions out of 10000i,1000n,20000p,200000b,200000s
@@ -1063,7 +1070,7 @@ s/type1/urw/times/utmb8a.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/ur
 w/times/utmbi8a.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/urw/times/u
 tmr8a.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/urw/times/utmri8a.pfb
 >
-Output written on main.pdf (31 pages, 1312128 bytes).
+Output written on main.pdf (31 pages, 1322979 bytes).
 PDF statistics:
  209 PDF objects out of 1000 (max. 8388607)
  123 compressed objects within 2 object streams

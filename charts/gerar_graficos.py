@@ -31,6 +31,7 @@ Rodar da raiz do projeto:
 import os
 import re
 import sys
+import textwrap
 import unicodedata
 from pathlib import Path
 
@@ -58,6 +59,9 @@ OUTPUT_DIR = str(RAIZ / "charts" / "outputs")
 N_MODELOS_ESPERADO = 3  # só tools avaliadas por TODOS os modelos
 
 FIGSIZE = (8, 8)
+# fonte das figuras _por_modelo: maior que a padrão, porque a figura (3 painéis lado a
+# lado) é reduzida à largura do texto, cerca de metade do seu tamanho original
+FONTE_POR_MODELO = 14
 
 
 NOME_MEDIA = "Média dos modelos"
@@ -198,24 +202,50 @@ def dados_de_um_modelo(df, modelo):
 #   ocultar_y_repetido=True: com N painéis, só o primeiro mostra os rótulos do eixo Y
 # ---------------------------------------------------------------------------
 def salvar_graficos(nome, desenhar, agg_modelos, agg_media,
-                    figsize_painel=(10, 6), sharey=False, ocultar_y_repetido=False):
+                    figsize_painel=(10, 6), sharey=False, ocultar_y_repetido=False,
+                    painel_por_modelo=(4.0, 3.4), desenhar_por_modelo=None):
+    """O <nome>_por_modelo.png põe os N painéis lado a lado, cada um com tamanho
+    `painel_por_modelo` (pol.): painéis pequenos com fonte maior, para que o texto não
+    encolha demais quando a figura é inserida com width=\\linewidth. A legenda dos
+    painéis vira uma só, centralizada embaixo, e o rótulo do eixo X só aparece no painel
+    do meio. `desenhar_por_modelo` permite uma versão compacta do desenho só para essa
+    figura (por exemplo, rótulos abreviados); se omitido, usa `desenhar`."""
     modelos = list(agg_modelos)
     n = len(modelos)
+    desenhar_painel = desenhar_por_modelo or desenhar
 
-    fig, axes = plt.subplots(
-        1, n, figsize=(figsize_painel[0] * n, figsize_painel[1]),
-        sharey=(sharey or ocultar_y_repetido), squeeze=False,
-    )
-    for ax, modelo in zip(axes[0], modelos):
-        desenhar(agg_modelos[modelo], ax)
-        ax.set_title(modelo, fontsize=13, fontweight="bold")
-    if ocultar_y_repetido:
-        for ax in axes[0][1:]:
-            ax.tick_params(axis="y", labelleft=False)
-    fig.tight_layout()
-    caminho = f"{OUTPUT_DIR}/{nome}_por_modelo.png"
-    fig.savefig(caminho, dpi=200, bbox_inches="tight")
-    plt.close(fig)
+    with plt.rc_context({"font.size": FONTE_POR_MODELO}):
+        fig, axes = plt.subplots(
+            1, n, figsize=(painel_por_modelo[0] * n, painel_por_modelo[1]),
+            sharey=(sharey or ocultar_y_repetido), squeeze=False,
+        )
+        axes = axes[0]
+        for ax, modelo in zip(axes, modelos):
+            desenhar_painel(agg_modelos[modelo], ax)
+            ax.set_title(modelo, fontsize=FONTE_POR_MODELO - 2, fontweight="bold")
+        if ocultar_y_repetido:
+            for ax in axes[1:]:
+                ax.tick_params(axis="y", labelleft=False)
+                ax.set_ylabel("")
+
+        legenda = axes[0].get_legend()
+        handles, labels = axes[0].get_legend_handles_labels()
+        if legenda is not None and not handles:
+            handles, labels = legenda.legend_handles, [t.get_text() for t in legenda.get_texts()]
+        for ax in axes:
+            if ax.get_legend() is not None:
+                ax.get_legend().remove()
+        meio = n // 2
+        for i, ax in enumerate(axes):
+            if i != meio:
+                ax.set_xlabel("")
+
+        fig.tight_layout(rect=(0, 0.1, 1, 1))
+        fig.legend(handles, labels, loc="lower center", ncol=len(labels),
+                   bbox_to_anchor=(0.5, 0.0), frameon=False)
+        caminho = f"{OUTPUT_DIR}/{nome}_por_modelo.png"
+        fig.savefig(caminho, dpi=200, bbox_inches="tight")
+        plt.close(fig)
     print(f"[OK] {caminho}")
 
     fig, ax = plt.subplots(figsize=figsize_painel)
@@ -252,7 +282,7 @@ def _desenhar_diminuiu_empatou_aumentou(agg, ax):
         valores = pct[cat].values
         barras = ax.barh(y, valores, left=esquerda, color=cor, label=cat)
         for rect, valor in zip(barras, valores):
-            if valor <= 0:
+            if valor < 14:  # segmento estreito demais para caber o rótulo
                 continue
             ax.text(
                 rect.get_x() + rect.get_width() / 2, rect.get_y() + rect.get_height() / 2,
@@ -272,7 +302,7 @@ def _desenhar_diminuiu_empatou_aumentou(agg, ax):
 def grafico_diminuiu_empatou_aumentou(agg_modelos, agg_media):
     salvar_graficos("diminuiu_empatou_aumentou", _desenhar_diminuiu_empatou_aumentou,
                     agg_modelos, agg_media, figsize_painel=FIGSIZE,
-                    ocultar_y_repetido=True)
+                    ocultar_y_repetido=True, painel_por_modelo=(3.6, 3.6))
 
 
 # ---------------------------------------------------------------------------
@@ -301,8 +331,8 @@ def _plot_boxplot_com_sem(longo, ordem, ax):
         )
 
     ax.set_xticks(x)
-    ax.set_xticklabels(ordem, rotation=15, ha="right", rotation_mode="anchor")
-    ax.set_ylabel("Nota (escala Likert)")
+    ax.set_xticklabels(ordem, fontsize=10)
+    ax.set_ylabel("Nota (Likert)")
     _sem_grade_vertical(ax)
 
     ax.legend(
@@ -337,7 +367,9 @@ def _desenhar_boxplot_apenas_mudou(agg, ax):
     n_total = agg.groupby("attribute_label").size().reindex(ordem, fill_value=0)
     n_mudou = agg_mudou.groupby("attribute_label").size().reindex(ordem, fill_value=0)
     pct_mudou = (n_mudou / n_total.replace(0, np.nan) * 100).fillna(0).round(0)
-    ordem_rotulada = [f"{a}\n(n={int(n_mudou[a])}, {pct_mudou[a]:.0f}%)" for a in ordem]
+    ordem_rotulada = [
+        f"{textwrap.fill(a, 13)}\n(n={int(n_mudou[a])}, {pct_mudou[a]:.0f}%)" for a in ordem
+    ]
 
     longo = _formato_longo(agg_mudou)
     longo["attribute_label"] = longo["attribute_label"].map(dict(zip(ordem, ordem_rotulada)))
@@ -346,9 +378,35 @@ def _desenhar_boxplot_apenas_mudou(agg, ax):
     ax.set_xlabel("(n = tools que mudaram naquele atributo, % do total)")
 
 
+ROTULO_CURTO = {
+    "Purpose": "Purp.",
+    "Parameter Explanation": "Param.",
+    "Length & Completeness": "Length",
+    "Guidelines": "Guid.",
+    "Limitations": "Limit.",
+    "Examples": "Exam.",
+}
+
+
+def _desenhar_boxplot_apenas_mudou_compacto(agg, ax):
+    """Mesmo boxplot, com o nome do atributo abreviado (ROTULO_CURTO) e só a % de tools
+    que mudaram, para caber em um painel estreito da figura _por_modelo."""
+    _desenhar_boxplot_apenas_mudou(agg, ax)
+    rotulos = []
+    for t in ax.get_xticklabels():
+        nome, contagem = t.get_text().replace("\n", " ").split(" (n=")
+        pct = contagem.split(", ")[1].rstrip(")")
+        rotulos.append(f"{ROTULO_CURTO[re.sub(r'\\s+', ' ', nome)]}\n{pct}")
+    ax.set_xticks(ax.get_xticks())
+    ax.set_xticklabels(rotulos, fontsize=FONTE_POR_MODELO - 3)
+    ax.set_xlabel("(% = tools que mudaram no atributo)")
+
+
 def grafico_boxplot_apenas_mudou(agg_modelos, agg_media):
     salvar_graficos("boxplot_com_sem_codigo_apenas_mudou", _desenhar_boxplot_apenas_mudou,
-                    agg_modelos, agg_media, figsize_painel=FIGSIZE, sharey=True)
+                    agg_modelos, agg_media, figsize_painel=FIGSIZE, sharey=True,
+                    ocultar_y_repetido=True, painel_por_modelo=(4.6, 3.8),
+                    desenhar_por_modelo=_desenhar_boxplot_apenas_mudou_compacto)
 
 
 # ---------------------------------------------------------------------------
