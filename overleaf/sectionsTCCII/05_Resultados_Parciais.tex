@@ -4,7 +4,7 @@
 
 %% TALVEZ AQUI VALHA FAZER TIPO UM FILTRO DE PEGAR IGUALMENTE OU IGUALMENTE DISTRIBUIDA AS DIFERENÇAS ENTRE TOPICOS OU REPOSITORIOS OU SEI LA
 
-Esta seção apresenta os resultados da avaliação por rubrica descrita na Seção~\ref{sec:materiais}, com base nas avaliações concluídas pelos três juízes: DeepSeek-V4.1-Flash e Gemini 3.5 Flash-Lite, cada um com as 12.171 ferramentas da base avaliadas nos dois cenários experimentais (sem código e com código), e Qwen3-14B, executado localmente, com 9.548 ferramentas avaliadas.
+Esta seção apresenta os resultados da avaliação por rubrica descrita na Seção~\ref{sec:materiais}, com base nas avaliações concluídas pelos três juízes: DeepSeek-V4.1-Flash e Gemini 3.5 Flash-Lite, cada um com as 12.171 ferramentas da base avaliadas nos dois cenários experimentais (sem código e com código).
 %\subsection{Comparação entre Cenários e Significância Estatística}
 %\label{subsec:comparacao-cenarios}
 
@@ -132,7 +132,7 @@ Em vista dos atributos analisados, \textit{Limitations} e \textit{Examples} são
     \label{fig:boxplot}
 \end{figure}
 
-Na construção dos \textit{boxplots} da Figura~\ref{fig:boxplot}, foram consideradas apenas as avaliações que apresentaram diferença de nota. A escolha dessa abordagem ocorreu porque a maioria das avaliações resultou em empate, o que ocultava a real diferença das avaliações com e sem código. Ao analisar apenas as descrições com notas diferentes, observa-se para o modelo do Deepseek uma tendência maior em diminuir a nota nas avaliações com código, isso pode ser afirmado pela diminuição da mediana nos atributos de \textit{Purpose} e \textit{Limitations}, e pela diminuição da média em todos os atributos com exceção de \textit{Length \& Completeness} e \textit{Examples}. Por outro lado os modelos utilizados do Gemini e do Qwen3 obtiveram a tendência oposta de aumentar a nota das avaliações do cenário com código em comparação ao cenário sem código, tendo a média e a mediana elevadas em todos os atributos, sendo os resultados do Qwen3 mais extremos em comparação ao dos outros dois modelos de IA.
+Na construção dos \textit{boxplots} da Figura~\ref{fig:boxplot}, foram consideradas apenas as avaliações que apresentaram diferença de nota. A escolha dessa abordagem ocorreu porque a maioria das avaliações resultou em empate, o que ocultava a real diferença das avaliações com e sem código. Ao analisar apenas as descrições com notas diferentes, observa-se para o modelo do Deepseek uma tendência maior em diminuir a nota nas avaliações com código, isso pode ser afirmado pela diminuição da mediana nos atributos de \textit{Purpose}, \textit{Parameter Explanation} e \textit{Limitations}, e pela diminuição da média em todos os atributos. Por outro lado os modelos utilizados do Gemini e do Qwen3 obtiveram a tendência oposta de aumentar a nota das avaliações do cenário com código em comparação ao cenário sem código, tendo a média elevada em todos os atributos e a mediana elevada em todos os atributos com exceção de \textit{Guidelines} no Gemini, cuja mediana se manteve, sendo os resultados do Qwen3 mais extremos em comparação ao dos outros dois modelos de IA.
 
 
 \subsection{RQ3 as diferenças observadas entre os escores dos cenários com e sem código são estatisticamente significativas?}
@@ -144,18 +144,16 @@ Para responder à RQ3, foram empregados dois métodos de verificação da signif
 \centering
 \caption{Resultados do Teste de Postos Sinalizados de Wilcoxon comparando as notas com e sem código, por atributo (Média dos modelos; pareado por tool).}
 \label{tab:wilcoxon_media}
-\caption{Resultados do Teste de Postos Sinalizados de Wilcoxon comparando as notas com e sem código, por atributo (Média dos modelos; pareado por tool).}
-\label{tab:wilcoxon_media}
 \begin{tabular}{lccc}
 \toprule
 Atributo & $n$ diferentes & $W$ & $p$-valor \\
 \midrule
-Purpose & 6130 & 5031832,0 & $9,84 \times 10^{-222}$* \\
-Parameter Explanation & 5626 & 4526255,5 & $1,34 \times 10^{-171}$* \\
-Length \& Completeness & 5380 & 2145338,0 & $< 10^{-300}$* \\
-Guidelines & 5956 & 1973603,0 & $< 10^{-300}$* \\
-Limitations & 2430 & 667277,0 & $2,30 \times 10^{-123}$* \\
-Examples & 902 & 67412,5 & $3,64 \times 10^{-69}$* \\
+Purpose & 7675 & 8576765,0 & $1,49 \times 10^{-224}$* \\
+Parameter Explanation & 7102 & 7716300,5 & $5,79 \times 10^{-178}$* \\
+Length \& Completeness & 6817 & 3788033,5 & $< 10^{-300}$* \\
+Guidelines & 7639 & 3721414,0 & $< 10^{-300}$* \\
+Limitations & 3365 & 1385458,5 & $8,40 \times 10^{-148}$* \\
+Examples & 1261 & 151287,0 & $1,44 \times 10^{-82}$* \\
 \bottomrule
 \end{tabular}
 \\[4pt]
@@ -173,15 +171,15 @@ A Tabela~\ref{tab:wilcoxon_media} apresenta, para cada um dos seis atributos, o 
 \toprule
 Atributo & Manteve o quartil & Subiu de quartil & Desceu de quartil \\
 \midrule
-Purpose & 66,2\% & 24,7\% & 9,2\% \\
-Parameter Explanation & 62,1\% & 29,5\% & 8,4\% \\
-Length \& Completeness & 64,2\% & 30,2\% & 5,7\% \\
-Guidelines & 60,5\% & 38,2\% & 1,3\% \\
-Limitations & 89,0\% & 9,3\% & 1,8\% \\
-Examples & 95,8\% & 3,6\% & 0,6\% \\
+Purpose & 68,2\% & 21,6\% & 10,2\% \\
+Parameter Explanation & 65,7\% & 26,3\% & 8,1\% \\
+Length \& Completeness & 65,4\% & 28,5\% & 6,0\% \\
+Guidelines & 61,0\% & 37,7\% & 1,4\% \\
+Limitations & 84,2\% & 13,1\% & 2,7\% \\
+Examples & 95,5\% & 3,9\% & 0,6\% \\
 \bottomrule
 \end{tabular}
 \end{table}
 
 
-Ao analisar os dados da Tabela~\ref{tab:transicao_quartis_media} observa-se que os atributos que registraram maior proporção de mudança de quartil foram: \textit{Purpose}, \textit{Parameter Explanation}, \textit{Length \& Completeness} e \textit{Guidelines}, com 33,9\%, 37,9\%, 35,9\% e 39,5\%  dos casos totais alterados, respectivamente. Em contrapartida, os demais atributos apresentaram menor variação na distribuição por quartis, com os atributos \textit{Limitations} e \textit{Examples} registrando 11,1\% e  4,2\% de alteração entre as avaliações, o que concorda com os Ws registrados na Tabela~\ref{tab:wilcoxon_media} que apresentava valores mais baixos justamente para esses dois parâmetros.
+Ao analisar os dados da Tabela~\ref{tab:transicao_quartis_media} observa-se que os atributos que registraram maior proporção de mudança de quartil foram: \textit{Purpose}, \textit{Parameter Explanation}, \textit{Length \& Completeness} e \textit{Guidelines}, com 31,8\%, 34,4\%, 34,5\% e 39,1\% dos casos totais alterados, respectivamente. Em contrapartida, os demais atributos apresentaram menor variação na distribuição por quartis, com os atributos \textit{Limitations} e \textit{Examples} registrando 15,8\% e 4,5\% de alteração entre as avaliações, o que concorda com os Ws registrados na Tabela~\ref{tab:wilcoxon_media} que apresentava valores mais baixos justamente para esses dois parâmetros.

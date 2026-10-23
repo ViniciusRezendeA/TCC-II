@@ -15,9 +15,16 @@ Guidelines, Limitations, Parameter Explanation, Length & Completeness, Examples)
 apareceram muito dentro daquele mesmo estrato, para não deixar a amostra de uma categoria vir
 sempre do mesmo componente.
 
+Com --manter, as ferramentas de uma amostra anterior (mesmo formato da saída) que ainda existem
+na amostra de consenso, com a mesma categoria, entram primeiro e já contam para as vagas do seu
+estrato, para os repositórios e para os componentes usados; só as vagas restantes são sorteadas.
+Serve para recompor a amostra quando a amostra de consenso muda (ex.: um juiz concluído depois)
+sem descartar verificações já feitas que continuam válidas.
+
 Uso:
   uv run python -m scripts.select_consenso_verification_sample
   uv run python -m scripts.select_consenso_verification_sample --n 100 --seed 42
+  uv run python -m scripts.select_consenso_verification_sample --manter manter.json
 """
 
 from __future__ import annotations
@@ -77,6 +84,7 @@ def main() -> None:
     parser.add_argument("--output", type=Path, default=None, help="default: data/analysis/consenso_verificacao_manual.jsonl")
     parser.add_argument("--n", type=int, default=N_AMOSTRA)
     parser.add_argument("--seed", type=int, default=SEED)
+    parser.add_argument("--manter", type=Path, default=None, help="JSON (formato da saída) com ferramentas já verificadas a preservar.")
     args = parser.parse_args()
 
     amostra_path = args.amostra or (DATA_DIR / "analysis" / "consenso_amostra.jsonl")
@@ -127,15 +135,32 @@ def main() -> None:
     rng = random.Random(args.seed)
     repos_usados: Counter[str] = Counter()
     componentes_globais: Counter[str] = Counter()
+    componentes_por_estrato: dict[str, Counter[str]] = defaultdict(Counter)
+    mantidas_por_estrato: Counter[str] = Counter()
     tools_selecionadas: set[str] = set()
     resultado: list[dict] = []
+
+    if args.manter:
+        anteriores = json.loads(args.manter.read_text(encoding="utf-8"))
+        for item in anteriores:
+            tool_uid, cat = item["tool_uid"], item["categoria"]
+            if tool_uid not in amostra or cat not in categorizacao.get(tool_uid, []):
+                continue
+            tools_selecionadas.add(tool_uid)
+            repos_usados[_repo_from_tool_uid(tool_uid)] += 1
+            comps = _componentes_divergentes(amostra[tool_uid]["avaliacoes"])
+            componentes_por_estrato[cat].update(comps)
+            componentes_globais.update(comps)
+            mantidas_por_estrato[cat] += 1
+            resultado.append(item)
+        logger.info("%s de %s ferramentas mantidas de %s", len(resultado), len(anteriores), args.manter)
 
     # Estratos menores primeiro: têm menos candidatos, então escolhem antes que um estrato
     # maior "roube" (via categoria múltipla) um dos poucos candidatos de um estrato pequeno.
     for cat in sorted(alocacao, key=lambda c: tamanhos[c]):
-        vagas = alocacao[cat]
+        vagas = max(0, alocacao[cat] - mantidas_por_estrato[cat])
         candidatos = [t for t in tools_por_categoria[cat] if t not in tools_selecionadas]
-        componentes_estrato: Counter[str] = Counter()
+        componentes_estrato = componentes_por_estrato[cat]
 
         for _ in range(vagas):
             if not candidatos:
