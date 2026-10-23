@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.29 (TeX Live 2026) (preloaded format=pdflatex 2026.9.18)  11 OCT 2026 21:01
+This is pdfTeX, Version 3.141592653-2.6-1.40.29 (TeX Live 2026) (preloaded format=pdflatex 2026.9.18)  23 OCT 2026 18:01
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -908,41 +908,50 @@ File: ./images/arvoreFinal.png Graphic file (type png)
 <use ./images/arvoreFinal.png>
 Package pdftex.def Info: ./images/arvoreFinal.png  used on input line 81.
 (pdftex.def)             Requested size: 426.79135pt x 148.67255pt.
+
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
  [11 <./images/arvoreFinal.png>]
 <./images/fluxo_etapa3_detalhado.png, id=57, 1067.187pt x 401.5803pt>
 File: ./images/fluxo_etapa3_detalhado.png Graphic file (type png)
 <use ./images/fluxo_etapa3_detalhado.png>
 Package pdftex.def Info: ./images/fluxo_etapa3_detalhado.png  used on input lin
-e 101.
+e 123.
 (pdftex.def)             Requested size: 426.79135pt x 160.60475pt.
- [12 <./images/fluxo_etapa3_detalhado.png>] [13]
-<./images/fluxo_analise_qualitativa_detalhado.png, id=66, 2360.82pt x 430.60875
+
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+ [12]
+Underfull \vbox (badness 2103) has occurred while \output is active []
+
+ [13 <./images/fluxo_etapa3_detalhado.png>] [14]
+<./images/fluxo_analise_qualitativa_detalhado.png, id=69, 2360.82pt x 430.60875
 pt>
 File: ./images/fluxo_analise_qualitativa_detalhado.png Graphic file (type png)
 <use ./images/fluxo_analise_qualitativa_detalhado.png>
 Package pdftex.def Info: ./images/fluxo_analise_qualitativa_detalhado.png  used
- on input line 138.
+ on input line 160.
 (pdftex.def)             Requested size: 426.79135pt x 77.84132pt.
- [14 <./images/fluxo_analise_qualitativa_detalhado.png (PNG copy)>]
-Underfull \hbox (badness 10000) in paragraph at lines 145--146
+ [15 <./images/fluxo_analise_qualitativa_detalhado.png (PNG copy)>]
+Underfull \hbox (badness 10000) in paragraph at lines 167--168
 [][]\OT1/ptm/m/n/12 Nas tr[]es fa-ses se-guin-tes, busca, re-vis[]ao e defini[]
 []ao dos te-mas
  []
 
 
-Underfull \hbox (badness 1688) in paragraph at lines 147--148
+Underfull \hbox (badness 1688) in paragraph at lines 169--170
 [][]\OT1/ptm/m/n/12 Conclu[]^^Pda a an[]alise tem[]atica, aplica-se uma an[]ali
 se de conte[]udo di-ri-gida
  []
 
 
-Underfull \hbox (badness 1292) in paragraph at lines 149--150
+Underfull \hbox (badness 1292) in paragraph at lines 171--172
 [][]\OT1/ptm/m/n/12 A classifica[][]ao di-ri-gida pro-du-zida na etapa an-te-ri
 or []e, por sua vez, sub-
  []
 
 
-Underfull \hbox (badness 1005) in paragraph at lines 149--150
+Underfull \hbox (badness 1005) in paragraph at lines 171--172
 \OT1/ptm/m/n/12 me-tida a uma verifica[][]ao ma-nual so-bre uma amos-tra de fer
 -ra-men-tas, cujo ta-ma-
  []
@@ -950,7 +959,7 @@ Underfull \hbox (badness 1005) in paragraph at lines 149--150
 
 Underfull \vbox (badness 10000) has occurred while \output is active []
 
- [15])
+ [16])
 (./sectionsTCCII/05_Resultados_Parciais.tex
 Underfull \hbox (badness 10000) in paragraph at lines 65--65
 []|\OT1/ptm/m/n/10 Funcionalidade Anun-ci-ada
@@ -986,11 +995,11 @@ Underfull \hbox (badness 6094) in paragraph at lines 72--72
 []|\OT1/ptm/m/n/10 Confirma[][]ao de En-cap-su-la-
  []
 
-[16] [17]
+[17] [18]
 LaTeX Font Info:    Font shape `OT1/phv/b/it' in size <10> not available
 (Font)              Font shape `OT1/phv/b/sl' tried instead on input line 80.
- [18]
-<images/RQs/diminuiu_empatou_aumentou_por_modelo.png, id=86, 768.2301pt x 251.8
+ [19]
+<images/RQs/diminuiu_empatou_aumentou_por_modelo.png, id=90, 768.2301pt x 251.8
 6095pt>
 File: images/RQs/diminuiu_empatou_aumentou_por_modelo.png Graphic file (type pn
 g)
@@ -998,7 +1007,7 @@ g)
 Package pdftex.def Info: images/RQs/diminuiu_empatou_aumentou_por_modelo.png  u
 sed on input line 119.
 (pdftex.def)             Requested size: 426.79135pt x 139.92282pt.
-<images/RQs/boxplot_com_sem_codigo_apenas_mudou_por_modelo.png, id=87, 981.7879
+<images/RQs/boxplot_com_sem_codigo_apenas_mudou_por_modelo.png, id=91, 981.7879
 5pt x 266.31496pt>
 File: images/RQs/boxplot_com_sem_codigo_apenas_mudou_por_modelo.png Graphic fil
 e (type png)
@@ -1006,54 +1015,32 @@ e (type png)
 Package pdftex.def Info: images/RQs/boxplot_com_sem_codigo_apenas_mudou_por_mod
 elo.png  used on input line 130.
 (pdftex.def)             Requested size: 426.79135pt x 115.76884pt.
- [19 <./images/RQs/diminuiu_empatou_aumentou_por_modelo.png>]
+ [20 <./images/RQs/diminuiu_empatou_aumentou_por_modelo.png>]
 Underfull \vbox (badness 10000) has occurred while \output is active []
 
- [20 <./images/RQs/boxplot_com_sem_codigo_apenas_mudou_por_modelo.png>]) (./mai
+ [21 <./images/RQs/boxplot_com_sem_codigo_apenas_mudou_por_modelo.png>]) (./mai
 n.bbl
-[21] [22]) (./sectionsTCCII/Apendice.tex [23]
-(/usr/local/texlive/2026/texmf-dist/tex/latex/listings/lstlang1.sty
-File: lstlang1.sty 2025/11/14 1.11b listings language file
-) [24]
-<./images/01_repos_por_linguagem.png, id=113, 642.75131pt x 388.45125pt>
-File: ./images/01_repos_por_linguagem.png Graphic file (type png)
-<use ./images/01_repos_por_linguagem.png>
-Package pdftex.def Info: ./images/01_repos_por_linguagem.png  used on input lin
-e 184.
-(pdftex.def)             Requested size: 341.43437pt x 206.35236pt.
-
-Underfull \vbox (badness 1953) has occurred while \output is active []
-
- [25]
-<./images/02_tools_por_linguagem.png, id=118, 641.84793pt x 388.45125pt>
-File: ./images/02_tools_por_linguagem.png Graphic file (type png)
-<use ./images/02_tools_por_linguagem.png>
-Package pdftex.def Info: ./images/02_tools_por_linguagem.png  used on input lin
-e 193.
-(pdftex.def)             Requested size: 341.43437pt x 206.63686pt.
-
-[26 <./images/01_repos_por_linguagem.png> <./images/02_tools_por_linguagem.png>
-] [27]
+[22] [23]) (./sectionsTCCII/Apendice.tex [24] [25]
 Underfull \vbox (badness 10000) has occurred while \output is active []
 
- [28]
+ [26]
 LaTeX Font Info:    Font shape `OMS/pcr/m/n' in size <12> not available
-(Font)              Font shape `OMS/cmsy/m/n' tried instead on input line 253.
+(Font)              Font shape `OMS/cmsy/m/n' tried instead on input line 94.
 
-[29] [30]) [31] (./main.aux)
+[27] [28]) [29] (./main.aux)
  ***********
 LaTeX2e <2025-11-01>
 L3 programming layer <2026-01-19>
  ***********
  ) 
 Here is how much of TeX's memory you used:
- 21965 strings out of 467525
- 432865 string characters out of 5418982
- 1470653 words of memory out of 5000000
- 50493 multiletter control sequences out of 15000+600000
- 657655 words of font info for 93 fonts, out of 8000000 for 9000
+ 21797 strings out of 467525
+ 430373 string characters out of 5418982
+ 1450143 words of memory out of 5000000
+ 50329 multiletter control sequences out of 15000+600000
+ 657140 words of font info for 91 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 98i,14n,118p,1762b,1829s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 98i,14n,118p,1762b,1685s stack positions out of 10000i,1000n,20000p,200000b,200000s
 </usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb
 ></usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb>
 </usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi12.pfb><
@@ -1062,18 +1049,17 @@ sr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmr12.pfb></usr
 /local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmr8.pfb></usr/lo
 cal/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/loc
 al/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy8.pfb></usr/local
-/texlive/2026/texmf-dist/fonts/type1/urw/courier/ucrb8a.pfb></usr/local/texlive
-/2026/texmf-dist/fonts/type1/urw/courier/ucrr8a.pfb></usr/local/texlive/2026/te
-xmf-dist/fonts/type1/urw/helvetic/uhvb8a.pfb></usr/local/texlive/2026/texmf-dis
-t/fonts/type1/urw/helvetic/uhvbo8a.pfb></usr/local/texlive/2026/texmf-dist/font
-s/type1/urw/times/utmb8a.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/ur
-w/times/utmbi8a.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/urw/times/u
-tmr8a.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/urw/times/utmri8a.pfb
->
-Output written on main.pdf (31 pages, 1322804 bytes).
+/texlive/2026/texmf-dist/fonts/type1/urw/courier/ucrr8a.pfb></usr/local/texlive
+/2026/texmf-dist/fonts/type1/urw/helvetic/uhvb8a.pfb></usr/local/texlive/2026/t
+exmf-dist/fonts/type1/urw/helvetic/uhvbo8a.pfb></usr/local/texlive/2026/texmf-d
+ist/fonts/type1/urw/times/utmb8a.pfb></usr/local/texlive/2026/texmf-dist/fonts/
+type1/urw/times/utmbi8a.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/urw
+/times/utmr8a.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/urw/times/utm
+ri8a.pfb>
+Output written on main.pdf (29 pages, 1220630 bytes).
 PDF statistics:
- 209 PDF objects out of 1000 (max. 8388607)
- 123 compressed objects within 2 object streams
+ 193 PDF objects out of 1000 (max. 8388607)
+ 115 compressed objects within 2 object streams
  0 named destinations out of 1000 (max. 500000)
- 63 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 53 words of extra memory for PDF output out of 10000 (max. 10000000)
 

@@ -47,7 +47,7 @@ Selecionados (qualificados pelo laço de \textit{backfill}) & 206 & 1,7\% \\ \hl
 \end{tabular}
 \end{table}
 
-\textcolor{orange}{Diferentemente de um corte simples pelas 206 posições mais bem colocadas, a seleção final passa por um laço de preenchimento (\textit{backfill}): um repositório só permanece selecionado se, após a Etapa 2, confirmar pelo menos uma ferramenta; repositórios desqualificados são substituídos pelo próximo candidato do pool ainda não tentado, e o processo se repete até fechar as 206 vagas ou esgotar o pool. Entre os repositórios selecionados, a distribuição por linguagem principal está longe de ser uniforme, com forte concentração em Python e TypeScript (detalhamento completo no Apêndice~\ref{apendice:secao-linguagens}).}
+\textcolor{orange}{Diferentemente de um corte simples pelas 206 posições mais bem colocadas, a seleção final passa por um laço de preenchimento (\textit{backfill}): um repositório só permanece selecionado se, após a Etapa 2, confirmar pelo menos uma ferramenta; repositórios desqualificados são substituídos pelo próximo candidato do pool ainda não tentado, e o processo se repete até fechar as 206 vagas ou esgotar o pool. Entre os repositórios selecionados, a distribuição por linguagem principal está longe de ser uniforme, com forte concentração em Python e TypeScript (Tabela~\ref{tab:media-tools-servidor}).}
 
 
 \subsection{Extração das Ferramentas e do Código Relacionado}
@@ -85,7 +85,29 @@ Em seguida, foi realizada a extração do código relacionado a cada ferramenta.
 
 Ao final desta etapa, foi produzido um conjunto de dados estruturado contendo os servidores MCP analisados e as ferramentas identificadas em cada um deles. Para cada ferramenta, \textcolor{orange}{são armazenadas} sua descrição em linguagem natural e o conjunto de métodos obtido a partir da árvore de chamadas. Esse conjunto de dados \textcolor{orange}{serve} como entrada para as etapas subsequentes da pesquisa, nas quais as ferramentas dos repositórios coletados \textcolor{orange}{são avaliadas} quanto à qualidade de suas descrições, com e sem o uso do código correspondente.
 
-\textcolor{orange}{A Etapa 2 extraiu 12.171 ferramentas dos 206 repositórios selecionados; como a seleção final já incorpora o laço de \textit{backfill}, todo repositório selecionado confirma, por construção, pelo menos uma ferramenta. A distribuição de ferramentas por linguagem segue de perto a distribuição de repositórios vista na coleta, com a mesma concentração em Python e TypeScript e uma assimetria adicional por repositório individual (detalhamento completo no Apêndice~\ref{apendice:secao-linguagens}).}
+\textcolor{orange}{A Etapa 2 extraiu 12.171 ferramentas dos 206 repositórios selecionados; como a seleção final já incorpora o laço de \textit{backfill}, todo repositório selecionado confirma, por construção, pelo menos uma ferramenta. A distribuição de ferramentas por linguagem segue de perto a distribuição de repositórios vista na coleta, com a mesma concentração em Python e TypeScript e uma assimetria adicional por repositório individual (Tabela~\ref{tab:media-tools-servidor}). Python (79 repositórios, 38,3\%) e TypeScript (45, 21,8\%) concentram 60\% dos repositórios e 85,6\% das ferramentas; nenhum repositório em Kotlin, PHP, Elixir, Lua ou Swift permaneceu na seleção final, pois os candidatos dessas linguagens foram descartados pelo laço de \textit{backfill} por não confirmarem nenhuma ferramenta, ou nunca alcançaram o piso de estrelas dentro do pool.}
+
+\begin{table}[H]
+\centering
+\caption{Repositórios selecionados e total de ferramentas extraídas, por linguagem}
+\label{tab:media-tools-servidor}
+\begin{tabular}{|l|r|r|r|}
+\hline
+\textbf{Linguagem} & \textbf{Repositórios} & \textbf{Tools (total)} & \textbf{Média/repositório} \\ \hline
+Python & 79 & 7.251 & 91,78 \\ \hline
+TypeScript & 45 & 3.162 & 70,27 \\ \hline
+Java & 13 & 793 & 61,00 \\ \hline
+C\# & 21 & 423 & 20,14 \\ \hline
+Rust & 26 & 276 & 10,62 \\ \hline
+Go & 13 & 149 & 11,46 \\ \hline
+JavaScript & 6 & 108 & 18,00 \\ \hline
+Ruby & 2 & 5 & 2,50 \\ \hline
+Dart & 1 & 4 & 4,00 \\ \hline
+\textbf{Total} & \textbf{206} & \textbf{12.171} & \textbf{59,08} \\ \hline
+\end{tabular}
+\end{table}
+
+\textcolor{orange}{A concentração de ferramentas por repositório também é fortemente assimétrica: os três repositórios com mais ferramentas respondem, sozinhos, por 46,6\% de todo o conjunto de dados (20,4\%, 18,4\% e 7,8\%, respectivamente), um deles em TypeScript, os outros dois em Python. Esse resultado eleva consideravelmente a média de ferramentas por repositório nessas duas linguagens e deve ser considerado ao interpretar médias agregadas por linguagem.}
 
 
 
