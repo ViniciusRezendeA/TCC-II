@@ -137,7 +137,9 @@
       ]
     },
     "justicativa": "A análise do código-fonte revelou o esquema de entrada completo e os detalhes do endpoint de `cancel_scheduled_send`, expondo explicitamente as propriedades `batch_id` e `status` junto com seus valores enum permitidos ('cancel' ou 'pause'). Esse contexto estrutural permitiu que os juízes avaliassem melhor as explicações de parâmetros, as diretrizes e as limitações, ao confirmar como a ferramenta interage com envios agendados via POST /user/scheduled_sends. Consequentemente, os juízes atribuíram notas mais altas à completude e à orientação operacional da descrição quando puderam verificar esses detalhes de implementação em relação à descrição em texto simples.",
-    "categoria": "Sistema-Alvo Divergente"
+    "categoria": "Sistema-Alvo Divergente",
+    "ViniciusConcorda": "",
+    "PedroConcorda": ""
   },
   {
     "tool_uid": "RobThePCGuy/Claude-Patent-Creator::check_pct_formalities::mcp_server/tools/epo_analyzer_tools.py:341::check_pct_formalities",
@@ -245,7 +247,9 @@
       ]
     },
     "justicativa": "O código-fonte revela que, embora a ferramenta se chame check_pct_formalities, sua implementação na verdade delega ao PCTFormalitiesChecker e ao EPOFormalitiesChecker, que aplicam regras da Convenção sobre a Patente Europeia (EPC), como a Regra 47 para resumos, a Regra 44 para títulos, a Regra 42 para seções da descrição, a Regra 46 para desenhos e a Regra 45(1) para taxas de reivindicações, em vez das Regras 5-12 do PCT citadas na descrição. Essa discrepância levou o deepseek a reduzir sua nota de propósito porque as citações legais não correspondiam às verificações reais da implementação, enquanto o google e o ollama aumentaram suas notas de propósito após reconhecer o detalhamento explícito de resumo, descrição, reivindicações e requisitos físicos processados pelas funções subjacentes.",
-    "categoria": "Sistema-Alvo Divergente"
+    "categoria": "Sistema-Alvo Divergente",
+    "ViniciusConcorda": "",
+    "PedroConcorda": ""
   },
   {
     "tool_uid": "Klavis-AI/klavis::list_tools::mcp_servers/close/server.py:101::close_list_sms_activities",
@@ -313,7 +317,9 @@
       ]
     },
     "justicativa": "Os modelos juízes apresentaram reações mistas ao avaliar a ferramenta com acesso ao código-fonte. Enquanto o juiz deepseek aumentou ligeiramente sua nota argumentando que a descrição identifica claramente a ação em alto nível, os juízes google e ollama reduziram suas notas porque o código-fonte fornecido na verdade contém definições de ferramentas strata em vez da implementação específica de atividades de SMS do Close CRM, evidenciando uma divergência. Consequentemente, o código-fonte não validou a descrição em texto simples para esses juízes, resultando em uma avaliação mais rigorosa de sua brevidade e falta de detalhes.",
-    "categoria": "Sistema-Alvo Divergente"
+    "categoria": "Sistema-Alvo Divergente",
+    "ViniciusConcorda": "",
+    "PedroConcorda": ""
   },
   {
     "tool_uid": "google/mcp-security::mx_tool_box_ping_external_ip::server/secops-soar/secops_soar_mcp/marketplace/mxtoolbox.py:623::mx_tool_box_ping_external_ip",
@@ -397,7 +403,9 @@
       ]
     },
     "justicativa": "A análise do código-fonte revelou que a ferramenta pertence à integração MXToolBox e executa uma ação manual (ApiManualActionDataModel) dentro de um caso SOAR usando parâmetros específicos como case_id, alert_group_identifiers, target_entities e validação de escopo contra bindings.valid_scopes. Juízes como deepseek e google ajustaram suas avaliações porque o código-fonte forneceu detalhes concretos de implementação sobre como as requisições são enviadas via clientes HTTP, algo totalmente ausente da descrição lacônica em texto simples. Já os ajustes do ollama quanto a diretrizes e tamanho refletem uma leitura mais rigorosa do próprio texto breve, sem citar instruções explícitas baseadas no código.",
-    "categoria": "Sistema-Alvo Divergente"
+    "categoria": "Sistema-Alvo Divergente",
+    "ViniciusConcorda": "",
+    "PedroConcorda": ""
   },
   {
     "tool_uid": "b-editor/beutl::SessionTools.SaveProject::src/Beutl.AgentToolkit/Tools/SessionTools.cs:142::SaveProject",
@@ -537,7 +545,9 @@
       ]
     },
     "justicativa": "A análise do código-fonte revelou que a ferramenta aceita parâmetros de entrada específicos (session, path e confirmOverwrite) que estavam ausentes ou pouco explicados na descrição original. Além disso, a implementação expôs uma limitação distinta em relação a sessões LiveEditor, mostrando que save_project não é necessário nem suportado para elas. O código também mostrou que sobrescrever um arquivo existente exige confirmação explícita via confirmOverwrite por meio de destructiveGuard.EnsureOverwriteAllowed, detalhes que estavam ausentes do texto simples.",
-    "categoria": "Efeitos Colaterais Não Divulgados"
+    "categoria": "Efeitos Colaterais Não Divulgados",
+    "ViniciusConcorda": "",
+    "PedroConcorda": ""
   },
   {
     "tool_uid": "Bytedesk/bytedesk::TicketCommentTools.ticket_commentDeleteByUid::modules/ticket/src/main/java/com/bytedesk/ticket/ticket_comment/TicketCommentTools.java:44::ticket_commentDeleteByUid",
@@ -621,7 +631,9 @@
       ]
     },
     "justicativa": "O código-fonte revela que a ferramenta espera um parâmetro String rotulado como uid por meio da anotação @ToolParam, que realiza uma exclusão lógica definindo deleted como true ou lança uma RuntimeException se o recurso não for encontrado. O DeepSeek ajustou para baixo suas notas de parâmetros e de tamanho porque a descrição não explica o papel ou o formato do parâmetro uid, apoiando-se em texto padrão. Já o Google e o Ollama fizeram ajustes mistos de nota em tamanho e diretrizes, embora nenhum motivo claro baseado no código seja citado explicitamente em suas justificativas além de uma reavaliação textual padrão.",
-    "categoria": "Efeitos Colaterais Não Divulgados"
+    "categoria": "Efeitos Colaterais Não Divulgados",
+    "ViniciusConcorda": "",
+    "PedroConcorda": ""
   },
   {
     "tool_uid": "Dicklesworthstone/mcp_agent_mail::health_check::src/mcp_agent_mail/app.py:5835::health_check",
@@ -777,7 +789,9 @@
       ]
     },
     "justicativa": "A docstring do código-fonte revelou critérios de ativação e diretrizes operacionais abrangentes sobre quando usar a ferramenta, como antes de fluxos de trabalho ou durante a triagem de incidentes. Também expôs limitações detalhadas, esclarecendo que a ferramenta retorna a URL do banco de dados configurada sem executar um teste de conexão ao vivo. Além disso, o código-fonte mostrou um parâmetro opcional 'format' na assinatura e forneceu exemplos explícitos em JSON-RPC e pseudocódigo que estavam ausentes da descrição em texto simples.",
-    "categoria": "Funcionalidade Anunciada Não Implementada"
+    "categoria": "Funcionalidade Anunciada Não Implementada",
+    "ViniciusConcorda": "",
+    "PedroConcorda": ""
   },
   {
     "tool_uid": "Accenture/mcp-bench::read_pubmed_paper::mcp_servers/paper-search-mcp/paper_search_mcp/server.py:217::read_pubmed_paper",
@@ -877,7 +891,9 @@
       ]
     },
     "justicativa": "O código-fonte revela que a função delega diretamente a pubmed_searcher.read_paper, que lança um NotImplementedError, confirmando que a ferramenta de fato não oferece suporte à leitura direta de artigos. O código-fonte também documenta explicitamente que o argumento save_path não é utilizado. Os juízes interpretaram esses detalhes de implementação de formas diferentes: alguns ajustaram para cima as notas de limitações para refletir a restrição divulgada, enquanto outros reduziram as notas devido a comportamentos conflitantes ou confusos em relação à funcionalidade real da ferramenta.",
-    "categoria": "Funcionalidade Anunciada Não Implementada"
+    "categoria": "Funcionalidade Anunciada Não Implementada",
+    "ViniciusConcorda": "",
+    "PedroConcorda": ""
   },
   {
     "tool_uid": "FuzzingLabs/mcp-security-hub::list_tools::cloud-security/trivy-mcp/server.py:387::trivy_generate_sbom",
@@ -953,7 +969,9 @@
       ]
     },
     "justicativa": "A análise do código-fonte fornecido revela que ele na verdade contém definições de ferramentas Nuclei, e não da ferramenta trivy_generate_sbom. Consequentemente, os juízes apontaram ambiguidades e brevidade quanto ao tipo de imagem ou scanner suportado ao cruzar com o código de implementação, o que levou a notas de propósito ajustadas. Quanto às diretrizes, a avaliação observou que o texto permaneceu puramente uma declaração de propósito, sem instruções operacionais ou critérios de ativação.",
-    "categoria": "Funcionalidade Anunciada Não Implementada"
+    "categoria": "Funcionalidade Anunciada Não Implementada",
+    "ViniciusConcorda": "",
+    "PedroConcorda": ""
   },
   {
     "tool_uid": "awslabs/agentcore-samples::list_files::01-features/02-host-your-agent/01-runtime/04-coding-agents/03-code-agents-competition-e2e/gateway_mcp/app/main.py:271::list_files",
@@ -1061,7 +1079,9 @@
       ]
     },
     "justicativa": "A análise do código-fonte revelou que a função list_files opera sobre um sistema de arquivos simulado em memória (MOCK_FILE_SYSTEM) e retorna None quando um caminho não é encontrado, detalhes ausentes da descrição em texto simples. Os juízes observaram que ver a implementação ajudou a esclarecer o comportamento da ferramenta quanto aos valores de retorno e à estrutura, como a diferenciação entre conteúdo de diretório e metadados de arquivo. No entanto, as justificativas individuais dos juízes variaram: alguns ajustaram as notas para cima devido a uma compreensão mais clara da função, enquanto outros as reduziram porque a descrição omitia essas especificidades da implementação subjacente.",
-    "categoria": "Funcionalidade Anunciada Não Implementada"
+    "categoria": "Funcionalidade Anunciada Não Implementada",
+    "ViniciusConcorda": "",
+    "PedroConcorda": ""
   },
   {
     "tool_uid": "adrianco/retort::find_matches::experiments/adrianco/experiment-5/runs/language=python_model=claude-opus-4-8_tooling=beads/rep3/brazilian_soccer/server.py:50::find_matches",
@@ -1193,7 +1213,9 @@
       ]
     },
     "justicativa": "O código-fonte revela que `find_matches` implementa parâmetros como `date_from`, `date_to` e um `limit` padrão de 50, além da ordenação por data em ordem decrescente, itens ausentes da descrição em texto simples. Além disso, os juízes apontaram discrepâncias: a assinatura no código suporta filtros de data, enquanto algumas flags documentadas, como `home_only` ou `away_only`, estão ausentes do handler da implementação real. O código também expõe detalhes concretos de comportamento, como a correspondência por substring sem diferenciar maiúsculas e minúsculas nos nomes de times e competições e a combinação de fontes de dados via `pd.concat`.",
-    "categoria": "Parâmetros Fantasmas ou Divergentes"
+    "categoria": "Parâmetros Fantasmas ou Divergentes",
+    "ViniciusConcorda": "",
+    "PedroConcorda": ""
   },
   {
     "tool_uid": "bytechefhq/bytechef::ComponentTools.listTriggers::server/libs/platform/platform-ai/platform-ai-tool/src/main/java/com/bytechef/platform/ai/tool/ComponentTools.java:321::listTriggers",
@@ -1293,7 +1315,9 @@
       ]
     },
     "justicativa": "A análise do código-fonte revelou que, embora o método faça corretamente o flat-map das definições de componentes para reunir as informações dos triggers, ele constrói objetos TriggerMinimalInfo usando apenas o nome, a descrição e o nome do componente do trigger. Consequentemente, o juiz deepseek apontou uma pequena imprecisão na descrição em texto simples, que adicionalmente afirmava que 'type' é retornado. O código-fonte também evidencia que a ferramenta não recebe argumentos de entrada e captura exceções para lançar uma ExecutionException, detalhes que ajudam a fundamentar as avaliações quanto a explicações de parâmetros, diretrizes e completude.",
-    "categoria": "Parâmetros Fantasmas ou Divergentes"
+    "categoria": "Parâmetros Fantasmas ou Divergentes",
+    "ViniciusConcorda": "",
+    "PedroConcorda": ""
   },
   {
     "tool_uid": "automateyournetwork/netclaw::auvik_list_alerts::mcp-servers/auvik-mcp/auvik_mcp_server.py:433::auvik_list_alerts",
@@ -1449,7 +1473,9 @@
       ]
     },
     "justicativa": "O código-fonte revelou vários parâmetros e mecanismos de backend (como resolução de tenant, tratamento de paginação via fetch_all e page_first e filtros adicionais como dismissed, dispatched, alert_definition_id e alert_specification_id) que não eram mencionados na descrição em texto simples. Os juízes observaram que ver a implementação expôs essas lacunas, reduzindo as notas de explicação de parâmetros e de completude porque numerosos parâmetros suportados foram omitidos da documentação. Por outro lado, quanto às limitações, o acesso ao código-fonte confirmou e reforçou uma armadilha específica da API sobre a rotulagem incorreta de detected_time_after e detected_time_before como booleanos em vez de strings ISO-8601, levando certos juízes a aumentar suas notas de limitações.",
-    "categoria": "Parâmetros Fantasmas ou Divergentes"
+    "categoria": "Parâmetros Fantasmas ou Divergentes",
+    "ViniciusConcorda": "",
+    "PedroConcorda": ""
   },
   {
     "tool_uid": "Arindam200/awesome-ai-apps::analyze_youtube_video::advance_ai_agents/deep_research_writing_agents_nebius_okahu/src/research/routers/tools.py:43::analyze_youtube_video",
@@ -1565,7 +1591,9 @@
       ]
     },
     "justicativa": "O código-fonte revelou que os parâmetros reais da ferramenta são `url`, `output_path` e um `timestamp` opcional com padrão 30, enquanto a descrição em texto simples documentava incorretamente um parâmetro `working_dir` e omitia `output_path` e `timestamp`. Além disso, a implementação expôs modos de falha concretos e etapas de tratamento de erros, como a verificação de URLs válidas do YouTube via `get_video_id` e a verificação de que o texto da transcrição pode ser obtido com sucesso antes de chamar o LLM do Nebius. O acesso ao código-fonte permitiu, assim, que os juízes identificassem imprecisões na documentação de parâmetros e apontassem restrições específicas de execução ausentes da descrição.",
-    "categoria": "Parâmetros Fantasmas ou Divergentes"
+    "categoria": "Parâmetros Fantasmas ou Divergentes",
+    "ViniciusConcorda": "",
+    "PedroConcorda": ""
   },
   {
     "tool_uid": "benchflow-ai/benchflow::review_code::src/benchflow/experimental/mcp/reviewer_server.py:63::review_code",
@@ -1689,7 +1717,9 @@
       ]
     },
     "justicativa": "O código-fonte revelou vários detalhes de implementação específicos ausentes da descrição em texto simples, incluindo variáveis de ambiente obrigatórias (GOOGLE_API_KEY ou GEMINI_API_KEY), limites de truncamento do conteúdo por arquivo em 50.000 caracteres e mensagens de retorno de falha como 'No files found to review.'. Além disso, o código-fonte mostrou que passar None para o parâmetro files dispara uma varredura de todos os arquivos com extensão de código sob /app/, limitada a 20 arquivos, em vez de revisar os arquivos modificados, expondo uma imprecisão na semântica documentada do parâmetro.",
-    "categoria": "Parâmetros Fantasmas ou Divergentes"
+    "categoria": "Parâmetros Fantasmas ou Divergentes",
+    "ViniciusConcorda": "",
+    "PedroConcorda": ""
   },
   {
     "tool_uid": "ThinkInAIXYZ/deepchat::<inline_list_tools_handler>:src/main/mcp/inMemoryServers/artifactsServer.ts:569::src/main/mcp/inMemoryServers/artifactsServer.ts:569::get_artifact_instructions",
@@ -1773,7 +1803,9 @@
       ]
     },
     "justicativa": "O código-fonte revela o registro do handler de requisições no servidor para a ferramenta get_artifact_instructions e a lógica associada de conversão do esquema Zod. Os juízes avaliaram os componentes de explicação de parâmetros e de tamanho/completude de forma diferente após analisar essa implementação e o texto da descrição da ferramenta. No entanto, as justificativas fornecidas pelos juízes não citam mecanismos específicos do código, como a conversão do esquema Zod ou os auxiliares de validação de esquema; em vez disso, seus ajustes de nota refletem interpretações subjetivas variadas do papel do parâmetro e da completude geral da descrição.",
-    "categoria": "none"
+    "categoria": "none",
+    "ViniciusConcorda": "",
+    "PedroConcorda": ""
   },
   {
     "tool_uid": "Mercor-Intelligence/archipelago::login_tool_wrapper::mcp_servers/mail/packages/mercor-mcp-shared/mcp_scripts/templates/mcp_server_full/main.py:62::login_tool",
@@ -1865,7 +1897,9 @@
       ]
     },
     "justicativa": "O DeepSeek elevou suas notas de propósito e de explicação de parâmetros após ver o código-fonte, observando que a implementação confirma claramente que a função de login recebe username e password para retornar um token de acesso. Por outro lado, o Google reduziu levemente sua nota de propósito porque a descrição breve carecia de contexto mais profundo quando comparada ao código. O Ollama aumentou suas notas de propósito e de tamanho, considerando a ação básica suficientemente expressa pelo trecho da implementação. Nenhum dos juízes citou comportamentos ocultos concretos, parâmetros não documentados ou casos de erro específicos do código-fonte fornecido.",
-    "categoria": "none"
+    "categoria": "none",
+    "ViniciusConcorda": "",
+    "PedroConcorda": ""
   },
   {
     "tool_uid": "bitfoundation/bitplatform::McpController.GetButilSourceFile::src/Butil/Bit.Butil.Demo/Server/Controllers/McpController.cs:214::GetButilSourceFile",
@@ -2037,7 +2071,9 @@
       ]
     },
     "justicativa": "O código-fonte revelou vários detalhes de implementação e comportamentos não totalmente capturados na descrição em texto simples, como o fato de que os arquivos-fonte retornados passam por uma função Truncate() e, portanto, não são estritamente literais para arquivos muito longos. Também mostrou que a busca por caminho usa correspondência por substring sem diferenciar maiúsculas e minúsculas e que um caminho digitado errado recai no retorno de uma lista de candidatos 'did you mean' em vez de um erro padrão. Além disso, os juízes observaram que omitir o caminho retorna uma lista de catálogo também sujeita a restrições de truncamento. Esses comportamentos programáticos concretos permitiram que os juízes avaliassem melhor as limitações da ferramenta e o tratamento de parâmetros.",
-    "categoria": "Semântica de Correspondência e Normalização de Entrada"
+    "categoria": "Semântica de Correspondência e Normalização de Entrada",
+    "ViniciusConcorda": "",
+    "PedroConcorda": ""
   },
   {
     "tool_uid": "claude-world/notebooklm-skill::nlm_delete::mcp_server/server.py:93::nlm_delete",
@@ -2145,7 +2181,9 @@
       ]
     },
     "justicativa": "O código-fonte revelou que a ferramenta retorna uma resposta requires_confirmation quando chamada sem definir confirm como true, delineando um fluxo de exclusão em várias etapas que a descrição simples não especificava totalmente. Além disso, a implementação mostrou que a ferramenta resolve identificadores de notebook por ID ou título, lançando erros de uso se os títulos forem ambíguos ou se os notebooks não forem encontrados, e trata os requisitos de autenticação por meio de um cliente subjacente. Esses detalhes operacionais e possíveis condições de erro estavam ausentes da descrição inicial, levando os juízes a ajustar suas avaliações de diretrizes e limitações.",
-    "categoria": "Semântica de Correspondência e Normalização de Entrada"
+    "categoria": "Semântica de Correspondência e Normalização de Entrada",
+    "ViniciusConcorda": "",
+    "PedroConcorda": ""
   },
   {
     "tool_uid": "daniel3303/Equibles::InstitutionalHoldingsTools.CompareInstitutionPortfolios::src/Equibles.Holdings.Mcp/Tools/InstitutionalHoldingsTools.cs:2034::CompareInstitutionPortfolios",
@@ -2269,7 +2307,9 @@
       ]
     },
     "justicativa": "A análise do código-fonte revelou vários detalhes de implementação não totalmente capturados na descrição em texto simples, como a forma com que datas de relatório fora do trimestre são ajustadas para o relatório comum mais próximo, na data solicitada ou antes dela, e como maxResults é limitado entre 1 e 500 via McpLimit.Clamp(maxResults). O código também trata explicitamente resoluções ambíguas de nomes parciais de declarantes, retornando CIKs candidatos, e gerencia estados de erro quando não existem datas de relatório comuns. Os juízes que examinaram o código-fonte usaram essas restrições e comportamentos operacionais revelados para ajustar suas avaliações das explicações de parâmetros, diretrizes e limitações da ferramenta.",
-    "categoria": "Semântica de Correspondência e Normalização de Entrada"
+    "categoria": "Semântica de Correspondência e Normalização de Entrada",
+    "ViniciusConcorda": "",
+    "PedroConcorda": ""
   },
   {
     "tool_uid": "cloudflare/mcp-server-cloudflare::<inline_tool_handler>:apps/radar/src/tools/radar.tools.ts:get_bgp_routes_realtime::apps/radar/src/tools/radar.tools.ts:2654::get_bgp_routes_realtime",
@@ -2345,7 +2385,9 @@
       ]
     },
     "justicativa": "O código-fonte revelou que a ferramenta espera um parâmetro prefix passado para fetchRadarApi junto com propriedades de requisição autenticada via requireRequestProps(context). A análise do código-fonte permitiu que os juízes entendessem melhor o papel do único parâmetro de entrada no contexto, melhorando sua nota de explicação de parâmetros. No entanto, os juízes observaram que o código-fonte ainda não divulgava modos de falha explícitos, limites de taxa ou restrições de formato válido do prefixo.",
-    "categoria": "Controles de Acesso, Papel e Autorização"
+    "categoria": "Controles de Acesso, Papel e Autorização",
+    "ViniciusConcorda": "",
+    "PedroConcorda": ""
   },
   {
     "tool_uid": "Beever-AI/beever-atlas::get_job_status::src/beever_atlas/api/mcp_server/_tools_orchestration.py:234::get_job_status",
@@ -2421,7 +2463,9 @@
       ]
     },
     "justicativa": "O código-fonte revelou detalhes de implementação como verificações de autenticação via _get_principal_id(ctx), validação por regex via _validate_id(job_id, \"job_id\") e tratamento de erros específico que retorna dicionários como {\"error\": \"authentication_missing\"} ou {\"error\": \"job_not_found\", \"job_id\": job_id}. Os juízes observaram que o código-fonte contém um ID de exemplo ('job_abc123') e exige que o job pertença ao principal que faz a chamada. Quanto aos exemplos, os juízes em geral concordaram que a descrição carecia de cenários de uso ilustrativos concretos ou chamadas de exemplo, o que levou a notas baixas em várias avaliações.",
-    "categoria": "Controles de Acesso, Papel e Autorização"
+    "categoria": "Controles de Acesso, Papel e Autorização",
+    "ViniciusConcorda": "",
+    "PedroConcorda": ""
   },
   {
     "tool_uid": "IBM/mcp-context-forge::similarity_search::mcp-servers/python/mcp-rss-search/src/mcp_rss_search/server_fastmcp.py:1667::similarity_search",
@@ -2537,7 +2581,9 @@
       ]
     },
     "justicativa": "O código-fonte revelou detalhes operacionais concretos ausentes da descrição em texto simples, incluindo a exigência específica do pacote sentence-transformers (pip install mcp-rss-search[similarity]), parâmetros de entrada como url, query, top_k, threshold e use_cache, e o comportamento subjacente de obter e analisar entradas de feeds RSS para realizar a correspondência por similaridade semântica. Os juízes utilizaram esses detalhes de implementação, agora visíveis, para avaliar de forma mais completa o propósito, as limitações, as diretrizes, os parâmetros e os exemplos da ferramenta quando o código-fonte estava disponível.",
-    "categoria": "Dependências e Pré-requisitos de Ambiente Ocultos"
+    "categoria": "Dependências e Pré-requisitos de Ambiente Ocultos",
+    "ViniciusConcorda": "",
+    "PedroConcorda": ""
   },
   {
     "tool_uid": "MCCTeam/Minecraft-Console-Client::MccMcpToolSet.ContainerOpenAt::MinecraftClient/Mcp/MccMcpToolSet.cs:312::ContainerOpenAt",
@@ -2637,7 +2683,9 @@
       ]
     },
     "justicativa": "O código-fonte revelou detalhes de implementação e condições de falha específicas, como a verificação de que as capacidades de inventário e de terreno estão habilitadas, a validação de que os blocos-alvo correspondem a materiais de contêineres interagíveis, como baús, barris ou fornalhas, e o tratamento do comportamento do parâmetro 'closeCurrent' quando um contêiner ativo já está aberto. Entre os juízes, essas constatações do código levaram a ajustes diferentes: alguns juízes reduziram as notas devido à falta de orientação operacional e sobre parâmetros na descrição, enquanto outros as elevaram porque o código esclareceu o fluxo exato de execução e os estados de erro.",
-    "categoria": "Dependências e Pré-requisitos de Ambiente Ocultos"
+    "categoria": "Dependências e Pré-requisitos de Ambiente Ocultos",
+    "ViniciusConcorda": "",
+    "PedroConcorda": ""
   },
   {
     "tool_uid": "curiositech/some_claude_skills::<inline_list_tools_handler>:mcp-servers/skill-matcher/src/index.ts:283::mcp-servers/skill-matcher/src/index.ts:283::search_external",
@@ -2721,7 +2769,9 @@
       ]
     },
     "justicativa": "A análise do código-fonte revelou que a ferramenta funciona como um recurso opt-in que consulta fontes específicas, como o Official MCP Registry, Smithery.ai, Glama.ai, awesome-mcp e GitHub, aceitando parâmetros como query, sources e maxResults. Os juízes observaram que ter acesso a esse esquema de implementação e aos detalhes da descrição forneceu um contexto mais claro sobre os parâmetros e os critérios de ativação da ferramenta. Consequentemente, os juízes ajustaram para cima as notas de propósito, explicação de parâmetros e tamanho e completude com base nesses detalhes explícitos do esquema encontrados no código-fonte.",
-    "categoria": "Dependências e Pré-requisitos de Ambiente Ocultos"
+    "categoria": "Dependências e Pré-requisitos de Ambiente Ocultos",
+    "ViniciusConcorda": "",
+    "PedroConcorda": ""
   },
   {
     "tool_uid": "databufflabs/databuff::SessionWorkspaceTools.listWorkspaceFiles::ai-apm-web/src/main/java/com/databuff/apm/web/ai/platform/runtime/SessionWorkspaceTools.java:54::listWorkspaceFiles",
@@ -2845,7 +2895,9 @@
       ]
     },
     "justicativa": "Fornecer o código-fonte aos juízes revelou detalhes operacionais concretos sobre o parâmetro `relativePath` e o tratamento de diretórios, como entradas vazias ou nulas assumirem por padrão a raiz (`.`), como caminhos `resources/{skillId}/...` são analisados e validados, e como os arquivos recebem o prefixo `[dir]` ou `[file]` na string retornada. Para alguns juízes, ver esses detalhes de implementação melhorou sua avaliação do propósito, da explicação de parâmetros e dos exemplos da ferramenta. Outros juízes observaram que, embora o código esclarecesse os padrões de sintaxe, ainda faltavam critérios de ativação explícitos, casos de erro ou diretrizes de uso abrangentes.",
-    "categoria": "Valores Fixos e Padrões Divergentes"
+    "categoria": "Valores Fixos e Padrões Divergentes",
+    "ViniciusConcorda": "",
+    "PedroConcorda": ""
   },
   {
     "tool_uid": "The-Swarm-Corporation/swarms-rs::task_evaluator::swarms-rs/src/agent/swarms_agent.rs:1717::task_evaluator",
@@ -3001,7 +3053,9 @@
       ]
     },
     "justicativa": "O código-fonte revela que entradas de status inválidas fazem a ferramenta tratar automaticamente a tarefa como incompleta, com uma mensagem de aviso formatada, e que um contexto ausente assume o padrão 'Task needs further work' quando o status é incompleto. O Google observou que a descrição não documenta esse fallback automático para strings de status inválidas. O Deepseek e o Ollama ajustaram as notas para cima com base em uma estrutura percebida como mais clara, mas não citaram constatações específicas do código para justificar as mudanças.",
-    "categoria": "Valores Fixos e Padrões Divergentes"
+    "categoria": "Valores Fixos e Padrões Divergentes",
+    "ViniciusConcorda": "",
+    "PedroConcorda": ""
   },
   {
     "tool_uid": "hardhackerlabs/podwise-cli::mcpPopular::cmd/mcp.go:111::popular",
@@ -3101,7 +3155,9 @@
       ]
     },
     "justicativa": "A análise do código-fonte revelou que a ferramenta na verdade aceita uma estrutura de entrada contendo um parâmetro `limit`, com padrão 10 e máximo de 50, enquanto a descrição em texto simples omitia completamente qualquer menção a parâmetros de entrada. Os juízes também observaram que, embora o código esclarecesse o mecanismo exato de obtenção dos episódios populares e de formatação das saídas, ainda faltava uma orientação operacional mais ampla ou critérios de decisão sobre quando invocar esta ferramenta em vez de outras.",
-    "categoria": "Valores Fixos e Padrões Divergentes"
+    "categoria": "Valores Fixos e Padrões Divergentes",
+    "ViniciusConcorda": "",
+    "PedroConcorda": ""
   },
   {
     "tool_uid": "apache/camel::VersionTools.camel_version_list::dsl/camel-jbang/camel-jbang-mcp/src/main/java/org/apache/camel/dsl/jbang/core/commands/mcp/VersionTools.java:45::camel_version_list",
@@ -3225,7 +3281,9 @@
       ]
     },
     "justicativa": "A análise do código-fonte revelou parâmetros não mencionados na descrição em texto simples, especificamente 'lts', 'fromVersion' e 'limit', junto com seus valores padrão e comportamentos como a ordenação do mais novo para o mais antigo. Os juízes apontaram que, embora o texto expresse bem o propósito central, carece de diretrizes operacionais sobre quando ou como invocar a ferramenta. Consequentemente, os juízes ajustaram para cima as notas de completude ou detalhamento em relação a esses parâmetros descobertos, enquanto reduziram ou mantiveram baixas as notas de diretrizes devido à falta de critérios de execução.",
-    "categoria": "Valores Fixos e Padrões Divergentes"
+    "categoria": "Valores Fixos e Padrões Divergentes",
+    "ViniciusConcorda": "",
+    "PedroConcorda": ""
   },
   {
     "tool_uid": "Anil-matcha/Flux-3-Dev-API::image_to_video::mcp_server.py:71::image_to_video",
@@ -3341,7 +3399,9 @@
       ]
     },
     "justicativa": "O código-fonte revela os detalhes de implementação da função `image_to_video`, mostrando como parâmetros como proporção, resolução, duração e geração de áudio são passados para a `Flux3DevAPI` e serializados em JSON. A análise do código-fonte levou os juízes a ajustar suas avaliações do propósito, das explicações de parâmetros, do tamanho e das limitações da descrição, embora nenhum novo tratamento de erros ou restrição não documentada seja exposto além do que já consta na docstring.",
-    "categoria": "Confirmação de Encapsulamento Trivial"
+    "categoria": "Confirmação de Encapsulamento Trivial",
+    "ViniciusConcorda": "",
+    "PedroConcorda": ""
   },
   {
     "tool_uid": "OpenCoworkAI/open-cowork::<inline_list_tools_handler>:src/main/mcp/gui-operate-server.ts:6071::src/main/mcp/gui-operate-server.ts:6071::gui_locate_element",
@@ -3457,7 +3517,9 @@
       ]
     },
     "justicativa": "A análise do código-fonte revelou que o esquema da ferramenta define explicitamente parâmetros de entrada como `element_description` e `display_index`, o que levou alguns juízes a ajustar suas avaliações de explicação de parâmetros ou de tamanho e completude. Especificamente, o ollama observou que a descrição menciona `element_description` como uma entrada em linguagem natural, o que resultou em uma nota mais alta de explicação de parâmetros quando o código-fonte estava visível. No entanto, outros ajustes de nota relativos a propósito, diretrizes ou tamanho e completude decorreram principalmente de interpretações subjetivas divergentes sobre a concisão do texto, e não de novas constatações concretas da implementação.",
-    "categoria": "Confirmação de Encapsulamento Trivial"
+    "categoria": "Confirmação de Encapsulamento Trivial",
+    "ViniciusConcorda": "",
+    "PedroConcorda": ""
   },
   {
     "tool_uid": "biegehydra/BifrostMCP::<inline_list_tools_handler>:src/extension.ts:115::src/extension.ts:115::get_code_actions",
@@ -3541,7 +3603,9 @@
       ]
     },
     "justicativa": "O código-fonte fornecido apenas configura o handler de requisições para retornar mcpTools e não contém detalhes de implementação sobre parâmetros de entrada, caminhos de arquivo ou estados de erro específicos. Consequentemente, os juízes que reavaliaram a ferramenta com acesso ao código-fonte observaram que a descrição ainda carecia de explicações explícitas de parâmetros e de modos de falha. Enquanto o deepseek ajustou ligeiramente para baixo sua nota de tamanho e completude, o google e o ollama reduziram ainda mais suas notas de explicação de parâmetros e de limitações ao perceber que o código não fornecia contexto adicional que fundamentasse a descrição.",
-    "categoria": "Confirmação de Encapsulamento Trivial"
+    "categoria": "Confirmação de Encapsulamento Trivial",
+    "ViniciusConcorda": "",
+    "PedroConcorda": ""
   },
   {
     "tool_uid": "axon-rl/gem::get_week_year::gem/tools/mcp_server/time_mcp.py:258::get_week_year",
@@ -3641,7 +3705,9 @@
       ]
     },
     "justicativa": "Entre os juízes, a introdução do código-fonte levou a ajustes mistos nas notas, sem apontar recursos importantes não documentados. O DeepSeek reduziu sua nota de explicação de parâmetros porque o código-fonte não revela tratamento explícito de entradas malformadas nem suposições de fuso horário além de um formato básico. O Ollama elevou sua nota de propósito ao ver a implementação, considerando-a concisa e plenamente informativa. No entanto, outras mudanças de nota em componentes refletem interpretações padrão mais rigorosas, e não descobertas concretas baseadas no código.",
-    "categoria": "Confirmação de Encapsulamento Trivial"
+    "categoria": "Confirmação de Encapsulamento Trivial",
+    "ViniciusConcorda": "",
+    "PedroConcorda": ""
   },
   {
     "tool_uid": "OpenBMB/AgentCPM::surveycpm_update_state::AgentCPM-Report/servers/custom/src/custom.py:1158::surveycpm_update_state",
@@ -3765,7 +3831,9 @@
       ]
     },
     "justicativa": "A análise do código-fonte revelou detalhes de implementação e comportamentos específicos que estavam ausentes ou representados de forma incompleta na descrição em texto simples. O DeepSeek observou que o código trata itens ausentes de parsed_ls preenchendo-os com True e processa corretamente extend_result_ls com valores de preenchimento '<PAD>', além de identificar discrepâncias entre a descrição e a implementação quanto à lógica de retry e aos limites de extend_time. O Google e o Ollama observaram que examinar o código expôs a lógica detalhada de transição de estados e o fluxo operacional, embora o Ollama tenha destacado especificamente que os parâmetros de entrada carecem de explicações explícitas de papel além de seu uso nas transições. Essas constatações concretas do código permitiram que os juízes reavaliassem a precisão da descrição quanto a casos extremos, tratamento de parâmetros e restrições operacionais.",
-    "categoria": "Escopo de Processamento e Mecânica Interna Subestimados"
+    "categoria": "Escopo de Processamento e Mecânica Interna Subestimados",
+    "ViniciusConcorda": "",
+    "PedroConcorda": ""
   },
   {
     "tool_uid": "Adancurusul/embedded-debugger-mcp::EmbeddedDebuggerToolHandler.flash_verify::src/tools/debugger_tools/flash.rs:208::flash_verify",
@@ -3841,7 +3909,9 @@
       ]
     },
     "justicativa": "O código-fonte revela que flash_verify é uma operação complexa que recebe parâmetros específicos como session_id, address, file_path, data e size, aplicando regras de validação rigorosas, como verificar se file_path ou data foi informado, rejeitar arquivos ELF e HEX em favor de binário bruto ou dados hexadecimais brutos e verificar restrições de leitura da memória do alvo. Como a descrição em texto simples apenas afirma laconicamente 'Verify flash memory contents', os modelos juízes atribuíram notas menores de propósito e completude ao ver quanto detalhe de implementação oculto e validação de entrada a descrição omitia.",
-    "categoria": "Escopo de Processamento e Mecânica Interna Subestimados"
+    "categoria": "Escopo de Processamento e Mecânica Interna Subestimados",
+    "ViniciusConcorda": "",
+    "PedroConcorda": ""
   },
   {
     "tool_uid": "christinminor459/OnionClaw::sicry_analyze_nollm::sicry.py:3205::sicry_analyze_nollm",
@@ -3941,7 +4011,9 @@
       ]
     },
     "justicativa": "O código-fonte revela detalhes concretos de implementação de `sicry_analyze_nollm` que a descrição em texto simples omitia, mostrando especificamente que ela recebe uma string `content` e uma string `query` opcional, realiza extração de palavras-chave, aplica expressões regulares para extrair entidades específicas (como endereços de e-mail, links onion, endereços BTC, XMR e ETH, além da detecção de chaves PGP) e formata a saída em um relatório OSINT estruturado com um trecho do conteúdo truncado em 3.000 caracteres. Os juízes observaram que a visão baseada no código esclareceu esses mecanismos operacionais e restrições, permitindo avaliações mais rigorosas das expectativas de parâmetros e das limitações.",
-    "categoria": "Escopo de Processamento e Mecânica Interna Subestimados"
+    "categoria": "Escopo de Processamento e Mecânica Interna Subestimados",
+    "ViniciusConcorda": "",
+    "PedroConcorda": ""
   },
   {
     "tool_uid": "bitxeno/atvloadly::handleInstallApp::internal/mcp/tools/install.go:52::install_app",
@@ -4033,7 +4105,9 @@
       ]
     },
     "justicativa": "A análise do código-fonte revelou detalhes de implementação específicos ausentes das descrições em texto simples, como a exigência de que o parâmetro ipa_url tenha uma extensão de arquivo .ipa válida e a presença de um parâmetro remove_extensions não mencionado no esquema de entrada. O código também implementa explicitamente a lógica de seleção interativa e de validação de fallback para device_id e account_id, à qual os juízes se referiram ao ajustar as notas de explicação de parâmetros e de diretrizes após inspecionar como essas opções são resolvidas.",
-    "categoria": "Escopo de Processamento e Mecânica Interna Subestimados"
+    "categoria": "Escopo de Processamento e Mecânica Interna Subestimados",
+    "ViniciusConcorda": "",
+    "PedroConcorda": ""
   },
   {
     "tool_uid": "agentscope-ai/agentscope-java::WaitAsyncResultsTool.waitForResults::agentscope-harness/src/main/java/io/agentscope/harness/agent/tool/WaitAsyncResultsTool.java:97::wait_async_results",
@@ -4173,7 +4247,9 @@
       ]
     },
     "justicativa": "A análise do código-fonte revelou detalhes de implementação específicos, como o timeout padrão de 60 segundos, a limitação de valores acima de 120 e a exigência de contexto de sessão, que não estavam totalmente detalhados no texto da descrição. O código também implementa explicitamente uma verificação de orçamento de esperas vazias consecutivas usando `MAX_CONSECUTIVE_EMPTY_WAITS` e retornos imediatos quando não são encontradas tarefas não terminais, fundamentando as diretrizes operacionais e as limitações. Juízes diferentes sintetizaram essas estruturas de código de formas diferentes: alguns apontaram especificidades de implementação ausentes, enquanto outros consideraram que as anotações forneciam um contexto operacional abrangente.",
-    "categoria": "Contexto de Fluxo e Ativação"
+    "categoria": "Contexto de Fluxo e Ativação",
+    "ViniciusConcorda": "",
+    "PedroConcorda": ""
   },
   {
     "tool_uid": "alibaba/arthas::MonitorTool.monitor::core/src/main/java/com/taobao/arthas/core/mcp/tool/function/monitor200/MonitorTool.java:28::monitor",
@@ -4273,7 +4349,9 @@
       ]
     },
     "justicativa": "O código-fonte revelou numerosos parâmetros de entrada, como classPattern, methodPattern, condition, intervalMs, numberOfExecutions, regex, maxMatch e timeout, que não eram mencionados na descrição em texto simples. A análise da implementação expôs essa falta completa de explicação de parâmetros, bem como a ausência de diretrizes operacionais e de critérios de ativação para tomada de decisão. Consequentemente, os juízes reduziram suas notas de explicação de parâmetros e de diretrizes ao ver que a assinatura do método define ricas opções de configuração completamente omitidas do texto de resumo.",
-    "categoria": "Contexto de Fluxo e Ativação"
+    "categoria": "Contexto de Fluxo e Ativação",
+    "ViniciusConcorda": "",
+    "PedroConcorda": ""
   },
   {
     "tool_uid": "Zen4-bit/Proxima::<inline_tool_handler>:src/mcp/tools-workflow.js:proxima_cost_report::src/mcp/tools-workflow.js:141::proxima_cost_report",
@@ -4373,7 +4451,9 @@
       ]
     },
     "justicativa": "O código-fonte fornecido revela que proxima_cost_report é uma ferramenta sem parâmetros que obtém um relatório de custos por sessão via tokenTracker.getReport(), detalhando total de requisições, total de tokens, detalhamento da economia em USD e INR e métricas por provedor. Ao revisar com o código-fonte, os juízes observaram que a descrição em texto simples omitia esses detalhes de implementação específicos, como a granularidade por provedor e o escopo da sessão. No entanto, as variações de nota entre os juízes refletiram principalmente diferentes graus de rigor quanto a tamanho, completude e documentação de parâmetros, e não a descoberta de estados de erro não documentados ou contradições.",
-    "categoria": "Contexto de Fluxo e Ativação"
+    "categoria": "Contexto de Fluxo e Ativação",
+    "ViniciusConcorda": "",
+    "PedroConcorda": ""
   },
   {
     "tool_uid": "Community-Access/accessibility-agents::<inline_tool_handler>:mcp-server/tools/trend-tools.js:get_audit_trend::mcp-server/tools/trend-tools.js:107::get_audit_trend",
@@ -4473,7 +4553,9 @@
       ]
     },
     "justicativa": "O código-fonte revelou que get_audit_trend carrega registros históricos lendo arquivos JSON de um diretório, gerando o hash do parâmetro target com sha256 e usando 20 como limite padrão de resultados se nenhum limite for informado. Os juízes observaram que esse detalhe de implementação evidencia pré-condições ausentes, como a exigência de resultados de auditoria salvos previamente e a correspondência exata do alvo, que não estavam claramente documentadas na descrição em texto simples. Consequentemente, os juízes ajustaram as notas para refletir tanto as dependências operacionais agora visíveis quanto as lacunas restantes em diretrizes de uso explícitas e explicações de parâmetros.",
-    "categoria": "Contexto de Fluxo e Ativação"
+    "categoria": "Contexto de Fluxo e Ativação",
+    "ViniciusConcorda": "",
+    "PedroConcorda": ""
   },
   {
     "tool_uid": "apache/incubator-resilientdb::<inline_list_tools_handler>:ecosystem/ai-tools/mcp/graphq-llm/src/mcp/server.ts:80::ecosystem/ai-tools/mcp/graphq-llm/src/mcp/server.ts:80::estimate_query_efficiency",
@@ -4581,7 +4663,9 @@
       ]
     },
     "justicativa": "O código-fonte fornece definições explícitas do esquema de entrada e valores padrão para parâmetros como includeSimilarQueries e useLiveStats, o que permitiu aos juízes avaliar melhor as explicações de parâmetros, o tamanho e a completude e os exemplos em relação à implementação. No entanto, o código-fonte não fornece critérios explícitos de ativação para tomada de decisão sobre quando usar a ferramenta, de modo que os juízes que apontaram a ausência contínua de diretrizes de uso citaram essa limitação diretamente. Juízes diferentes enfatizaram aspectos variados: alguns consideraram o exemplo JSON e os detalhes do esquema suficientes para notas mais altas quando visíveis, enquanto outros sustentaram que a falta de orientação contextual manteve certas notas moderadas.",
-    "categoria": "Contexto de Fluxo e Ativação"
+    "categoria": "Contexto de Fluxo e Ativação",
+    "ViniciusConcorda": "",
+    "PedroConcorda": ""
   },
   {
     "tool_uid": "facebook/memlab::<inline_tool_handler>:packages/mcp-server/src/tools/event-registry.ts:memlab_event_registry::packages/mcp-server/src/tools/event-registry.ts:56::memlab_event_registry",
@@ -4705,7 +4789,9 @@
       ]
     },
     "justicativa": "A análise do código-fonte revelou detalhes de implementação específicos, como orçamentos de timeout da varredura e o tratamento de parâmetros como min_events, limit e timeout_ms, que não estavam totalmente explicados na descrição em texto simples. Consequentemente, os juízes ajustaram suas notas de explicação de parâmetros, diretrizes e limitações com base nessas estruturas concretas do código.",
-    "categoria": "Limites Operacionais, Padrões e Paginação Não Divulgados"
+    "categoria": "Limites Operacionais, Padrões e Paginação Não Divulgados",
+    "ViniciusConcorda": "",
+    "PedroConcorda": ""
   },
   {
     "tool_uid": "Mteheran/api-colombia::DataTools.ListItems::api/Mcp/DataTools.cs:26::ListItems",
@@ -4821,7 +4907,9 @@
       ]
     },
     "justicativa": "A análise do código-fonte revelou que a ferramenta exige um parâmetro 'resource' validado contra um 'ResourceCatalog', junto com os parâmetros opcionais 'sortBy' e 'sortDirection'. Esse detalhe de implementação permitiu que juízes como deepseek e google avaliassem melhor o propósito e os parâmetros da ferramenta, observando que, embora as opções de ordenação e papéis de parâmetros como 'Id' ou 'name' sejam suportados, o próprio identificador obrigatório do recurso continua sem especificação na descrição. O Ollama também ajustou para cima suas notas em vários componentes após observar a assinatura do método e os parâmetros no código.",
-    "categoria": "Regras de Validação e Contratos de Formato Não Divulgados"
+    "categoria": "Regras de Validação e Contratos de Formato Não Divulgados",
+    "ViniciusConcorda": "",
+    "PedroConcorda": ""
   },
   {
     "tool_uid": "Ido-Levi/Hephaestus::add_ticket_comment::claude_mcp_client.py:819::add_ticket_comment",
@@ -4929,7 +5017,9 @@
       ]
     },
     "justicativa": "As mudanças de nota dos juízes refletem interpretações diferentes de como o código-fonte afeta os vários componentes de avaliação. O Deepseek reduziu suas notas de propósito e de diretrizes após analisar a implementação, observando que os efeitos colaterais e a orientação operacional eram menos explícitos do que o desejado. Por outro lado, o Google e o Ollama elevaram algumas notas ou observaram que restrições como o mínimo de caracteres de comment_text são visíveis no código, embora limitações como tratamento de erros e timeouts continuem em grande parte ausentes da descrição textual. No geral, o código-fonte revela detalhes de requisições HTTP, parâmetros padrão e comportamento de tratamento de exceções que motivam ajustes mistos entre os juízes.",
-    "categoria": "Regras de Validação e Contratos de Formato Não Divulgados"
+    "categoria": "Regras de Validação e Contratos de Formato Não Divulgados",
+    "ViniciusConcorda": "",
+    "PedroConcorda": ""
   },
   {
     "tool_uid": "chmonitor/chmonitor::<inline_tool_handler>:packages/mcp-server/src/tools/advisor/index.ts:get_optimization_recommendations::packages/mcp-server/src/tools/advisor/index.ts:188::get_optimization_recommendations",
@@ -5037,7 +5127,9 @@
       ]
     },
     "justicativa": "O código-fonte revela que a ferramenta aceita parâmetros adicionais, como database e hostId, além de sql e queryId, que foram omitidos no cenário apenas com a descrição. Além disso, a implementação demonstra restrições específicas e fluxos de tratamento de erros, incluindo restrições aos tipos de instrução (SELECT, WITH, DESCRIBE, EXPLAIN), tratamento de fallback quando o EXPLAIN falha e a seleção apenas da primeira tabela referenciada. Os juízes ajustaram suas avaliações para levar em conta esses detalhes de parâmetros e limitações operacionais descobertos no código.",
-    "categoria": "Regras de Validação e Contratos de Formato Não Divulgados"
+    "categoria": "Regras de Validação e Contratos de Formato Não Divulgados",
+    "ViniciusConcorda": "",
+    "PedroConcorda": ""
   },
   {
     "tool_uid": "Memento-Teams/Memento::get_workspace_structure::server/code_agent.py:989::get_workspace_structure",
@@ -5153,7 +5245,9 @@
       ]
     },
     "justicativa": "O código-fonte revela detalhes de implementação específicos e casos extremos não totalmente capturados na descrição em texto simples. Especificamente, o código mostra que o parâmetro task_cache_dir é estritamente obrigatório e lança um ValueError se omitido, e que a saída é na verdade uma listagem plana de arquivos, e não uma verdadeira árvore de diretórios aninhada. Além disso, a implementação trata arquivos ilegíveis retornando strings de erro e verifica explicitamente diretórios de workspace inexistentes ou vazios.",
-    "categoria": "Regras de Validação e Contratos de Formato Não Divulgados"
+    "categoria": "Regras de Validação e Contratos de Formato Não Divulgados",
+    "ViniciusConcorda": "",
+    "PedroConcorda": ""
   },
   {
     "tool_uid": "SamurAIGPT/Seedance-2.5-API::generate_seedance_25::mcp_server.py:17::generate_seedance_25",
@@ -5229,7 +5323,9 @@
       ]
     },
     "justicativa": "A análise do código-fonte revelou que, embora a ferramenta aceite numerosos parâmetros, como prompt, aspect_ratio, duration, seed, generate_audio e webhook_url, a descrição em linguagem natural omite explicações desses campos de uso comum, detalhando apenas parâmetros específicos de fluxos de trabalho. Consequentemente, os juízes que avaliaram a nota de explicação de parâmetros reduziram suas avaliações ao ver o código-fonte, devido a essa cobertura incompleta de parâmetros. Além disso, o código-fonte mostrou detalhes operacionais e verificações de validação relativas aos endpoints e às entradas específicas de cada fluxo, mas os juízes observaram que as diretrizes gerais sobre quando usar a ferramenta continuaram limitadas.",
-    "categoria": "Regras de Validação e Contratos de Formato Não Divulgados"
+    "categoria": "Regras de Validação e Contratos de Formato Não Divulgados",
+    "ViniciusConcorda": "",
+    "PedroConcorda": ""
   },
   {
     "tool_uid": "bytedance/agentkit-samples::list_resource_types::python/02-use-cases/mini_aiops/mcp_server_ccapi/src/mcp_server_ccapi/server.py:192::list_resource_types",
@@ -5369,7 +5465,9 @@
       ]
     },
     "justicativa": "A análise do código-fonte revelou discrepâncias entre a implementação e a descrição em texto simples, mostrando especificamente que o dicionário retornado omite os campos documentados 'user_guide' e 'Description' e que os tipos de recursos são filtrados para incluir apenas aqueles em que Visibility é igual a 'PUBLIC'. Além disso, o código-fonte esclarece que o parâmetro opcional 'region' recai em 'cn-beijing' via configuração/credenciais quando omitido. Juízes diferentes interpretaram esses detalhes do código de várias formas: alguns reduziram as notas devido ao conteúdo impreciso da descrição e outros as elevaram pela estrutura de formatação concreta e pelos exemplos de parâmetros encontrados.",
-    "categoria": "Estrutura Concreta da Saída"
+    "categoria": "Estrutura Concreta da Saída",
+    "ViniciusConcorda": "",
+    "PedroConcorda": ""
   },
   {
     "tool_uid": "google-deepmind/concordia::list_directory::concordia/contrib/tools/mcp/servers/file_reader_server.py:70::list_directory",
@@ -5493,7 +5591,9 @@
       ]
     },
     "justicativa": "O código-fonte revelou uma restrição de segurança crítica totalmente ausente da descrição em texto simples: a ferramenta restringe estritamente a listagem de diretórios ao diretório /tmp ou ao diretório de trabalho atual por meio de uma verificação explícita de lista de permissões. Embora a descrição documente exceções gerais como PermissionError e FileNotFoundError, os juízes que analisaram o código-fonte observaram que essa limitação crucial de caminho é omitida das seções de limitações e diretrizes. Além disso, a inspeção do código expôs detalhes específicos de formatação da saída, como o tamanho em bytes e os marcadores de tipo, o que motivou ajustes mistos entre os juízes quanto à completude e às explicações de parâmetros.",
-    "categoria": "Estrutura Concreta da Saída"
+    "categoria": "Estrutura Concreta da Saída",
+    "ViniciusConcorda": "",
+    "PedroConcorda": ""
   },
   {
     "tool_uid": "CursorTouch/Android-MCP::state_tool::src/android_mcp/__main__.py:309::Snapshot",
@@ -5593,7 +5693,9 @@
       ]
     },
     "justicativa": "A análise do código-fonte revelou detalhes de implementação específicos sobre o que a ferramenta retorna como estado do dispositivo, como uma representação textual dos elementos de UI habilitados e interativos com coordenadas, classe e IDs de recurso. Isso levou o deepseek e o ollama a ajustar suas avaliações sobre a clareza com que o propósito e os valores de retorno são transmitidos. Além disso, o código-fonte mostrou que a ferramenta exige conectividade com o dispositivo via `require_device()` e trata conexões wifi, o que influenciou as perspectivas dos juízes sobre diretrizes e limitações.",
-    "categoria": "Estrutura Concreta da Saída"
+    "categoria": "Estrutura Concreta da Saída",
+    "ViniciusConcorda": "",
+    "PedroConcorda": ""
   },
   {
     "tool_uid": "Arize-ai/phoenix::list_tool_groups::src/phoenix/server/mcp_server.py:292::list_tool_groups",
@@ -5701,7 +5803,9 @@
       ]
     },
     "justicativa": "O código-fonte revela que `list_tool_groups` retorna um dicionário que separa os grupos `visible_by_default` e `available_to_enable`. A análise dessa implementação levou os juízes a conclusões divergentes: o deepseek reduziu as notas de propósito e de parâmetros porque a descrição omite a estrutura exata dos dados retornados, enquanto o google e o ollama elevaram suas notas de propósito, diretrizes, tamanho e completude, considerando a descrição suficientemente clara quanto ao comportamento da ferramenta e ao mecanismo de agrupamento.",
-    "categoria": "Estrutura Concreta da Saída"
+    "categoria": "Estrutura Concreta da Saída",
+    "ViniciusConcorda": "",
+    "PedroConcorda": ""
   },
   {
     "tool_uid": "debpalash/VoiceStudio::generate_speech::backend/mcp_server.py:173::generate_speech",
@@ -5849,7 +5953,9 @@
       ]
     },
     "justicativa": "Entre os juízes, a incorporação do código-fonte revelou detalhes concretos de implementação não totalmente capturados na descrição em texto simples, como o nome exato do parâmetro num_step em vez de steps, o suporte a saída ndjson em streaming, sobrescritas por dicionário de pronúncia e parâmetros de divisão do texto (max_chunk_chars, crossfade_ms). Os juízes observaram que, embora a descrição em texto simples destacasse parâmetros operacionais básicos, a análise do código-fonte expôs a falta de critérios de ativação explícitos, de tratamento de erros e de comportamento de timeout, levando a notas ajustadas em limitações e diretrizes. Juízes diferentes enfatizaram aspectos variados dessas revelações, com alguns identificando capacidades ocultas, como o condicionamento por perfil de voz e a lógica de roteamento de memória/motor.",
-    "categoria": "Modos de Falha e Erros Não Divulgados"
+    "categoria": "Modos de Falha e Erros Não Divulgados",
+    "ViniciusConcorda": "",
+    "PedroConcorda": ""
   },
   {
     "tool_uid": "danikf/tik4net::MikroTikTools.MikrotikCliComplete::Tools/tik4net.mcp/MikroTikTools.cs:346::MikrotikCliComplete",
@@ -5989,7 +6095,9 @@
       ]
     },
     "justicativa": "A análise do código-fonte permitiu que os juízes vissem a assinatura explícita do método, as verificações de validação de entrada e a estrutura de tratamento de erros do método MikrotikCliComplete. Especificamente, os juízes observaram que o código-fonte enumera e valida os transportes de terminal CLI suportados (como Telnet, Ssh, WinboxCli, MacTelnet e WinboxCliMac), rejeitando os transportes Api, Rest e WinboxNative. Também detalha os parâmetros da função, incluindo host, username, password, input, transport, port e routerMac, permitindo uma avaliação mais completa dos parâmetros e das limitações.",
-    "categoria": "Modos de Falha e Erros Não Divulgados"
+    "categoria": "Modos de Falha e Erros Não Divulgados",
+    "ViniciusConcorda": "",
+    "PedroConcorda": ""
   },
   {
     "tool_uid": "alibaba/spring-ai-alibaba::FileSystemTools.listFiles::spring-ai-alibaba-agent-framework/src/main/java/com/alibaba/cloud/ai/graph/agent/extension/tools/filesystem/FileSystemTools.java:188::list_files",
@@ -6161,7 +6269,9 @@
       ]
     },
     "justicativa": "Sem o código-fonte, os juízes avaliaram uma descrição vazia, resultando em notas mínimas em todos os componentes. A análise do código-fonte e da anotação @Tool revelou uma descrição detalhada em linguagem natural, especificando que list_files lista o conteúdo do diretório de forma não recursiva, marca os diretórios com uma barra final e serve como passo exploratório anterior a read_file ou edit_file. O código também expôs tratamento de erros específico, como retornar 'Error: Directory not found: ' quando um caminho é inválido, e a aplicação de restrições de path traversal por meio de resolvePath quando virtualMode está ativo. Além disso, os detalhes de implementação mostraram que a saída inclui tamanhos de arquivo e timestamps de modificação, fornecendo evidências concretas que elevaram as notas dos juízes para propósito, diretrizes, limitações, explicação de parâmetros e tamanho/completude.",
-    "categoria": "Modos de Falha e Erros Não Divulgados"
+    "categoria": "Modos de Falha e Erros Não Divulgados",
+    "ViniciusConcorda": "",
+    "PedroConcorda": ""
   },
   {
     "tool_uid": "eugenp/tutorials::ToolBox.getTimeInTimezone::quarkus-modules/quarkus-mcp-langchain/quarkus-mcp-server/src/main/java/com/baeldung/quarkus/mcp/ToolBox.java:13::getTimeInTimezone",
@@ -6253,7 +6363,9 @@
       ]
     },
     "justicativa": "O código-fonte revela uma implementação que usa ZoneId.of(timezoneId) e formata datas via DateTimeFormatter no estilo completo, junto com um bloco catch explícito que retorna uma mensagem de erro para IDs de fuso horário inválidos. Juízes diferentes interpretaram a disponibilidade desse código de formas diferentes: o deepseek elevou sua nota de propósito, enquanto o google reduziu sua nota de propósito porque a descrição carece de detalhes específicos sobre o formato de saída. Já o ollama aumentou várias notas de componentes após ver os detalhes de implementação e o exemplo de parâmetro na anotação do código-fonte.",
-    "categoria": "Modos de Falha e Erros Não Divulgados"
+    "categoria": "Modos de Falha e Erros Não Divulgados",
+    "ViniciusConcorda": "",
+    "PedroConcorda": ""
   },
   {
     "tool_uid": "genkit-ai/genkit::<inline_tool_handler>:genkit-tools/cli/src/mcp/docs.ts:search_genkit_docs::genkit-tools/cli/src/mcp/docs.ts:73::search_genkit_docs",
@@ -6393,7 +6505,9 @@
       ]
     },
     "justicativa": "O código-fonte revela explicitamente detalhes de implementação, como os parâmetros de entrada `query` e `language` (com padrão 'js'), um limite fixo dos 10 primeiros resultados via `slice(0, 10)` e um bloco específico de tratamento para quando nenhum resultado é encontrado. Os juízes que incorporaram o código-fonte ajustaram suas notas de parâmetros e de limitações porque esses limites operacionais concretos e nomes de parâmetros não eram abordados ou eram cobertos apenas implicitamente na descrição em texto simples. Outras mudanças de nota dos juízes decorreram de diferentes graus de rigor ou de leituras gerais da clareza, e não de revelações distintas do código.",
-    "categoria": "Superfície de Entrada Não Documentada"
+    "categoria": "Superfície de Entrada Não Documentada",
+    "ViniciusConcorda": "",
+    "PedroConcorda": ""
   },
   {
     "tool_uid": "OpenSQZ/GTPlanner::generate_design_doc::mcp/mcp_service.py:67::generate_design_doc",
@@ -6509,7 +6623,9 @@
       ]
     },
     "justicativa": "O código-fonte revelou detalhes de implementação específicos, como a assinatura exata da função contendo parâmetros como requirement, previous_flow, design_doc, language e user_id. Também expôs a lógica de tratamento de erros relativa a validate_language_request, que verifica se os códigos de idioma solicitados são suportados e retorna objetos de erro em caso de falha. Alguns juízes observaram que esses parâmetros concretos e condições de falha estavam ausentes da descrição em texto simples, o que levou a ajustes variados nas notas de explicação de parâmetros e de limitações.",
-    "categoria": "Superfície de Entrada Não Documentada"
+    "categoria": "Superfície de Entrada Não Documentada",
+    "ViniciusConcorda": "",
+    "PedroConcorda": ""
   },
   {
     "tool_uid": "anus-dev/ANUS::<inline_tool_handler>:packages/vscode-ide-companion/src/ide-server.ts:closeDiff::packages/vscode-ide-companion/src/ide-server.ts:280::closeDiff",
@@ -6593,7 +6709,9 @@
       ]
     },
     "justicativa": "O código-fonte revelou que a ferramenta aceita um parâmetro string `filePath` e trata o fechamento de visualizações de diff retornando o conteúdo modificado e disparando uma notificação `ide/diffClosed`. O DeepSeek observou que a descrição omite esses efeitos secundários, como retornar o conteúdo modificado e disparar notificações. O Google e o Ollama observaram que o código-fonte confirma o parâmetro `filePath`, embora seu formato ou a semântica exata de correspondência não sejam totalmente detalhados na descrição.",
-    "categoria": "Superfície de Entrada Não Documentada"
+    "categoria": "Superfície de Entrada Não Documentada",
+    "ViniciusConcorda": "",
+    "PedroConcorda": ""
   },
   {
     "tool_uid": "mcneel/RhinoAI::RouterControlTool.QuitApp::rhino/plugin/Internal/RouterControlTool.cs:122::QuitApp",
@@ -6701,7 +6819,9 @@
       ]
     },
     "justicativa": "O código-fonte revelou detalhes concretos de implementação que influenciaram os ajustes de nota entre os juízes. Especificamente, o código-fonte mostrou que a ferramenta percorre os documentos abertos definindo doc.Modified = false antes de disparar _Exit, o que descarta alterações não salvas sem aviso e captura silenciosamente as exceções de despacho, registrando-as no console. No entanto, a maioria das mudanças de nota dos juízes em diretrizes e tamanho/completude foi motivada por percepções gerais sobre a brevidade do texto ou pela presença da etiqueta 'Router-internal', e não por mecânicas específicas do código.",
-    "categoria": "Efeitos Colaterais Não Divulgados"
+    "categoria": "Efeitos Colaterais Não Divulgados",
+    "ViniciusConcorda": "",
+    "PedroConcorda": ""
   },
   {
     "tool_uid": "kLOsk/adloop::propose_negative_keyword_list::src/adloop/server.py:1659::propose_negative_keyword_list",
@@ -6801,7 +6921,9 @@
       ]
     },
     "justicativa": "O código-fonte revela requisitos de validação internos que exigem parâmetros específicos, como campaign_id, list_name e keywords, junto com valores válidos de match_type, como EXACT, PHRASE ou BROAD. Além disso, a implementação incorpora uma verificação de segurança via check_blocked_operation e armazena um plano de alteração, retornando um status de prévia com instruções explícitas para execução. A análise desses detalhes de implementação levou os modelos juízes a ajustar suas avaliações de diretrizes, limitações e completude com base nas restrições operacionais e na lógica de validação agora visíveis.",
-    "categoria": "Efeitos Colaterais Não Divulgados"
+    "categoria": "Efeitos Colaterais Não Divulgados",
+    "ViniciusConcorda": "",
+    "PedroConcorda": ""
   },
   {
     "tool_uid": "rohitg00/kubectl-mcp-server::set_server_stateless_mode::kubectl_mcp_tool/tools/cluster.py:783::set_server_stateless_mode",
@@ -6901,7 +7023,9 @@
       ]
     },
     "justicativa": "A análise do código-fonte revelou que a ferramenta modifica uma variável global em memória para controlar o modo stateless e inclui um bloco de tratamento de exceções que retorna um dicionário com status de sucesso ou erro. O juiz deepseek ajustou para cima sua nota de limitações porque a implementação evidencia que a configuração é recarregada a cada requisição sem cache de clientes, embora ainda tenha apontado pequenas lacunas quanto ao escopo global e à persistência da configuração. Enquanto isso, deepseek, google e ollama ajustaram para cima suas notas de explicação de parâmetros após ver a implementação confirmar o papel exato do argumento booleano 'enabled'. Nenhum caso de erro concreto ou limitação além do registro básico de exceções foi encontrado no código que justificasse ressalvas mais profundas, de modo que as demais mudanças de nota refletem principalmente graus variados de rigor ao avaliar a documentação existente em relação à implementação.",
-    "categoria": "Efeitos Colaterais Não Divulgados"
+    "categoria": "Efeitos Colaterais Não Divulgados",
+    "ViniciusConcorda": "",
+    "PedroConcorda": ""
   },
   {
     "tool_uid": "us/crw::CrwBrowse.text::crates/crw-browse/src/server.rs:137::text",
@@ -7025,7 +7149,9 @@
       ]
     },
     "justicativa": "O código-fonte fornecido corresponde a um utilitário de espera, e não à ferramenta `text` descrita nas avaliações em texto simples, criando uma divergência em que os juízes observaram que o trecho de código não trazia evidências diretas do comportamento de extração de texto da ferramenta. Como o trecho não implementa a própria função text, os juízes reduziram suas notas de diretrizes, limitações, explicações de parâmetros e exemplos devido à ausência de detalhes concretos baseados no código sobre extração de texto, truncamento da saída ou exemplos de uso.",
-    "categoria": "Sistema-Alvo Divergente"
+    "categoria": "Sistema-Alvo Divergente",
+    "ViniciusConcorda": "",
+    "PedroConcorda": ""
   },
   {
     "tool_uid": "emarco177/mcp-crash-course::benign_tool::server.py:49::benign_tool",
@@ -7117,7 +7243,9 @@
       ]
     },
     "justicativa": "O código-fonte revelou uma contradição direta com a descrição em texto simples ao mostrar que a implementação não aceita argumentos e usa uma URL de gist fixa, em vez de baixar de uma URL especificada pelo usuário. Especificamente, deepseek e google observaram que essa discrepância tornava a descrição enganosa quanto ao comportamento da ferramenta e a parâmetros inexistentes. Já o ollama avaliou a mesma implementação com URL fixa como uma limitação da flexibilidade da ferramenta, levando a ajustes de nota divergentes entre os juízes.",
-    "categoria": "Funcionalidade Anunciada Não Implementada"
+    "categoria": "Funcionalidade Anunciada Não Implementada",
+    "ViniciusConcorda": "",
+    "PedroConcorda": ""
   },
   {
     "tool_uid": "oracle/mcp::start::src/oracle-goldengate-mcp-server/oracle/oracle_goldengate_mcp_server/server.py:584::start",
@@ -7201,7 +7329,9 @@
       ]
     },
     "justicativa": "O código-fonte da ferramenta start revelou que ela retorna um endpoint de execução de comandos e ignora completamente o parâmetro _process_name. Esse detalhe de implementação levou o juiz deepseek a reduzir sua nota de propósito devido a uma inconsistência entre a função declarada e o comportamento real. Já os juízes google e ollama ajustaram suas notas com base na extrema brevidade do texto e na falta de explicações de parâmetros, embora suas justificativas tenham permanecido em grande parte focadas na descrição existente, e não em novas revelações concretas do código.",
-    "categoria": "Funcionalidade Anunciada Não Implementada"
+    "categoria": "Funcionalidade Anunciada Não Implementada",
+    "ViniciusConcorda": "",
+    "PedroConcorda": ""
   },
   {
     "tool_uid": "microsoft/UFO::get_mobile_app_target_info::ufo/client/mcp/http_servers/mobile_mcp_server.py:504::get_mobile_app_target_info",
@@ -7325,7 +7455,9 @@
       ]
     },
     "justicativa": "A análise do código-fonte revelou que a ferramenta aceita três parâmetros de entrada (filter, include_system_apps e force_refresh), cujos papéis e instruções de uso estão completamente ausentes da descrição em texto simples. Além disso, o código mostrou uma discrepância nos valores de retorno: enquanto a descrição afirma que rótulos e versões dos pacotes são retornados, o código-fonte preenche apenas os campos de nome e tipo do pacote, deixando rótulos e versões sem obtenção. Por fim, a implementação expôs mecânicas de cache não documentadas, como o cache ser totalmente ignorado quando um filtro é informado ou quando force_refresh está habilitado.",
-    "categoria": "Parâmetros Fantasmas ou Divergentes"
+    "categoria": "Parâmetros Fantasmas ou Divergentes",
+    "ViniciusConcorda": "",
+    "PedroConcorda": ""
   },
   {
     "tool_uid": "mvilanova/intervals-mcp-server::get_activity_intervals::src/intervals_mcp_server/tools/activities.py:223::get_activity_intervals",
@@ -7441,7 +7573,9 @@
       ]
     },
     "justicativa": "Os modelos juízes apresentaram avaliações variadas ao comparar o cenário apenas com a descrição ao cenário com o código-fonte, e nenhuma revelação única baseada no código motivou universalmente as mudanças de nota. Por exemplo, o DeepSeek reduziu suas notas de diretrizes, explicação de parâmetros e tamanho e completude porque julgou o texto raso demais e sem critérios de ativação ou orientação de formato. Por outro lado, o Google elevou suas notas de propósito e de explicação de parâmetros, enquanto o Ollama elevou suas notas de propósito, explicação de parâmetros e tamanho e completude após analisar os detalhes de implementação. No entanto, nenhum dos juízes citou uma discrepância concreta ou recurso não documentado do código-fonte; antes, suas notas ajustadas refletem releituras subjetivas da profundidade e da clareza da descrição em relação à rubrica.",
-    "categoria": "none"
+    "categoria": "none",
+    "ViniciusConcorda": "",
+    "PedroConcorda": ""
   },
   {
     "tool_uid": "nomifun/nomifun-desktop::KnowledgeStdioServer.knowledge_read::crates/backend/nomifun-app/src/commands/knowledge_stdio.rs:279::knowledge_read",
@@ -7557,7 +7691,9 @@
       ]
     },
     "justicativa": "O código-fonte fornecido mostra que knowledge_read recebe um único parâmetro String chamado handle e o repassa para forward_read e build_read_body para construir uma requisição JSON. O código-fonte não revela nenhum parâmetro não documentado, caso de erro ou limitação oculta além do que já era inferível. Consequentemente, os ajustes de nota dos juízes refletem reavaliações subjetivas de clareza e completude, e não novos detalhes técnicos concretos descobertos na implementação.",
-    "categoria": "none"
+    "categoria": "none",
+    "ViniciusConcorda": "",
+    "PedroConcorda": ""
   },
   {
     "tool_uid": "agent-sandbox/agent-sandbox::Handler.executorHandler::pkg/handler/mcp_handler.go:89::sandboxExecutor",
@@ -7641,7 +7777,9 @@
       ]
     },
     "justicativa": "Os modelos juízes expressaram perspectivas diferentes sobre a descrição da ferramenta após ver o código-fonte. O DeepSeek reduziu sua nota de propósito, observando que a descrição de uma frase é rasa demais e deixa indefinidos conceitos críticos como 'Tool' e 'Sandbox'. Em contraste, o Google e o Ollama elevaram ligeiramente suas notas de propósito e de tamanho/completude, reconhecendo que o código-fonte confirma a função central de executar uma ferramenta dentro de um sandbox especificado. No entanto, o Ollama sustentou que as diretrizes continuam vagas porque a descrição carece de instruções operacionais ou critérios de ativação para o uso.",
-    "categoria": "none"
+    "categoria": "none",
+    "ViniciusConcorda": "",
+    "PedroConcorda": ""
   },
   {
     "tool_uid": "agentgateway/agentgateway::Counter.sum::crates/agentgateway/src/mcp/mcp_tests.rs:5092::sum",
@@ -7717,7 +7855,9 @@
       ]
     },
     "justicativa": "O código-fonte revela que a função sum recebe os parâmetros a e b envolvidos em uma StructRequest e retorna sua soma convertida em string via CallToolResult. No entanto, as mudanças de nota dos juízes nos componentes de propósito e diretrizes refletem interpretações subjetivas diferentes da descrição em texto simples, e não constatações concretas do código. Especificamente, deepseek e google ajustaram suas notas de propósito em direções opostas sem citar nenhuma evidência baseada no código, enquanto o ollama fez pequenos ajustes em propósito e diretrizes com base apenas no texto geral.",
-    "categoria": "none"
+    "categoria": "none",
+    "ViniciusConcorda": "",
+    "PedroConcorda": ""
   },
   {
     "tool_uid": "xberg-io/liter-llm::LiterLlmMcp.transcribe::crates/liter-llm-proxy/src/mcp/tools.rs:233::transcribe",
@@ -7801,7 +7941,9 @@
       ]
     },
     "justicativa": "O código-fonte revela que a ferramenta transcribe recebe parâmetros como model e file_base64 por meio de TranscribeParams e verifica as permissões de acesso ao modelo via require_model_access, o que levou alguns juízes a ajustar suas notas devido aos detalhes de implementação antes ausentes. Outros juízes perceberam a descrição de propósito de uma única frase de forma mais favorável ou mais crítica ao ver a estrutura da implementação subjacente.",
-    "categoria": "Controles de Acesso, Papel e Autorização"
+    "categoria": "Controles de Acesso, Papel e Autorização",
+    "ViniciusConcorda": "",
+    "PedroConcorda": ""
   },
   {
     "tool_uid": "impworks/bonsai::UsersTools.GetCurrentUser::src/Bonsai/Areas/Mcp/Logic/Tools/UsersTools.cs:76::GetCurrentUser",
@@ -7893,7 +8035,9 @@
       ]
     },
     "justicativa": "A análise do código-fonte revelou que a ferramenta impõe requisitos rigorosos de autenticação e autorização, chamando especificamente authService.RequireRoleAsync(UserRole.User) e verificando se o servidor MCP está habilitado na configuração. Também mostrou que o valor de retorno preenche campos específicos como Id, FullName, Email, Role, PageId e flags de permissão como CanRead, CanEdit e CanAdmin. O acesso à implementação permitiu que os juízes avaliassem melhor o propósito e reconhecessem possíveis restrições de falha de autenticação ou limitações de uso ausentes na descrição.",
-    "categoria": "Controles de Acesso, Papel e Autorização"
+    "categoria": "Controles de Acesso, Papel e Autorização",
+    "ViniciusConcorda": "",
+    "PedroConcorda": ""
   },
   {
     "tool_uid": "hoophq/hoop::accessControlSetHandler::gateway/api/mcpserver/tools_access_control.go:32::access_control_set",
@@ -8001,7 +8145,9 @@
       ]
     },
     "justicativa": "O código-fonte revelou restrições concretas de implementação e pré-condições não totalmente detalhadas na descrição em texto simples, como exigir que o chamador seja um usuário administrador, verificar se connection_name foi informado e exigir que groups contenha pelo menos um grupo de usuários. A análise dessas verificações de validação levou os juízes a ajustar suas avaliações de diretrizes, limitações e explicações de parâmetros para refletir os detalhes operacionais ausentes.",
-    "categoria": "Controles de Acesso, Papel e Autorização"
+    "categoria": "Controles de Acesso, Papel e Autorização",
+    "ViniciusConcorda": "",
+    "PedroConcorda": ""
   },
   {
     "tool_uid": "kooshi/SharpToolsMCP::DocumentTools.ReadRawFromRoslynDocument::SharpTools.Tools/Mcp/Tools/DocumentTools.cs:21::ReadRawFromRoslynDocument",
@@ -8133,7 +8279,9 @@
       ]
     },
     "justicativa": "A análise do código-fonte revelou vários pré-requisitos funcionais, condições de erro e restrições operacionais não totalmente articulados na descrição em texto simples. Especificamente, a implementação exige que uma solução seja carregada primeiro via 'EnsureSolutionLoadedWithDetails' e valida que o parâmetro 'filePath' seja absoluto e legível. Além disso, o código implementa um limite específico de aviso por contagem de linhas de 1000 linhas que exige uma segunda chamada para prosseguir, junto com tratamento específico de exceções para arquivos ausentes e restrições de acesso.",
-    "categoria": "Controles de Acesso, Papel e Autorização"
+    "categoria": "Controles de Acesso, Papel e Autorização",
+    "ViniciusConcorda": "",
+    "PedroConcorda": ""
   },
   {
     "tool_uid": "preset-io/agor::<inline_tool_handler>:apps/agor-daemon/src/mcp/tools/artifacts.ts:agor_artifacts_get::apps/agor-daemon/src/mcp/tools/artifacts.ts:432::agor_artifacts_get",
@@ -8249,7 +8397,9 @@
       ]
     },
     "justicativa": "O código-fonte revela detalhes de implementação específicos, como o tratamento de `artifactId` via `coerceString`, verificações de visibilidade via `isVisibleTo` e tratamento de erros específico que retorna um resultado de texto 404 quando um artefato não é encontrado. Alguns juízes ajustaram suas notas para cima porque examinar o código forneceu um contexto mais claro sobre o comportamento, as estruturas de retorno e as restrições de controle de acesso da ferramenta. No entanto, outros ajustes refletiram em grande parte juízes se familiarizando mais com o texto existente ou se tornando mais tolerantes a ele, e não a descoberta de novos recursos não documentados diretamente nos trechos de código.",
-    "categoria": "Semântica de Correspondência e Normalização de Entrada"
+    "categoria": "Semântica de Correspondência e Normalização de Entrada",
+    "ViniciusConcorda": "",
+    "PedroConcorda": ""
   },
   {
     "tool_uid": "juliepy/AI-Engineer-from-scrach::where_is::06-harnes/harness-engineering-demo/tooling/mcp/codebase_search.py:269::where_is",
@@ -8365,7 +8515,9 @@
       ]
     },
     "justicativa": "O código-fonte revelou detalhes de implementação e limitações não totalmente explícitos na descrição em texto simples, como a lógica de correspondência operando especificamente no último componente com ponto de um nome qualificado (`d.qualname.rsplit(\".\", 1)[-1] == name`), arquivos que falham na análise retornando `None` e sendo ignorados, e diretórios de dependências, cache ou build sendo excluídos durante a busca de arquivos. Os juízes observaram que, embora a descrição delineie a que tipos de alvo `name` se refere, falta clareza sobre se um nome totalmente qualificado é necessário, e são omitidos detalhes específicos sobre formatos de retorno, tratamento de resultados vazios e arquivos não analisáveis.",
-    "categoria": "Semântica de Correspondência e Normalização de Entrada"
+    "categoria": "Semântica de Correspondência e Normalização de Entrada",
+    "ViniciusConcorda": "",
+    "PedroConcorda": ""
   },
   {
     "tool_uid": "solana-foundation/surfpool::Surfpool.search_constant_options::crates/mcp/src/surfpool/mod.rs:912::search_constant_options",
@@ -8481,7 +8633,9 @@
       ]
     },
     "justicativa": "A análise do código-fonte revelou detalhes de implementação específicos que a descrição em texto simples omitia, como a correspondência sem diferenciar maiúsculas e minúsculas em ids, labels, values e descriptions, o tratamento de erros para IDs de template ou constantes desconhecidos e o truncamento de resultados em um limite MAX_SEARCH_RESULTS. Os juízes ajustaram suas notas para refletir esses comportamentos não documentados, casos extremos e limitações de consulta, observando também estruturas de saída concretas, como as flags totalMatches e truncated. Juízes diferentes se concentraram em aspectos distintos, como a lógica de filtragem de parâmetros ou a presença de formatos de consulta de exemplo.",
-    "categoria": "Semântica de Correspondência e Normalização de Entrada"
+    "categoria": "Semântica de Correspondência e Normalização de Entrada",
+    "ViniciusConcorda": "",
+    "PedroConcorda": ""
   },
   {
     "tool_uid": "nexi-lab/nexus::nexus_bash::src/nexus/bricks/mcp/server.py:1683::nexus_bash",
@@ -8613,7 +8767,9 @@
       ]
     },
     "justicativa": "O código-fonte revelou restrições técnicas e comportamentos não encontrados na descrição em texto simples, como um timeout de execução fixo de 300 segundos, tratamento de erros que retorna \"Sandbox RPC service is not available\" quando o serviço está ausente e o mecanismo de execução subjacente no Docker. O juiz deepseek usou esses detalhes de implementação para identificar limitações específicas e ajustar notas, observando que a execução roda sem estado e lança exceções como SandboxNotFoundError ou ExecutionTimeoutError. Os juízes google e ollama perceberam os parâmetros e o propósito com mais clareza com o contexto do código, embora algumas mudanças de nota tenham refletido interpretações sutis de formatação ou estrutura, e não atualizações explícitas da documentação.",
-    "categoria": "Dependências e Pré-requisitos de Ambiente Ocultos"
+    "categoria": "Dependências e Pré-requisitos de Ambiente Ocultos",
+    "ViniciusConcorda": "",
+    "PedroConcorda": ""
   },
   {
     "tool_uid": "jacepark12/ticktick-mcp::create_project::ticktick_mcp/src/server.py:374::create_project",
@@ -8713,7 +8869,9 @@
       ]
     },
     "justicativa": "O código-fonte revelou valores padrão dos parâmetros, como color definido como '#F18181' e view_mode com padrão 'list', junto com uma lógica de validação que exige que view_mode seja 'list', 'kanban' ou 'timeline'. Também expôs detalhes de implementação subjacentes, como a inicialização do cliente TickTick, a dependência de credenciais de API via TICKTICK_ACCESS_TOKEN e condições de erro ou mensagens de falha específicas. Os juízes observaram que, embora a descrição em texto simples listasse os parâmetros, o código-fonte forneceu contexto concreto de validação e operação que influenciou suas notas por componente.",
-    "categoria": "Dependências e Pré-requisitos de Ambiente Ocultos"
+    "categoria": "Dependências e Pré-requisitos de Ambiente Ocultos",
+    "ViniciusConcorda": "",
+    "PedroConcorda": ""
   },
   {
     "tool_uid": "rerun-io/rerun::ViewerMcpServer.open_url::crates/viewer/re_viewer_mcp/src/lib.rs:335::open_url",
@@ -8821,7 +8979,9 @@
       ]
     },
     "justicativa": "A análise do código-fonte revelou detalhes concretos de implementação que afetaram as avaliações dos juízes sobre os parâmetros, as limitações e as diretrizes da ferramenta. Especificamente, o código-fonte mostra que a entrada é tratada via `OpenUrlArgs`, contendo um campo `url`, e confirma que chamar a função exige uma conexão válida via `self.client()?`, que gera o erro 'not connected — call `connect` first'. No entanto, em vez de revelar divulgações funcionais ocultas, inspecionar o código levou os juízes a avaliar de forma mais crítica a descrição existente em linguagem natural, apontando a falta de instruções operacionais explícitas, cenários de erro ou regras detalhadas de formatação de parâmetros.",
-    "categoria": "Dependências e Pré-requisitos de Ambiente Ocultos"
+    "categoria": "Dependências e Pré-requisitos de Ambiente Ocultos",
+    "ViniciusConcorda": "",
+    "PedroConcorda": ""
   },
   {
     "tool_uid": "petabridge/memorizer::MemoryTools.Edit::src/Memorizer/Tools/MemoryTools.cs:121::Edit",
@@ -8945,7 +9105,9 @@
       ]
     },
     "justicativa": "A análise do código-fonte revelou detalhes de implementação específicos não totalmente articulados na descrição em texto simples, como o parâmetro opcional replace_all e o comportamento de correspondência de old_text que diferencia maiúsculas e minúsculas. Os juízes observaram que o código-fonte evidenciou que apenas a primeira ocorrência é substituída por padrão, a menos que replace_all seja definido como true. Além disso, os juízes apontaram que a falta de exemplos ilustrativos concretos continuou sendo uma lacuna em todos os cenários, apesar do contexto de implementação adicional.",
-    "categoria": "Valores Fixos e Padrões Divergentes"
+    "categoria": "Valores Fixos e Padrões Divergentes",
+    "ViniciusConcorda": "",
+    "PedroConcorda": ""
   },
   {
     "tool_uid": "microsoft/copilot-camp::HRTools.SearchCandidates::src/make/copilot-studio/path-m-lab-mcs6-mcp/hr-mcp-server/Tools/HRTools.cs:121::SearchCandidates",
@@ -9037,7 +9199,9 @@
       ]
     },
     "justicativa": "O código-fonte revela que, se o termo de busca for vazio ou apenas espaços, a ferramenta recai em retornar todos os candidatos, e que a busca compara com primeiro nome, sobrenome, e-mail, cargo atual, habilidades e idiomas falados, sem diferenciar maiúsculas e minúsculas. Enquanto os juízes deepseek e google mantiveram notas rigorosas de tamanho e completude em ambos os cenários, o ollama ajustou sua avaliação de propósito, diretrizes, explicação de parâmetros e tamanho após analisar os detalhes de implementação. Especificamente, o ollama observou que o código-fonte ajudou a esclarecer como o parâmetro é usado, embora ainda faltassem contexto mais amplo e instruções operacionais.",
-    "categoria": "Valores Fixos e Padrões Divergentes"
+    "categoria": "Valores Fixos e Padrões Divergentes",
+    "ViniciusConcorda": "",
+    "PedroConcorda": ""
   },
   {
     "tool_uid": "robotmcp/ros-mcp-server::get_topic_details::ros_mcp/tools/topics.py:125::get_topic_details",
@@ -9137,7 +9301,9 @@
       ]
     },
     "justicativa": "O código-fonte revelou detalhes concretos de implementação, como a validação da entrada verificando strings vazias, estruturas específicas de dicionário de retorno incluindo publicadores, assinantes e mensagens de erro, e interações com serviços rosapi. Juízes diferentes interpretaram esses elementos do código de formas diferentes: alguns ajustaram suas avaliações porque o código-fonte confirmou claramente a funcionalidade e os parâmetros, enquanto outros consideraram que a falta de exemplos mais amplos de tratamento de erros na implementação justificava uma nota mais rigorosa.",
-    "categoria": "Confirmação de Encapsulamento Trivial"
+    "categoria": "Confirmação de Encapsulamento Trivial",
+    "ViniciusConcorda": "",
+    "PedroConcorda": ""
   },
   {
     "tool_uid": "MGdaasLab/WHartTest::obtain_use_case_level::WHartTest_MCP/WHartTest_tools.py:208::obtain_use_case_level",
@@ -9221,7 +9387,9 @@
       ]
     },
     "justicativa": "O código-fonte revelou que a ferramenta retorna uma lista fixa de identificadores de nível (P0, P1, P2, P3) e não aceita parâmetros de entrada. Ver a implementação permitiu que os juízes confirmassem que a ferramenta não tem nenhum parâmetro, melhorando a nota de parâmetros do DeepSeek, e também forneceu contexto suficiente para que os juízes elevassem ligeiramente as notas de propósito e completude, apesar de a descrição continuar extremamente lacônica.",
-    "categoria": "Confirmação de Encapsulamento Trivial"
+    "categoria": "Confirmação de Encapsulamento Trivial",
+    "ViniciusConcorda": "",
+    "PedroConcorda": ""
   },
   {
     "tool_uid": "thecodacus/understory::<inline_tool_handler>:packages/server/src/mcp/server.ts:memory_maintain::packages/server/src/mcp/server.ts:184::memory_maintain",
@@ -9321,7 +9489,9 @@
       ]
     },
     "justicativa": "A análise do código-fonte revelou que a ferramenta memory_maintain executa kb.lint() para verificar órfãos e links quebrados, retornando uma resposta sem efeito se estiver saudável ou iniciando uma tarefa de mutação automatizada quando problemas são encontrados. Esse detalhe de implementação permitiu que os juízes confirmassem que a ferramenta não recebe argumentos de entrada, ao mesmo tempo que forneceu contexto operacional claro sobre seus gatilhos de manutenção. Especificamente, o código-fonte fundamentou o comportamento da ferramenta quanto ao mecanismo de verificação de saúde e às etapas de reparo automatizado, permitindo notas mais altas para explicação de parâmetros, limitações, propósito e completude.",
-    "categoria": "Escopo de Processamento e Mecânica Interna Subestimados"
+    "categoria": "Escopo de Processamento e Mecânica Interna Subestimados",
+    "ViniciusConcorda": "",
+    "PedroConcorda": ""
   },
   {
     "tool_uid": "lifemate-ai/embodied-claude::compose_interaction_context_tool::sociality-mcp/src/sociality_mcp/server.py:459::compose_interaction_context_tool",
@@ -9429,7 +9599,9 @@
       ]
     },
     "justicativa": "A análise do código-fonte revelou os parâmetros de entrada específicos (como person_id, channel, user_text, autonomous_trigger, include_private e max_chars) e detalhes de implementação, como a inicialização dos stores e a lógica de montagem do contexto, que não estavam explicitamente detalhados na descrição em texto simples. Consequentemente, os juízes ajustaram suas avaliações, observando tanto a presença positiva de instruções de ativação quanto as pequenas lacunas restantes sobre como tratar seções opcionais ou casos extremos de entrada.",
-    "categoria": "Escopo de Processamento e Mecânica Interna Subestimados"
+    "categoria": "Escopo de Processamento e Mecânica Interna Subestimados",
+    "ViniciusConcorda": "",
+    "PedroConcorda": ""
   },
   {
     "tool_uid": "tracewayapp/traceway::server.archiveExceptions::cli/pkg/mcpserver/tools.go:111::archive_exceptions",
@@ -9569,7 +9741,9 @@
       ]
     },
     "justicativa": "Nas avaliações dos juízes, o código-fonte revelou detalhes de implementação específicos, como a verificação de validação que exige pelo menos um hash de exceção em `in.Hashes`, a necessidade de selecionar um projeto via `s.project(in.ProjectID)` e a integração com API HTTP para arquivar grupos de exceções. Os juízes que analisaram o código-fonte ajustaram para baixo suas notas de parâmetros e limitações porque a descrição em texto simples omitia essas restrições operacionais e caminhos de erro, enquanto outros elevaram as notas de diretrizes ou de propósito após ver com que clareza os critérios de ativação e a reversibilidade correspondiam diretamente à implementação no código.",
-    "categoria": "Contexto de Fluxo e Ativação"
+    "categoria": "Contexto de Fluxo e Ativação",
+    "ViniciusConcorda": "",
+    "PedroConcorda": ""
   },
   {
     "tool_uid": "wxhzhwxhzh/DrissionPageMCP::element_click::main-1.py:311::element_click",
@@ -9685,7 +9859,9 @@
       ]
     },
     "justicativa": "O código-fonte revelou detalhes concretos de implementação, como o parâmetro element_xpath e seu uso via DP.browser.latest_tab.ele com um timeout de 3 segundos, o que permitiu aos juízes avaliar melhor os parâmetros e as diretrizes. Especificamente, o código-fonte mostrou como o localizador é formado e como o clique é executado, levando os juízes a melhorar ligeiramente as notas de explicação de parâmetros e de diretrizes. No entanto, os juízes observaram que a descrição continua sendo um único fragmento de frase curto, sem modos de falha explícitos, comportamentos de timeout ou detalhes do valor de retorno.",
-    "categoria": "Limites Operacionais, Padrões e Paginação Não Divulgados"
+    "categoria": "Limites Operacionais, Padrões e Paginação Não Divulgados",
+    "ViniciusConcorda": "",
+    "PedroConcorda": ""
   },
   {
     "tool_uid": "newideas99/ultra-fast-image-gen::edit_image::mcp_server.py:102::edit_image",
@@ -9785,7 +9961,9 @@
       ]
     },
     "justicativa": "Juízes diferentes alteraram as notas em direções opostas após analisar a implementação no código-fonte. O DeepSeek reduziu suas notas de limitações e de explicação de parâmetros porque a implementação revelou restrições não declaradas, como um timeout de 2 horas, a criação automática do diretório de saída e a ausência, no texto, dos padrões de width e height (512). Por outro lado, o Google e o Ollama elevaram suas notas de explicação de parâmetros, tamanho e completude ou exemplos, considerando os tipos exatos dos parâmetros, os padrões e os exemplos de prompt embutidos no código mais completos e úteis do que inicialmente reconhecido.",
-    "categoria": "Limites Operacionais, Padrões e Paginação Não Divulgados"
+    "categoria": "Limites Operacionais, Padrões e Paginação Não Divulgados",
+    "ViniciusConcorda": "",
+    "PedroConcorda": ""
   },
   {
     "tool_uid": "DuendeSoftware/products::BlogSearchTool.Search::docs-mcp/src/Documentation.Mcp/Sources/Blog/BlogSearchTool.cs:16::Search",
@@ -9885,7 +10063,9 @@
       ]
     },
     "justicativa": "A análise do código-fonte revelou detalhes de implementação específicos, como o atributo do parâmetro query especificando \"keep it concise and specific\" e a consulta ao banco de dados filtrando até 6 resultados por busca de texto completo nos títulos e no conteúdo do blog, que estavam ausentes da descrição em texto simples. Consequentemente, os juízes atualizaram suas avaliações para refletir a presença dessas dicas e desses comportamentos operacionais no nível da implementação.",
-    "categoria": "Limites Operacionais, Padrões e Paginação Não Divulgados"
+    "categoria": "Limites Operacionais, Padrões e Paginação Não Divulgados",
+    "ViniciusConcorda": "",
+    "PedroConcorda": ""
   },
   {
     "tool_uid": "upstash/context7::<inline_tool_handler>:packages/mcp/src/index.ts:query-docs::packages/mcp/src/index.ts:265::query-docs",
@@ -10001,7 +10181,9 @@
       ]
     },
     "justicativa": "O código-fonte revela detalhes de implementação específicos, como o tratamento dos códigos de status HTTP (429, 404, 401) e de timeouts da API via AbortSignal, o que fundamentou a avaliação dos juízes sobre as limitações de tratamento de erros. Além disso, o código confirma os parâmetros obrigatórios query e libraryId, apoiando a avaliação dos juízes sobre as explicações de parâmetros e os pré-requisitos. Entre os juízes, o acesso ao código-fonte ajudou a esclarecer restrições e comportamentos de erro que eram declarados apenas parcial ou implicitamente na descrição em texto simples.",
-    "categoria": "Limites Operacionais, Padrões e Paginação Não Divulgados"
+    "categoria": "Limites Operacionais, Padrões e Paginação Não Divulgados",
+    "ViniciusConcorda": "",
+    "PedroConcorda": ""
   },
   {
     "tool_uid": "vasylenko/bear-notes-mcp::<inline_tool_handler>:src/tools/note-tools.ts:bear-add-file::src/tools/note-tools.ts:670::bear-add-file",
@@ -10117,7 +10299,9 @@
       ]
     },
     "justicativa": "A análise do código-fonte revelou limitações operacionais concretas e comportamentos de tratamento de parâmetros não totalmente detalhados na descrição em texto simples, como verificações de tamanho de arquivo via MAX_ATTACHMENT_BYTES, rejeição de arquivos vazios e de links simbólicos e o tratamento de múltiplas correspondências quando o título de uma nota resolve para várias entradas. Os juízes observaram que, embora o propósito de alto nível e a validação do token de revisão desatualizado fossem claros sem o código, a inspeção da implementação expôs esses casos extremos e restrições de validação de arquivos ausentes, alterando as notas entre os cenários.",
-    "categoria": "Limites Operacionais, Padrões e Paginação Não Divulgados"
+    "categoria": "Limites Operacionais, Padrões e Paginação Não Divulgados",
+    "ViniciusConcorda": "",
+    "PedroConcorda": ""
   },
   {
     "tool_uid": "mbailey/voicemode::update_config::voice_mode/tools/configuration_management.py:276::update_config",
@@ -10241,7 +10425,9 @@
       ]
     },
     "justicativa": "A análise do código-fonte revelou detalhes de implementação específicos sobre validação de entrada e restrições, como a verificação por expressão regular que exige que as chaves sejam identificadores em maiúsculas e a rejeição, em defesa em profundidade, de caracteres de controle nos valores. O código-fonte também mostrou o tratamento de caminhos de configuração legados, verificações de idempotência quando um valor de configuração já está definido e permissões de arquivo específicas definidas via os.chmod. Embora os juízes tenham observado que a descrição em texto simples omitia essas regras de formatação, restrições e cenários de falha, as constatações baseadas no código levaram a ajustes de nota variados entre os juízes ao avaliarem explicações de parâmetros, tamanho e completude e limitações.",
-    "categoria": "Regras de Validação e Contratos de Formato Não Divulgados"
+    "categoria": "Regras de Validação e Contratos de Formato Não Divulgados",
+    "ViniciusConcorda": "",
+    "PedroConcorda": ""
   },
   {
     "tool_uid": "aivrar/portable-hermes-agent::channels_list::mcp_serve.py:777::channels_list",
@@ -10381,7 +10567,9 @@
       ]
     },
     "justicativa": "A análise do código-fonte revelou que a ferramenta carrega um diretório de canais em cache ou um índice de sessões, filtra os destinos por plataforma e serializa a saída em uma string JSON contendo uma contagem e as entradas de canais. O código-fonte mostra que o parâmetro 'platform' é opcional e comparado sem diferenciar maiúsculas e minúsculas. As mudanças de nota dos juízes refletem uma inspeção mais atenta desses detalhes de implementação, como a opcionalidade do parâmetro e o formato de retorno JSON subjacente.",
-    "categoria": "Estrutura Concreta da Saída"
+    "categoria": "Estrutura Concreta da Saída",
+    "ViniciusConcorda": "",
+    "PedroConcorda": ""
   },
   {
     "tool_uid": "NousResearch/hermes-agent::permissions_list_open::mcp_serve.py:987::permissions_list_open",
@@ -10497,7 +10685,9 @@
       ]
     },
     "justicativa": "O código-fonte fornecido revela que permissions_list_open retorna uma string em formato JSON contendo tanto uma contagem quanto um array de aprovações pendentes ordenadas por timestamp de criação via bridge.list_pending_approvals(). Juízes diferentes avaliaram de formas diferentes como esses detalhes de implementação impactaram as notas dos componentes. O DeepSeek considerou o propósito mais claro com o código-fonte, enquanto o Google e o Ollama divergiram em diretrizes, limitações e completude com base em interpretações variadas do código.",
-    "categoria": "Estrutura Concreta da Saída"
+    "categoria": "Estrutura Concreta da Saída",
+    "ViniciusConcorda": "",
+    "PedroConcorda": ""
   },
   {
     "tool_uid": "ChatMol/gromacs_copilot::get_workspace_info::gromacs_copilot/mcp_server.py:347::get_workspace_info",
@@ -10589,7 +10779,9 @@
       ]
     },
     "justicativa": "O código-fonte revela que `get_workspace_info` não recebe parâmetros de entrada e retorna um dicionário detalhando o estado do protocolo, incluindo `workspace_path`, `analysis_directory` e vários caminhos de arquivo, como `trajectory_file` e `topology_file`. Também mostra um caso de tratamento de erro em que um agente não inicializado retorna `success: False` com uma mensagem de erro. O acesso a essa implementação levou o deepseek a elevar sua nota de explicação de parâmetros para 5 ao perceber que a ferramenta é inerentemente sem parâmetros. No entanto, as mudanças de nota dos juízes em tamanho e diretrizes refletem ajustes subjetivos a um texto lacônico, e não novas divulgações textuais concretas do próprio código.",
-    "categoria": "Modos de Falha e Erros Não Divulgados"
+    "categoria": "Modos de Falha e Erros Não Divulgados",
+    "ViniciusConcorda": "",
+    "PedroConcorda": ""
   },
   {
     "tool_uid": "stakpak/agent::ToolContainer.run_command::libs/mcp/server/src/local_tools.rs:314::run_command",
@@ -10697,7 +10889,9 @@
       ]
     },
     "justicativa": "O código-fonte revela restrições técnicas e comportamentos específicos não encontrados na descrição em texto simples, como definir stdin como nulo (impedindo entrada interativa), forçar variáveis de ambiente não interativas e implementar um mecanismo de detecção de travamento de 5 segundos que dispara avisos de travamento interativo. Os juízes observaram que essas restrições operacionais, os detalhes de tratamento de erros e o uso dos parâmetros (como timeout e command) estavam ausentes ou vagos nas descrições iniciais. O acesso à implementação permitiu que os juízes avaliassem melhor as limitações e as diretrizes ao expor modos de falha concretos, como o encerramento do processo por timeout e o tratamento de cancelamento.",
-    "categoria": "Modos de Falha e Erros Não Divulgados"
+    "categoria": "Modos de Falha e Erros Não Divulgados",
+    "ViniciusConcorda": "",
+    "PedroConcorda": ""
   },
   {
     "tool_uid": "wundergraph/cosmo::<inline_tool_handler>:cli/src/commands/mcp/tools/verify-router-config.ts:verify_router_config::cli/src/commands/mcp/tools/verify-router-config.ts:118::verify_router_config",
@@ -10805,7 +10999,9 @@
       ]
     },
     "justicativa": "A análise do código-fonte revelou detalhes de implementação específicos, como a função de validação que recebe um parâmetro config analisado como JSON ou YAML e avaliado contra um esquema obtido via Axios. Os juízes observaram que, embora isso confirmasse o tratamento de formatos, a descrição ainda carecia de diretrizes operacionais abrangentes, nomeação explícita dos parâmetros e restrições de tratamento de erros. Consequentemente, os juízes ajustaram suas notas da rubrica para refletir a distância entre a lógica de validação implementada e a descrição mínima em texto simples.",
-    "categoria": "Superfície de Entrada Não Documentada"
+    "categoria": "Superfície de Entrada Não Documentada",
+    "ViniciusConcorda": "",
+    "PedroConcorda": ""
   },
   {
     "tool_uid": "PlamenTSV/plamen::list_tools::custom-mcp/unified-vuln-db/unified_vuln/server.py:37::get_fix_patterns",
@@ -10905,7 +11101,9 @@
       ]
     },
     "justicativa": "O código-fonte revelou as definições completas e os esquemas de entrada de ferramentas como get_fix_patterns, mostrando que a descrição do parâmetro bug_class no código-fonte é mínima e carece de enumeração detalhada em comparação com outras ferramentas. Os juízes observaram que, embora o texto simples mencionasse o propósito da ferramenta, ver o código-fonte evidenciou a documentação rasa dos parâmetros e a ausência de limitações ou exemplos de uso.",
-    "categoria": "Superfície de Entrada Não Documentada"
+    "categoria": "Superfície de Entrada Não Documentada",
+    "ViniciusConcorda": "",
+    "PedroConcorda": ""
   },
   {
     "tool_uid": "andrewyng/openworker::board_attach::coworker/teams/mcp_server.py:103::board_attach",
@@ -11029,6 +11227,8 @@
       ]
     },
     "justicativa": "O código-fonte revela que a função aceita um identificador de item, um caminho de arquivo e um parâmetro opcional de legenda, realizando validação do arquivo local e retornando dicionários de erro quando os arquivos estão ausentes. Juízes diferentes interpretaram a disponibilidade desse detalhe de implementação de maneiras variadas. O Deepseek reduziu as notas de propósito e de limitações devido às lacunas restantes quanto a detalhes específicos dos parâmetros e ao comportamento em caso de falha. Por outro lado, o Google e o Ollama elevaram as notas em componentes como propósito, diretrizes, explicação de parâmetros e tamanho e completude, considerando que o contexto do código dava um respaldo mais claro ao uso e à funcionalidade da ferramenta.",
-    "categoria": "Superfície de Entrada Não Documentada"
+    "categoria": "Superfície de Entrada Não Documentada",
+    "ViniciusConcorda": "",
+    "PedroConcorda": ""
   }
 ]
