@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.29 (TeX Live 2026) (preloaded format=pdflatex 2026.9.18)  23 OCT 2026 18:30
+This is pdfTeX, Version 3.141592653-2.6-1.40.29 (TeX Live 2026) (preloaded format=pdflatex 2026.9.18)  23 OCT 2026 19:11
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -922,7 +922,7 @@ File: images/RQs/diminuiu_empatou_aumentou_por_modelo.png Graphic file (type pn
 g)
 <use images/RQs/diminuiu_empatou_aumentou_por_modelo.png>
 Package pdftex.def Info: images/RQs/diminuiu_empatou_aumentou_por_modelo.png  u
-sed on input line 92.
+sed on input line 93.
 (pdftex.def)             Requested size: 405.45047pt x 132.92456pt.
 <images/RQs/boxplot_com_sem_codigo_apenas_mudou_por_modelo.png, id=61, 981.7879
 5pt x 266.31496pt>
@@ -930,11 +930,11 @@ File: images/RQs/boxplot_com_sem_codigo_apenas_mudou_por_modelo.png Graphic fil
 e (type png)
 <use images/RQs/boxplot_com_sem_codigo_apenas_mudou_por_modelo.png>
 Package pdftex.def Info: images/RQs/boxplot_com_sem_codigo_apenas_mudou_por_mod
-elo.png  used on input line 99.
+elo.png  used on input line 100.
 (pdftex.def)             Requested size: 405.45047pt x 109.97816pt.
- [11 <./images/RQs/diminuiu_empatou_aumentou_por_modelo.png> <./images/RQs/boxp
-lot_com_sem_codigo_apenas_mudou_por_modelo.png>]) (./sectionsTCCII/06_Ameacas_V
-alidade.tex [12])
+ [11 <./images/RQs/diminuiu_empatou_aumentou_por_modelo.png>]) (./sectionsTCCII
+/06_Ameacas_Validade.tex [12 <./images/RQs/boxplot_com_sem_codigo_apenas_mudou_
+por_modelo.png>])
 (./sectionsTCCII/07_Conclusao.tex [13]) (./main.bbl [14])
 (./sectionsTCCII/Apendice.tex [15] [16] [17]
 LaTeX Font Info:    Font shape `OMS/pcr/m/n' in size <12> not available
@@ -1007,7 +1007,7 @@ fonts/type1/urw/times/utmb8a.pfb></usr/local/texlive/2026/texmf-dist/fonts/type
 1/urw/times/utmbi8a.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/urw/tim
 es/utmr8a.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/urw/times/utmri8a
 .pfb>
-Output written on main.pdf (21 pages, 1202093 bytes).
+Output written on main.pdf (21 pages, 1202244 bytes).
 PDF statistics:
  173 PDF objects out of 1000 (max. 8388607)
  101 compressed objects within 2 object streams

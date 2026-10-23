@@ -20,6 +20,7 @@ data/analysis/*
 !data/analysis/consenso_categorias_v2.json
 !data/analysis/consenso_categorias_reconciliadas.json
 !data/analysis/consenso_verificacao_manual.json
+!data/analysis/consenso_verificacao_manual_traduzido.json
 
 
 

@@ -44,43 +44,44 @@ Esta seção apresenta os resultados da avaliação por rubrica descrita na Seç
 
 O aumento ou a diminuição da nota não indica, por si só, uma melhora ou piora na precisão da avaliação: a divergência pode refletir tanto um ganho real de precisão quanto viés ou ruído do avaliador. Responder à RQ1 exige, portanto, identificar o \textbf{mecanismo} pelo qual o código altera a nota, não apenas a direção da mudança.
 
-\textcolor{orange}{A análise qualitativa (Seção~\ref{subsec:analise-comparativa}) foi conduzida sobre as 2.685 ferramentas da amostra de divergência confirmada (22,1\% das 12.171 extraídas). A análise temática indutiva produziu 16 categorias de mecanismo, cada uma descrevendo um tipo de informação que o código revela e que a descrição não comunica; suas definições estão no Apêndice~\ref{apendice:categorias}. A classificação dirigida, que permite múltiplas categorias por ferramenta, deixou apenas 3,9\% das ferramentas (106 de 2.685) sem nenhuma categoria (\texttt{none}), indicando que o conjunto cobre a grande maioria dos mecanismos presentes. A Tabela~\ref{tab:frequencia-categorias} apresenta a frequência de cada categoria.}
+\textcolor{orange}{A análise qualitativa (Seção~\ref{subsec:analise-comparativa}) foi conduzida sobre as 2.273 ferramentas da amostra de divergência confirmada (18,7\% das 12.170 avaliadas). A análise temática indutiva produziu 16 categorias de mecanismo, cada uma descrevendo um tipo de informação que o código revela e que a descrição não comunica; suas definições estão no Apêndice~\ref{apendice:categorias}. A classificação dirigida, que permite múltiplas categorias por ferramenta, deixou apenas 4,1\% das ferramentas (94 de 2.273) sem nenhuma categoria (\texttt{none}), indicando que o conjunto cobre a grande maioria dos mecanismos presentes. A Tabela~\ref{tab:frequencia-categorias} apresenta a frequência de cada categoria.}
 
 \begin{table}[htbp]
 \centering
-\caption{Frequência de cada categoria de mecanismo na amostra de divergência confirmada (n = 2.685; multi-\textit{label}, a soma excede 100\%)}
+\caption{Frequência de cada categoria de mecanismo na amostra de divergência confirmada (n = 2.273; multi-\textit{label}, a soma excede 100\%)}
 \label{tab:frequencia-categorias}
 \footnotesize
 \begin{tabular}{lrr}
 \toprule
 \textbf{Categoria} & \textbf{Ocorrências} & \textbf{\%} \\
 \midrule
-Superfície de Entrada Não Documentada & 1.492 & 55,6\% \\
-Modos de Falha e Erros Não Divulgados & 700 & 26,1\% \\
-Estrutura Concreta da Saída & 517 & 19,3\% \\
-Regras de Validação e Contratos de Formato Não Divulgados & 500 & 18,6\% \\
-Limites Operacionais, Padrões e Paginação Não Divulgados & 465 & 17,3\% \\
-Contexto de Fluxo e Ativação & 359 & 13,4\% \\
-Escopo de Processamento e Mecânica Interna Subestimados & 350 & 13,0\% \\
-Confirmação de Encapsulamento Trivial & 245 & 9,1\% \\
-Valores Fixos e Padrões Divergentes & 228 & 8,5\% \\
-Dependências e Pré-requisitos de Ambiente Ocultos & 205 & 7,6\% \\
-Controles de Acesso, Papel e Autorização & 143 & 5,3\% \\
-Semântica de Correspondência e Normalização de Entrada & 127 & 4,7\% \\
-Parâmetros Fantasmas ou Divergentes & 87 & 3,2\% \\
-Funcionalidade Anunciada Não Implementada & 83 & 3,1\% \\
-Efeitos Colaterais Não Divulgados & 77 & 2,9\% \\
-Sistema-Alvo Divergente & 65 & 2,4\% \\
-\textit{(nenhuma categoria)} & 106 & 3,9\% \\
+Superfície de Entrada Não Documentada & 1.304 & 57,4\% \\
+Modos de Falha e Erros Não Divulgados & 592 & 26,1\% \\
+Estrutura Concreta da Saída & 443 & 19,5\% \\
+Regras de Validação e Contratos de Formato Não Divulgados & 435 & 19,1\% \\
+Limites Operacionais, Padrões e Paginação Não Divulgados & 386 & 17,0\% \\
+Contexto de Fluxo e Ativação & 291 & 12,8\% \\
+Escopo de Processamento e Mecânica Interna Subestimados & 278 & 12,2\% \\
+Confirmação de Encapsulamento Trivial & 217 & 9,6\% \\
+Valores Fixos e Padrões Divergentes & 183 & 8,1\% \\
+Dependências e Pré-requisitos de Ambiente Ocultos & 165 & 7,3\% \\
+Semântica de Correspondência e Normalização de Entrada & 109 & 4,8\% \\
+Controles de Acesso, Papel e Autorização & 103 & 4,5\% \\
+Parâmetros Fantasmas ou Divergentes & 79 & 3,5\% \\
+Funcionalidade Anunciada Não Implementada & 73 & 3,2\% \\
+Sistema-Alvo Divergente & 58 & 2,6\% \\
+Efeitos Colaterais Não Divulgados & 56 & 2,5\% \\
+\textit{(nenhuma categoria)} & 94 & 4,1\% \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-\textcolor{orange}{Superfície de Entrada Não Documentada domina a amostra (55,6\%): o achado mais comum é que o código aceita parâmetros, filtros ou opções que a descrição não menciona. Modos de Falha e Erros Não Divulgados (26,1\%) e Estrutura Concreta da Saída (19,3\%) seguem como segundo e terceiro mecanismos mais recorrentes, e mesmo a categoria menos frequente, Sistema-Alvo Divergente, aparece em 65 ferramentas.}
+\textcolor{orange}{Superfície de Entrada Não Documentada domina a amostra (57,4\%): o achado mais comum é que o código aceita parâmetros, filtros ou opções que a descrição não menciona. Modos de Falha e Erros Não Divulgados (26,1\%) e Estrutura Concreta da Saída (19,5\%) seguem como segundo e terceiro mecanismos mais recorrentes, e mesmo a categoria menos frequente, Efeitos Colaterais Não Divulgados, aparece em 56 ferramentas.}
 
-\textcolor{orange}{A verificação manual confirmou a categoria atribuída em 72 das 100 ferramentas (72,0\%); os casos discordantes concentram-se em categorias de fronteira próxima, como Contexto de Fluxo e Ativação e Superfície de Entrada Não Documentada, e não em atribuições sem relação com a justificativa.}
+\textcolor{orange}{% TODO: atualizar após verificar as 41 ferramentas pendentes (data/analysis/consenso_verificacao_manual_pendentes.json).
+Na verificação manual, das 59 ferramentas da amostra já verificadas, a categoria atribuída foi confirmada em 42 (71,2\%); as 41 restantes estão em verificação. Os casos discordantes concentram-se em categorias de fronteira próxima, como Contexto de Fluxo e Ativação e Superfície de Entrada Não Documentada, e não em atribuições sem relação com a justificativa.}
 
-\textcolor{orange}{Em resposta à RQ1, em 89,6\% das ferramentas da amostra (2.406 de 2.685) a mudança de nota é rastreável a um achado concreto no código; nos 10,4\% restantes (sem categoria ou apenas Confirmação de Encapsulamento Trivial), o código não revela informação nova e a mudança reflete apenas uma releitura mais rigorosa do mesmo texto. A mudança de nota tem, portanto, causa identificável na maioria dos casos, o que é consistente com um ganho de precisão, mas não o comprova na ausência de um padrão-ouro humano (Seção~\ref{sec:ameacas}).}
+\textcolor{orange}{Em resposta à RQ1, em 89,2\% das ferramentas da amostra (2.028 de 2.273) a mudança de nota é rastreável a um achado concreto no código; nos 10,8\% restantes (sem categoria ou apenas Confirmação de Encapsulamento Trivial), o código não revela informação nova e a mudança reflete apenas uma releitura mais rigorosa do mesmo texto. A mudança de nota tem, portanto, causa identificável na maioria dos casos, o que é consistente com um ganho de precisão, mas não o comprova na ausência de um padrão-ouro humano (Seção~\ref{sec:ameacas}).}
 
 
 \subsection{RQ2: Quais atributos da rubrica de qualidade documental são mais afetados pela adição do código da \textit{tool}?}
