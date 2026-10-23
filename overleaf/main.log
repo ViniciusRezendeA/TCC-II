@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.29 (TeX Live 2026) (preloaded format=pdflatex 2026.9.18)  23 OCT 2026 18:01
+This is pdfTeX, Version 3.141592653-2.6-1.40.29 (TeX Live 2026) (preloaded format=pdflatex 2026.9.18)  23 OCT 2026 18:30
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -728,7 +728,7 @@ File: l3backend-pdftex.def 2025-10-09 L3 backend support: PDF output (pdfTeX)
 )
 (./main.aux
 Package babel Info: 'brazil' activates 'portuges' shorthands.
-(babel)             Reported on input line 6.
+(babel)             Reported on input line 12.
 )
 \openout1 = `main.aux'.
 
@@ -833,14 +833,10 @@ Underfull \hbox (badness 10000) in paragraph at lines 103--108
 
  []
 
-
-Underfull \vbox (badness 10000) has occurred while \output is active []
-
- [1
+(./sectionsTCCII/01_Introducao.tex [1
 
 {/usr/local/texlive/2026/texmf-var/fonts/map/pdftex/updmap/pdftex.map}{/usr/loc
 al/texlive/2026/texmf-dist/fonts/enc/dvips/base/8r.enc}]
-(./sectionsTCCII/01_Introducao.tex
 Underfull \hbox (badness 10000) in paragraph at lines 6--7
 []\OT1/ptm/m/n/12 Estudos re-cen-tes in-ves-ti-gam a pre-val[]encia de ano-ma-l
 ias (ou \OT1/ptm/m/it/12 smells\OT1/ptm/m/n/12 )
@@ -852,214 +848,169 @@ Underfull \hbox (badness 10000) in paragraph at lines 6--7
 -cu-men-tal
  []
 
-
-Underfull \hbox (badness 1776) in paragraph at lines 6--7
-\OT1/ptm/m/n/12 [[]][][[], []][]. Essa abor-da-gem ava-
+[2]) (./sectionsTCCII/02_Fundamentacao_Teorica_V3.tex [3])
+(./sectionsTCCII/03_Trabalhos_Relacionados.tex
+Underfull \hbox (badness 1048) in paragraph at lines 16--1
+\OT1/ptm/m/n/12 ble-mas de qua-li-dade em um ar-te-fato, ainda que n[]ao con-fi
+-gu-rem de-fei-tos fun-ci-o-
  []
 
-[2]) (./sectionsTCCII/02_Fundamentacao_Teorica_V3.tex
-Underfull \vbox (badness 10000) has occurred while \output is active []
-
- [3]
-[4]) (./sectionsTCCII/03_Trabalhos_Relacionados.tex
-Underfull \hbox (badness 1117) in paragraph at lines 32--1
-\OT1/ptm/m/n/12 nas descri[][]oes de fer-ra-men-tas, como a aus[]encia de espec
-ifica[][]ao dos par[]ametros
+[4]
+Underfull \hbox (badness 1215) in paragraph at lines 14--15
+[]\OT1/ptm/m/n/12 Zheng et al. (2023)  in-ves-ti-gam a vi-a-bi-li-dade da abor-
+da-gem \OT1/ptm/m/it/12 LLM-as-a-
  []
 
-
-Underfull \hbox (badness 1521) in paragraph at lines 32--1
-\OT1/ptm/m/n/12 de en-trada e sa[]^^Pda, do com-por-ta-mento es-pe-rado e das l
-imita[][]oes da fer-ra-menta
- []
-
-[5] [6]) (./sectionsTCCII/04_Materiais_Metodos.tex
-<./images/metodologia_v7.png, id=31, 1039.2426pt x 107.2005pt>
+) (./sectionsTCCII/04_Materiais_Metodos.tex
+<./images/metodologia_v7.png, id=25, 1039.2426pt x 107.2005pt>
 File: ./images/metodologia_v7.png Graphic file (type png)
 <use ./images/metodologia_v7.png>
-Package pdftex.def Info: ./images/metodologia_v7.png  used on input line 12.
+Package pdftex.def Info: ./images/metodologia_v7.png  used on input line 8.
 (pdftex.def)             Requested size: 426.79135pt x 44.02444pt.
-LaTeX Font Info:    Trying to load font information for OT1+phv on input line 1
-3.
+LaTeX Font Info:    Trying to load font information for OT1+phv on input line 9
+.
 
 (/usr/local/texlive/2026/texmf-dist/tex/latex/psnfss/ot1phv.fd
 File: ot1phv.fd 2020/03/25 scalable font definitions for OT1/phv.
-) [7 <./images/metodologia_v7.png>]
-<./images/fluxo_etapa1_detalhado.png, id=39, 716.1957pt x 269.808pt>
+) [5 <./images/metodologia_v7.png>]
+<./images/fluxo_etapa1_detalhado.png, id=32, 716.1957pt x 269.808pt>
 File: ./images/fluxo_etapa1_detalhado.png Graphic file (type png)
 <use ./images/fluxo_etapa1_detalhado.png>
 Package pdftex.def Info: ./images/fluxo_etapa1_detalhado.png  used on input lin
-e 30.
+e 20.
 (pdftex.def)             Requested size: 426.79135pt x 160.7827pt.
-
-Underfull \vbox (badness 10000) has occurred while \output is active []
-
- [8]
-[9 <./images/fluxo_etapa1_detalhado.png>]
-<./images/fluxo_etapa2_detalhado.png, id=47, 541.3023pt x 396.5214pt>
+<./images/fluxo_etapa2_detalhado.png, id=33, 541.3023pt x 396.5214pt>
 File: ./images/fluxo_etapa2_detalhado.png Graphic file (type png)
 <use ./images/fluxo_etapa2_detalhado.png>
 Package pdftex.def Info: ./images/fluxo_etapa2_detalhado.png  used on input lin
-e 72.
+e 32.
 (pdftex.def)             Requested size: 426.79135pt x 312.64946pt.
- [10 <./images/fluxo_etapa2_detalhado.png>]
-<./images/arvoreFinal.png, id=52, 983.3538pt x 342.5598pt>
+<./images/arvoreFinal.png, id=34, 983.3538pt x 342.5598pt>
 File: ./images/arvoreFinal.png Graphic file (type png)
 <use ./images/arvoreFinal.png>
-Package pdftex.def Info: ./images/arvoreFinal.png  used on input line 81.
+Package pdftex.def Info: ./images/arvoreFinal.png  used on input line 41.
 (pdftex.def)             Requested size: 426.79135pt x 148.67255pt.
-
-Underfull \vbox (badness 10000) has occurred while \output is active []
-
- [11 <./images/arvoreFinal.png>]
-<./images/fluxo_etapa3_detalhado.png, id=57, 1067.187pt x 401.5803pt>
+ [6 <./images/fluxo_etapa1_detalhado.png>] [7 <./images/fluxo_etapa2_detalhado.
+png> <./images/arvoreFinal.png>]
+<./images/fluxo_etapa3_detalhado.png, id=45, 1067.187pt x 401.5803pt>
 File: ./images/fluxo_etapa3_detalhado.png Graphic file (type png)
 <use ./images/fluxo_etapa3_detalhado.png>
 Package pdftex.def Info: ./images/fluxo_etapa3_detalhado.png  used on input lin
-e 123.
+e 79.
 (pdftex.def)             Requested size: 426.79135pt x 160.60475pt.
+ [8 <./images/fluxo_etapa3_detalhado.png>]
+Underfull \hbox (badness 1158) in paragraph at lines 92--93
+[][]\OT1/ptm/m/n/12 Para ca-rac-te-ri-zar que tipo de informa[][]ao o c[]odigo 
+re-vela, conduz-se uma
+ []
 
-Underfull \vbox (badness 10000) has occurred while \output is active []
-
- [12]
-Underfull \vbox (badness 2103) has occurred while \output is active []
-
- [13 <./images/fluxo_etapa3_detalhado.png>] [14]
-<./images/fluxo_analise_qualitativa_detalhado.png, id=69, 2360.82pt x 430.60875
+<./images/fluxo_analise_qualitativa_detalhado.png, id=50, 2360.82pt x 430.60875
 pt>
 File: ./images/fluxo_analise_qualitativa_detalhado.png Graphic file (type png)
 <use ./images/fluxo_analise_qualitativa_detalhado.png>
 Package pdftex.def Info: ./images/fluxo_analise_qualitativa_detalhado.png  used
- on input line 160.
+ on input line 96.
 (pdftex.def)             Requested size: 426.79135pt x 77.84132pt.
- [15 <./images/fluxo_analise_qualitativa_detalhado.png (PNG copy)>]
-Underfull \hbox (badness 10000) in paragraph at lines 167--168
-[][]\OT1/ptm/m/n/12 Nas tr[]es fa-ses se-guin-tes, busca, re-vis[]ao e defini[]
-[]ao dos te-mas
- []
-
-
-Underfull \hbox (badness 1688) in paragraph at lines 169--170
-[][]\OT1/ptm/m/n/12 Conclu[]^^Pda a an[]alise tem[]atica, aplica-se uma an[]ali
-se de conte[]udo di-ri-gida
- []
-
-
-Underfull \hbox (badness 1292) in paragraph at lines 171--172
-[][]\OT1/ptm/m/n/12 A classifica[][]ao di-ri-gida pro-du-zida na etapa an-te-ri
-or []e, por sua vez, sub-
- []
-
-
-Underfull \hbox (badness 1005) in paragraph at lines 171--172
-\OT1/ptm/m/n/12 me-tida a uma verifica[][]ao ma-nual so-bre uma amos-tra de fer
--ra-men-tas, cujo ta-ma-
- []
-
-
-Underfull \vbox (badness 10000) has occurred while \output is active []
-
- [16])
-(./sectionsTCCII/05_Resultados_Parciais.tex
-Underfull \hbox (badness 10000) in paragraph at lines 65--65
-[]|\OT1/ptm/m/n/10 Funcionalidade Anun-ci-ada
- []
-
-
-Underfull \hbox (badness 7740) in paragraph at lines 67--67
-[]|\OT1/ptm/m/n/10 A es-tru-tura exata do re-torno (cam-pos, ani-nha-mento,
- []
-
-
-Underfull \hbox (badness 1681) in paragraph at lines 69--69
-[]|\OT1/ptm/m/n/10 Escopo de Pro-ces-sa-mento e
- []
-
-
-Underfull \hbox (badness 4505) in paragraph at lines 69--69
-[]|\OT1/ptm/m/n/10 A implementa[][]ao re-a-liza bem mais pro-ces-sa-mento ou
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 70--70
-[]|\OT1/ptm/m/n/10 Sem[]antica de Cor-res-
- []
-
-
-Underfull \hbox (badness 2680) in paragraph at lines 70--70
-\OT1/ptm/m/n/10 di-fusa de no-mes) sem que a descri[][]ao men-ci-one essa
- []
-
-
-Underfull \hbox (badness 6094) in paragraph at lines 72--72
-[]|\OT1/ptm/m/n/10 Confirma[][]ao de En-cap-su-la-
- []
-
-[17] [18]
+) (./sectionsTCCII/05_Resultados_Parciais.tex [9 <./images/fluxo_analise_qualit
+ativa_detalhado.png (PNG copy)>]
 LaTeX Font Info:    Font shape `OT1/phv/b/it' in size <10> not available
-(Font)              Font shape `OT1/phv/b/sl' tried instead on input line 80.
- [19]
-<images/RQs/diminuiu_empatou_aumentou_por_modelo.png, id=90, 768.2301pt x 251.8
+(Font)              Font shape `OT1/phv/b/sl' tried instead on input line 51.
+ [10]
+<images/RQs/diminuiu_empatou_aumentou_por_modelo.png, id=60, 768.2301pt x 251.8
 6095pt>
 File: images/RQs/diminuiu_empatou_aumentou_por_modelo.png Graphic file (type pn
 g)
 <use images/RQs/diminuiu_empatou_aumentou_por_modelo.png>
 Package pdftex.def Info: images/RQs/diminuiu_empatou_aumentou_por_modelo.png  u
-sed on input line 119.
-(pdftex.def)             Requested size: 426.79135pt x 139.92282pt.
-<images/RQs/boxplot_com_sem_codigo_apenas_mudou_por_modelo.png, id=91, 981.7879
+sed on input line 92.
+(pdftex.def)             Requested size: 405.45047pt x 132.92456pt.
+<images/RQs/boxplot_com_sem_codigo_apenas_mudou_por_modelo.png, id=61, 981.7879
 5pt x 266.31496pt>
 File: images/RQs/boxplot_com_sem_codigo_apenas_mudou_por_modelo.png Graphic fil
 e (type png)
 <use images/RQs/boxplot_com_sem_codigo_apenas_mudou_por_modelo.png>
 Package pdftex.def Info: images/RQs/boxplot_com_sem_codigo_apenas_mudou_por_mod
-elo.png  used on input line 130.
-(pdftex.def)             Requested size: 426.79135pt x 115.76884pt.
- [20 <./images/RQs/diminuiu_empatou_aumentou_por_modelo.png>]
-Underfull \vbox (badness 10000) has occurred while \output is active []
-
- [21 <./images/RQs/boxplot_com_sem_codigo_apenas_mudou_por_modelo.png>]) (./mai
-n.bbl
-[22] [23]) (./sectionsTCCII/Apendice.tex [24] [25]
-Underfull \vbox (badness 10000) has occurred while \output is active []
-
- [26]
+elo.png  used on input line 99.
+(pdftex.def)             Requested size: 405.45047pt x 109.97816pt.
+ [11 <./images/RQs/diminuiu_empatou_aumentou_por_modelo.png> <./images/RQs/boxp
+lot_com_sem_codigo_apenas_mudou_por_modelo.png>]) (./sectionsTCCII/06_Ameacas_V
+alidade.tex [12])
+(./sectionsTCCII/07_Conclusao.tex [13]) (./main.bbl [14])
+(./sectionsTCCII/Apendice.tex [15] [16] [17]
 LaTeX Font Info:    Font shape `OMS/pcr/m/n' in size <12> not available
 (Font)              Font shape `OMS/cmsy/m/n' tried instead on input line 94.
+ [18]
+Underfull \vbox (badness 10000) has occurred while \output is active []
 
-[27] [28]) [29] (./main.aux)
+ [19]
+Underfull \hbox (badness 10000) in paragraph at lines 155--155
+[]|\OT1/ptm/m/n/10 Funcionalidade Anun-ci-ada
+ []
+
+
+Underfull \hbox (badness 7740) in paragraph at lines 157--157
+[]|\OT1/ptm/m/n/10 A es-tru-tura exata do re-torno (cam-pos, ani-nha-mento,
+ []
+
+
+Underfull \hbox (badness 1681) in paragraph at lines 159--159
+[]|\OT1/ptm/m/n/10 Escopo de Pro-ces-sa-mento e
+ []
+
+
+Underfull \hbox (badness 4505) in paragraph at lines 159--159
+[]|\OT1/ptm/m/n/10 A implementa[][]ao re-a-liza bem mais pro-ces-sa-mento ou
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 160--160
+[]|\OT1/ptm/m/n/10 Sem[]antica de Cor-res-
+ []
+
+
+Underfull \hbox (badness 2680) in paragraph at lines 160--160
+\OT1/ptm/m/n/10 di-fusa de no-mes) sem que a descri[][]ao men-ci-one essa
+ []
+
+
+Underfull \hbox (badness 6094) in paragraph at lines 162--162
+[]|\OT1/ptm/m/n/10 Confirma[][]ao de En-cap-su-la-
+ []
+
+) [20] [21] (./main.aux)
  ***********
 LaTeX2e <2025-11-01>
 L3 programming layer <2026-01-19>
  ***********
  ) 
 Here is how much of TeX's memory you used:
- 21797 strings out of 467525
- 430373 string characters out of 5418982
- 1450143 words of memory out of 5000000
- 50329 multiletter control sequences out of 15000+600000
- 657140 words of font info for 91 fonts, out of 8000000 for 9000
+ 21816 strings out of 467525
+ 430993 string characters out of 5418982
+ 1377143 words of memory out of 5000000
+ 50340 multiletter control sequences out of 15000+600000
+ 660984 words of font info for 98 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 98i,14n,118p,1762b,1685s stack positions out of 10000i,1000n,20000p,200000b,200000s
-</usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb
-></usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb>
-</usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi12.pfb><
-/usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb></u
-sr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmr12.pfb></usr
-/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmr8.pfb></usr/lo
-cal/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/loc
-al/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy8.pfb></usr/local
-/texlive/2026/texmf-dist/fonts/type1/urw/courier/ucrr8a.pfb></usr/local/texlive
-/2026/texmf-dist/fonts/type1/urw/helvetic/uhvb8a.pfb></usr/local/texlive/2026/t
-exmf-dist/fonts/type1/urw/helvetic/uhvbo8a.pfb></usr/local/texlive/2026/texmf-d
-ist/fonts/type1/urw/times/utmb8a.pfb></usr/local/texlive/2026/texmf-dist/fonts/
-type1/urw/times/utmbi8a.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/urw
-/times/utmr8a.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/urw/times/utm
-ri8a.pfb>
-Output written on main.pdf (29 pages, 1220630 bytes).
+ 98i,14n,118p,1697b,1684s stack positions out of 10000i,1000n,20000p,200000b,200000s
+</usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb
+></usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi12.pfb>
+</usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb></
+usr/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmr12.pfb></us
+r/local/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmr7.pfb></usr/l
+ocal/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmr8.pfb></usr/loca
+l/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/local
+/texlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy7.pfb></usr/local/t
+exlive/2026/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy8.pfb></usr/local/tex
+live/2026/texmf-dist/fonts/type1/urw/courier/ucrr8a.pfb></usr/local/texlive/202
+6/texmf-dist/fonts/type1/urw/helvetic/uhvb8a.pfb></usr/local/texlive/2026/texmf
+-dist/fonts/type1/urw/helvetic/uhvbo8a.pfb></usr/local/texlive/2026/texmf-dist/
+fonts/type1/urw/times/utmb8a.pfb></usr/local/texlive/2026/texmf-dist/fonts/type
+1/urw/times/utmbi8a.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/urw/tim
+es/utmr8a.pfb></usr/local/texlive/2026/texmf-dist/fonts/type1/urw/times/utmri8a
+.pfb>
+Output written on main.pdf (21 pages, 1202093 bytes).
 PDF statistics:
- 193 PDF objects out of 1000 (max. 8388607)
- 115 compressed objects within 2 object streams
+ 173 PDF objects out of 1000 (max. 8388607)
+ 101 compressed objects within 2 object streams
  0 named destinations out of 1000 (max. 500000)
  53 words of extra memory for PDF output out of 10000 (max. 10000000)
 
