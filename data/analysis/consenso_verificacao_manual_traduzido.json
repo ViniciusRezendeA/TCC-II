@@ -3605,7 +3605,7 @@
     },
     "justicativa": "A análise do código-fonte fornecido revela que ele na verdade contém definições de ferramentas Nuclei, e não da ferramenta trivy_generate_sbom. Consequentemente, os juízes apontaram ambiguidades e brevidade quanto ao tipo de imagem ou scanner suportado ao cruzar com o código de implementação, o que levou a notas de propósito ajustadas. Quanto às diretrizes, a avaliação observou que o texto permaneceu puramente uma declaração de propósito, sem instruções operacionais ou critérios de ativação.",
     "categoria": "Funcionalidade Anunciada Não Implementada",
-    "ViniciusConcorda": "",
+    "ViniciusConcorda": false,
     "PedroConcorda": ""
   },
   {
@@ -3815,7 +3815,7 @@
     },
     "justicativa": "A análise do código-fonte revelou que a função list_files opera sobre um sistema de arquivos simulado em memória (MOCK_FILE_SYSTEM) e retorna None quando um caminho não é encontrado, detalhes ausentes da descrição em texto simples. Os juízes observaram que ver a implementação ajudou a esclarecer o comportamento da ferramenta quanto aos valores de retorno e à estrutura, como a diferenciação entre conteúdo de diretório e metadados de arquivo. No entanto, as justificativas individuais dos juízes variaram: alguns ajustaram as notas para cima devido a uma compreensão mais clara da função, enquanto outros as reduziram porque a descrição omitia essas especificidades da implementação subjacente.",
     "categoria": "Funcionalidade Anunciada Não Implementada",
-    "ViniciusConcorda": "",
+    "ViniciusConcorda": false,
     "PedroConcorda": ""
   },
   {
@@ -4426,7 +4426,7 @@
     },
     "justicativa": "O código-fonte revela que `find_matches` implementa parâmetros como `date_from`, `date_to` e um `limit` padrão de 50, além da ordenação por data em ordem decrescente, itens ausentes da descrição em texto simples. Além disso, os juízes apontaram discrepâncias: a assinatura no código suporta filtros de data, enquanto algumas flags documentadas, como `home_only` ou `away_only`, estão ausentes do handler da implementação real. O código também expõe detalhes concretos de comportamento, como a correspondência por substring sem diferenciar maiúsculas e minúsculas nos nomes de times e competições e a combinação de fontes de dados via `pd.concat`.",
     "categoria": "Parâmetros Fantasmas ou Divergentes",
-    "ViniciusConcorda": "",
+    "ViniciusConcorda": true,
     "PedroConcorda": ""
   },
   {
@@ -5098,7 +5098,7 @@
       "                listener.run();",
       "            }",
       "        }"
-    ],
+     ],
     "avaliacoes": {
       "deepseek": [
         {
@@ -5195,7 +5195,7 @@
     },
     "justicativa": "A análise do código-fonte revelou que, embora o método faça corretamente o flat-map das definições de componentes para reunir as informações dos triggers, ele constrói objetos TriggerMinimalInfo usando apenas o nome, a descrição e o nome do componente do trigger. Consequentemente, o juiz deepseek apontou uma pequena imprecisão na descrição em texto simples, que adicionalmente afirmava que 'type' é retornado. O código-fonte também evidencia que a ferramenta não recebe argumentos de entrada e captura exceções para lançar uma ExecutionException, detalhes que ajudam a fundamentar as avaliações quanto a explicações de parâmetros, diretrizes e completude.",
     "categoria": "Parâmetros Fantasmas ou Divergentes",
-    "ViniciusConcorda": "",
+    "ViniciusConcorda": true,
     "PedroConcorda": ""
   },
   {
@@ -6534,7 +6534,7 @@
     },
     "justicativa": "O código-fonte revelou que os parâmetros reais da ferramenta são `url`, `output_path` e um `timestamp` opcional com padrão 30, enquanto a descrição em texto simples documentava incorretamente um parâmetro `working_dir` e omitia `output_path` e `timestamp`. Além disso, a implementação expôs modos de falha concretos e etapas de tratamento de erros, como a verificação de URLs válidas do YouTube via `get_video_id` e a verificação de que o texto da transcrição pode ser obtido com sucesso antes de chamar o LLM do Nebius. O acesso ao código-fonte permitiu, assim, que os juízes identificassem imprecisões na documentação de parâmetros e apontassem restrições específicas de execução ausentes da descrição.",
     "categoria": "Parâmetros Fantasmas ou Divergentes",
-    "ViniciusConcorda": "",
+    "ViniciusConcorda": true,
     "PedroConcorda": ""
   },
   {
@@ -6930,7 +6930,7 @@
     },
     "justicativa": "O código-fonte revelou vários detalhes de implementação específicos ausentes da descrição em texto simples, incluindo variáveis de ambiente obrigatórias (GOOGLE_API_KEY ou GEMINI_API_KEY), limites de truncamento do conteúdo por arquivo em 50.000 caracteres e mensagens de retorno de falha como 'No files found to review.'. Além disso, o código-fonte mostrou que passar None para o parâmetro files dispara uma varredura de todos os arquivos com extensão de código sob /app/, limitada a 20 arquivos, em vez de revisar os arquivos modificados, expondo uma imprecisão na semântica documentada do parâmetro.",
     "categoria": "Parâmetros Fantasmas ou Divergentes",
-    "ViniciusConcorda": "",
+    "ViniciusConcorda": true,
     "PedroConcorda": ""
   },
   {
@@ -7192,7 +7192,7 @@
     },
     "justicativa": "O código-fonte revela o registro do handler de requisições no servidor para a ferramenta get_artifact_instructions e a lógica associada de conversão do esquema Zod. Os juízes avaliaram os componentes de explicação de parâmetros e de tamanho/completude de forma diferente após analisar essa implementação e o texto da descrição da ferramenta. No entanto, as justificativas fornecidas pelos juízes não citam mecanismos específicos do código, como a conversão do esquema Zod ou os auxiliares de validação de esquema; em vez disso, seus ajustes de nota refletem interpretações subjetivas variadas do papel do parâmetro e da completude geral da descrição.",
     "categoria": "none",
-    "ViniciusConcorda": "",
+    "ViniciusConcorda": false, // Confirmacao de encapsulamento trivial
     "PedroConcorda": ""
   },
   {
@@ -7296,7 +7296,7 @@
     },
     "justicativa": "O DeepSeek elevou suas notas de propósito e de explicação de parâmetros após ver o código-fonte, observando que a implementação confirma claramente que a função de login recebe username e password para retornar um token de acesso. Por outro lado, o Google reduziu levemente sua nota de propósito porque a descrição breve carecia de contexto mais profundo quando comparada ao código. O Ollama aumentou suas notas de propósito e de tamanho, considerando a ação básica suficientemente expressa pelo trecho da implementação. Nenhum dos juízes citou comportamentos ocultos concretos, parâmetros não documentados ou casos de erro específicos do código-fonte fornecido.",
     "categoria": "none",
-    "ViniciusConcorda": "",
+    "ViniciusConcorda": false, // Superfice de Entrada Não Documentada
     "PedroConcorda": ""
   },
   {
@@ -7753,7 +7753,7 @@
     },
     "justicativa": "O código-fonte revelou vários detalhes de implementação e comportamentos não totalmente capturados na descrição em texto simples, como o fato de que os arquivos-fonte retornados passam por uma função Truncate() e, portanto, não são estritamente literais para arquivos muito longos. Também mostrou que a busca por caminho usa correspondência por substring sem diferenciar maiúsculas e minúsculas e que um caminho digitado errado recai no retorno de uma lista de candidatos 'did you mean' em vez de um erro padrão. Além disso, os juízes observaram que omitir o caminho retorna uma lista de catálogo também sujeita a restrições de truncamento. Esses comportamentos programáticos concretos permitiram que os juízes avaliassem melhor as limitações da ferramenta e o tratamento de parâmetros.",
     "categoria": "Semântica de Correspondência e Normalização de Entrada",
-    "ViniciusConcorda": "",
+    "ViniciusConcorda": true,
     "PedroConcorda": ""
   },
   {
@@ -7966,7 +7966,7 @@
     },
     "justicativa": "O código-fonte revelou que a ferramenta retorna uma resposta requires_confirmation quando chamada sem definir confirm como true, delineando um fluxo de exclusão em várias etapas que a descrição simples não especificava totalmente. Além disso, a implementação mostrou que a ferramenta resolve identificadores de notebook por ID ou título, lançando erros de uso se os títulos forem ambíguos ou se os notebooks não forem encontrados, e trata os requisitos de autenticação por meio de um cliente subjacente. Esses detalhes operacionais e possíveis condições de erro estavam ausentes da descrição inicial, levando os juízes a ajustar suas avaliações de diretrizes e limitações.",
     "categoria": "Semântica de Correspondência e Normalização de Entrada",
-    "ViniciusConcorda": "",
+    "ViniciusConcorda": false, //Parametros Fantasmas ou Divergentes
     "PedroConcorda": ""
   },
   {
@@ -9156,7 +9156,7 @@
     },
     "justicativa": "O código-fonte revelou que a ferramenta espera um parâmetro prefix passado para fetchRadarApi junto com propriedades de requisição autenticada via requireRequestProps(context). A análise do código-fonte permitiu que os juízes entendessem melhor o papel do único parâmetro de entrada no contexto, melhorando sua nota de explicação de parâmetros. No entanto, os juízes observaram que o código-fonte ainda não divulgava modos de falha explícitos, limites de taxa ou restrições de formato válido do prefixo.",
     "categoria": "Controles de Acesso, Papel e Autorização",
-    "ViniciusConcorda": "",
+    "ViniciusConcorda": false, 
     "PedroConcorda": ""
   },
   {
@@ -9408,7 +9408,7 @@
     },
     "justicativa": "O código-fonte revelou detalhes de implementação como verificações de autenticação via _get_principal_id(ctx), validação por regex via _validate_id(job_id, \"job_id\") e tratamento de erros específico que retorna dicionários como {\"error\": \"authentication_missing\"} ou {\"error\": \"job_not_found\", \"job_id\": job_id}. Os juízes observaram que o código-fonte contém um ID de exemplo ('job_abc123') e exige que o job pertença ao principal que faz a chamada. Quanto aos exemplos, os juízes em geral concordaram que a descrição carecia de cenários de uso ilustrativos concretos ou chamadas de exemplo, o que levou a notas baixas em várias avaliações.",
     "categoria": "Controles de Acesso, Papel e Autorização",
-    "ViniciusConcorda": "",
+    "ViniciusConcorda": false,
     "PedroConcorda": ""
   },
   {
@@ -10170,7 +10170,7 @@
     },
     "justicativa": "O código-fonte revelou detalhes operacionais concretos ausentes da descrição em texto simples, incluindo a exigência específica do pacote sentence-transformers (pip install mcp-rss-search[similarity]), parâmetros de entrada como url, query, top_k, threshold e use_cache, e o comportamento subjacente de obter e analisar entradas de feeds RSS para realizar a correspondência por similaridade semântica. Os juízes utilizaram esses detalhes de implementação, agora visíveis, para avaliar de forma mais completa o propósito, as limitações, as diretrizes, os parâmetros e os exemplos da ferramenta quando o código-fonte estava disponível.",
     "categoria": "Dependências e Pré-requisitos de Ambiente Ocultos",
-    "ViniciusConcorda": "",
+    "ViniciusConcorda": true,
     "PedroConcorda": ""
   },
   {
@@ -10551,7 +10551,7 @@
     },
     "justicativa": "O código-fonte revelou detalhes de implementação e condições de falha específicas, como a verificação de que as capacidades de inventário e de terreno estão habilitadas, a validação de que os blocos-alvo correspondem a materiais de contêineres interagíveis, como baús, barris ou fornalhas, e o tratamento do comportamento do parâmetro 'closeCurrent' quando um contêiner ativo já está aberto. Entre os juízes, essas constatações do código levaram a ajustes diferentes: alguns juízes reduziram as notas devido à falta de orientação operacional e sobre parâmetros na descrição, enquanto outros as elevaram porque o código esclareceu o fluxo exato de execução e os estados de erro.",
     "categoria": "Dependências e Pré-requisitos de Ambiente Ocultos",
-    "ViniciusConcorda": "",
+    "ViniciusConcorda": true,
     "PedroConcorda": ""
   },
   {
@@ -10773,7 +10773,7 @@
     },
     "justicativa": "A análise do código-fonte revelou que a ferramenta funciona como um recurso opt-in que consulta fontes específicas, como o Official MCP Registry, Smithery.ai, Glama.ai, awesome-mcp e GitHub, aceitando parâmetros como query, sources e maxResults. Os juízes observaram que ter acesso a esse esquema de implementação e aos detalhes da descrição forneceu um contexto mais claro sobre os parâmetros e os critérios de ativação da ferramenta. Consequentemente, os juízes ajustaram para cima as notas de propósito, explicação de parâmetros e tamanho e completude com base nesses detalhes explícitos do esquema encontrados no código-fonte.",
     "categoria": "Dependências e Pré-requisitos de Ambiente Ocultos",
-    "ViniciusConcorda": "",
+    "ViniciusConcorda": true,
     "PedroConcorda": ""
   },
   {
@@ -11506,7 +11506,7 @@
     },
     "justicativa": "Fornecer o código-fonte aos juízes revelou detalhes operacionais concretos sobre o parâmetro `relativePath` e o tratamento de diretórios, como entradas vazias ou nulas assumirem por padrão a raiz (`.`), como caminhos `resources/{skillId}/...` são analisados e validados, e como os arquivos recebem o prefixo `[dir]` ou `[file]` na string retornada. Para alguns juízes, ver esses detalhes de implementação melhorou sua avaliação do propósito, da explicação de parâmetros e dos exemplos da ferramenta. Outros juízes observaram que, embora o código esclarecesse os padrões de sintaxe, ainda faltavam critérios de ativação explícitos, casos de erro ou diretrizes de uso abrangentes.",
     "categoria": "Valores Fixos e Padrões Divergentes",
-    "ViniciusConcorda": "",
+    "ViniciusConcorda": true,
     "PedroConcorda": ""
   },
   {
@@ -11698,7 +11698,7 @@
     },
     "justicativa": "O código-fonte revela que entradas de status inválidas fazem a ferramenta tratar automaticamente a tarefa como incompleta, com uma mensagem de aviso formatada, e que um contexto ausente assume o padrão 'Task needs further work' quando o status é incompleto. O Google observou que a descrição não documenta esse fallback automático para strings de status inválidas. O Deepseek e o Ollama ajustaram as notas para cima com base em uma estrutura percebida como mais clara, mas não citaram constatações específicas do código para justificar as mudanças.",
     "categoria": "Valores Fixos e Padrões Divergentes",
-    "ViniciusConcorda": "",
+    "ViniciusConcorda": true,
     "PedroConcorda": ""
   },
   {
@@ -11993,7 +11993,7 @@
     },
     "justicativa": "A análise do código-fonte revelou que a ferramenta na verdade aceita uma estrutura de entrada contendo um parâmetro `limit`, com padrão 10 e máximo de 50, enquanto a descrição em texto simples omitia completamente qualquer menção a parâmetros de entrada. Os juízes também observaram que, embora o código esclarecesse o mecanismo exato de obtenção dos episódios populares e de formatação das saídas, ainda faltava uma orientação operacional mais ampla ou critérios de decisão sobre quando invocar esta ferramenta em vez de outras.",
     "categoria": "Valores Fixos e Padrões Divergentes",
-    "ViniciusConcorda": "",
+    "ViniciusConcorda": true, //Se fosse obrigatorio seria melhor cair em. Superfice de entrada nao documentada 
     "PedroConcorda": ""
   },
   {
@@ -12840,7 +12840,7 @@
     },
     "justicativa": "A análise do código-fonte revelou parâmetros não mencionados na descrição em texto simples, especificamente 'lts', 'fromVersion' e 'limit', junto com seus valores padrão e comportamentos como a ordenação do mais novo para o mais antigo. Os juízes apontaram que, embora o texto expresse bem o propósito central, carece de diretrizes operacionais sobre quando ou como invocar a ferramenta. Consequentemente, os juízes ajustaram para cima as notas de completude ou detalhamento em relação a esses parâmetros descobertos, enquanto reduziram ou mantiveram baixas as notas de diretrizes devido à falta de critérios de execução.",
     "categoria": "Valores Fixos e Padrões Divergentes",
-    "ViniciusConcorda": "",
+    "ViniciusConcorda": true,
     "PedroConcorda": ""
   },
   {
@@ -13027,7 +13027,7 @@
     },
     "justicativa": "O código-fonte revela os detalhes de implementação da função `image_to_video`, mostrando como parâmetros como proporção, resolução, duração e geração de áudio são passados para a `Flux3DevAPI` e serializados em JSON. A análise do código-fonte levou os juízes a ajustar suas avaliações do propósito, das explicações de parâmetros, do tamanho e das limitações da descrição, embora nenhum novo tratamento de erros ou restrição não documentada seja exposto além do que já consta na docstring.",
     "categoria": "Confirmação de Encapsulamento Trivial",
-    "ViniciusConcorda": "",
+    "ViniciusConcorda": true,
     "PedroConcorda": ""
   },
   {
@@ -13562,7 +13562,7 @@
     },
     "justicativa": "A análise do código-fonte revelou que o esquema da ferramenta define explicitamente parâmetros de entrada como `element_description` e `display_index`, o que levou alguns juízes a ajustar suas avaliações de explicação de parâmetros ou de tamanho e completude. Especificamente, o ollama observou que a descrição menciona `element_description` como uma entrada em linguagem natural, o que resultou em uma nota mais alta de explicação de parâmetros quando o código-fonte estava visível. No entanto, outros ajustes de nota relativos a propósito, diretrizes ou tamanho e completude decorreram principalmente de interpretações subjetivas divergentes sobre a concisão do texto, e não de novas constatações concretas da implementação.",
     "categoria": "Confirmação de Encapsulamento Trivial",
-    "ViniciusConcorda": "",
+    "ViniciusConcorda": false, // os parametros nao estao na descricao 
     "PedroConcorda": ""
   },
   {
@@ -13656,7 +13656,7 @@
     },
     "justicativa": "O código-fonte fornecido apenas configura o handler de requisições para retornar mcpTools e não contém detalhes de implementação sobre parâmetros de entrada, caminhos de arquivo ou estados de erro específicos. Consequentemente, os juízes que reavaliaram a ferramenta com acesso ao código-fonte observaram que a descrição ainda carecia de explicações explícitas de parâmetros e de modos de falha. Enquanto o deepseek ajustou ligeiramente para baixo sua nota de tamanho e completude, o google e o ollama reduziram ainda mais suas notas de explicação de parâmetros e de limitações ao perceber que o código não fornecia contexto adicional que fundamentasse a descrição.",
     "categoria": "Confirmação de Encapsulamento Trivial",
-    "ViniciusConcorda": "",
+    "ViniciusConcorda": true,
     "PedroConcorda": ""
   },
   {
@@ -13813,7 +13813,7 @@
     },
     "justicativa": "Entre os juízes, a introdução do código-fonte levou a ajustes mistos nas notas, sem apontar recursos importantes não documentados. O DeepSeek reduziu sua nota de explicação de parâmetros porque o código-fonte não revela tratamento explícito de entradas malformadas nem suposições de fuso horário além de um formato básico. O Ollama elevou sua nota de propósito ao ver a implementação, considerando-a concisa e plenamente informativa. No entanto, outras mudanças de nota em componentes refletem interpretações padrão mais rigorosas, e não descobertas concretas baseadas no código.",
     "categoria": "Confirmação de Encapsulamento Trivial",
-    "ViniciusConcorda": "",
+    "ViniciusConcorda": true,
     "PedroConcorda": ""
   },
   {
@@ -14185,7 +14185,7 @@
     },
     "justicativa": "A análise do código-fonte revelou detalhes de implementação e comportamentos específicos que estavam ausentes ou representados de forma incompleta na descrição em texto simples. O DeepSeek observou que o código trata itens ausentes de parsed_ls preenchendo-os com True e processa corretamente extend_result_ls com valores de preenchimento '<PAD>', além de identificar discrepâncias entre a descrição e a implementação quanto à lógica de retry e aos limites de extend_time. O Google e o Ollama observaram que examinar o código expôs a lógica detalhada de transição de estados e o fluxo operacional, embora o Ollama tenha destacado especificamente que os parâmetros de entrada carecem de explicações explícitas de papel além de seu uso nas transições. Essas constatações concretas do código permitiram que os juízes reavaliassem a precisão da descrição quanto a casos extremos, tratamento de parâmetros e restrições operacionais.",
     "categoria": "Escopo de Processamento e Mecânica Interna Subestimados",
-    "ViniciusConcorda": "",
+    "ViniciusConcorda": true,
     "PedroConcorda": ""
   },
   {

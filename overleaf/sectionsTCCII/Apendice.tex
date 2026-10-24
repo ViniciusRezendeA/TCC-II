@@ -145,20 +145,20 @@ A Tabela~\ref{tab:categorias-mecanismo} apresenta as 16 categorias de mecanismo 
 \hline
 \textbf{Categoria} & \textbf{Descrição} \\ \hline
 Superfície de Entrada Não Documentada & A assinatura ou o esquema de entrada do código aceita parâmetros, filtros, identificadores de sessão ou combinações obrigatórias que a descrição nunca menciona. \\ \hline
-Parâmetros Fantasmas ou Divergentes & A descrição documenta parâmetros que o código não possui, ou que foram renomeados, removidos ou substituídos na implementação. \\ \hline
-Valores Fixos e Padrões Divergentes & Um valor apresentado como configurável está, na realidade, fixado no código, ou o valor padrão documentado diverge do valor efetivamente usado. \\ \hline
-Limites Operacionais, Padrões e Paginação Não Divulgados & Tetos, truncamentos, \textit{timeouts}, paginação e valores padrão não declarados são impostos pela implementação sem menção na descrição. \\ \hline
 Modos de Falha e Erros Não Divulgados & Tratamentos de erro, exceções, falhas de dependência e mensagens de estado vazio da implementação não são antecipados pela descrição. \\ \hline
-Dependências e Pré-requisitos de Ambiente Ocultos & Serviços externos, variáveis de ambiente, credenciais, binários ou configurações exigidos pelo código não são mencionados na descrição. \\ \hline
-Controles de Acesso, Papel e Autorização & Permissões, autenticação, verificações de papel/administrador e outras restrições de acesso aplicadas no código estão ausentes da descrição. \\ \hline
-Efeitos Colaterais Não Divulgados & O código produz efeitos colaterais (exclusões em cascata, escrita de arquivos, notificações) além da ação anunciada pela descrição. \\ \hline
-Funcionalidade Anunciada Não Implementada & O código expõe um \textit{stub}, um retorno fixo, ou simplesmente não implementa a funcionalidade que a descrição promete. \\ \hline
-Sistema-Alvo Divergente & O código revela uma plataforma, formato de arquivo ou granularidade de recurso diferente da que a descrição declara. \\ \hline
 Estrutura Concreta da Saída & A estrutura exata do retorno (campos, aninhamento, formatação, variações por sucesso/falha) é mais específica do que a descrição sugere. \\ \hline
 Regras de Validação e Contratos de Formato Não Divulgados & Conjuntos de valores permitidos, formatos, regras de exclusão mútua ou campos obrigatórios fixados no código não são declarados na descrição. \\ \hline
-Escopo de Processamento e Mecânica Interna Subestimados & A implementação realiza bem mais processamento ou mecânica interna (múltiplas sub-chamadas, \textit{cache}, chamadas de rede, lógica assíncrona) do que a descrição sugere. \\ \hline
-Semântica de Correspondência e Normalização de Entrada & O código processa entradas de forma não óbvia (correspondência por substring, normalização de apelidos, resolução difusa de nomes) sem que a descrição mencione essa semântica. \\ \hline
+Limites Operacionais, Padrões e Paginação Não Divulgados & Tetos, truncamentos, \textit{timeouts}, paginação e valores padrão não declarados são impostos pela implementação sem menção na descrição. \\ \hline
 Contexto de Fluxo e Ativação & O código revela pré-requisitos de estado de sessão, ordem de chamadas entre ferramentas irmãs, ou contexto ambiente que a descrição não articula. \\ \hline
+Escopo de Processamento e Mecânica Interna Subestimados & A implementação realiza bem mais processamento ou mecânica interna (múltiplas sub-chamadas, \textit{cache}, chamadas de rede, lógica assíncrona) do que a descrição sugere. \\ \hline
 Confirmação de Encapsulamento Trivial & O código é um encaminhamento mínimo cujo comportamento já correspondia exatamente ao texto, sem revelar nada novo. \\ \hline
+Valores Fixos e Padrões Divergentes & Um valor apresentado como configurável está, na realidade, fixado no código, ou o valor padrão documentado diverge do valor efetivamente usado. \\ \hline
+Dependências e Pré-requisitos de Ambiente Ocultos & Serviços externos, variáveis de ambiente, credenciais, binários ou configurações exigidos pelo código não são mencionados na descrição. \\ \hline
+Semântica de Correspondência e Normalização de Entrada & O código processa entradas de forma não óbvia (correspondência por substring, normalização de apelidos, resolução difusa de nomes) sem que a descrição mencione essa semântica. \\ \hline
+Controles de Acesso, Papel e Autorização & Permissões, autenticação, verificações de papel/administrador e outras restrições de acesso aplicadas no código estão ausentes da descrição. \\ \hline
+Parâmetros Fantasmas ou Divergentes & A descrição documenta parâmetros que o código não possui, ou que foram renomeados, removidos ou substituídos na implementação. \\ \hline
+Funcionalidade Anunciada Não Implementada & O código expõe um \textit{stub}, um retorno fixo, ou simplesmente não implementa a funcionalidade que a descrição promete. \\ \hline
+Sistema-Alvo Divergente & O código revela uma plataforma, formato de arquivo ou granularidade de recurso diferente da que a descrição declara. \\ \hline
+Efeitos Colaterais Não Divulgados & O código produz efeitos colaterais (exclusões em cascata, escrita de arquivos, notificações) além da ação anunciada pela descrição. \\ \hline
 \end{tabular}
 \end{table}
