@@ -29,3 +29,12 @@ logs/
 
 .DS_Store
 fast/
+
+
+# LaTeX - arquivos auxiliares
+*.aux
+*.blg
+*.fdb_latexmk
+*.fls
+*.log
+*.synctex.gz
