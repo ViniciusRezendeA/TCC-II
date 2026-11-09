@@ -139,15 +139,28 @@ def detect_fastmcp_tools(root: Node, source_bytes: bytes, rel_path: str) -> list
           function: (attribute
             object: (identifier)
             attribute: (identifier) @decorator_method)
-          arguments: (argument_list) @decorator_args))
+          arguments: (argument_list) @decorator_args)) @decorator
       definition: (function_definition
         name: (identifier) @tool_func_name
         body: (block) @tool_func_body) @tool_func_def)
     """
+    # Uma funcao registra no maximo UMA tool. Sem isso, uma funcao com dois
+    # decorators `<obj>.tool(...)` vira duas tools -- falso positivo visto em
+    # Arize-ai/phoenix, onde `@mcp.tool()` vem seguido de
+    # `@tracer.tool(name="MCP.x")` (decorator de tracing do OpenInference, nao
+    # MCP). Fica o primeiro decorator `.tool` em ordem de codigo-fonte (o mais
+    # externo), que e onde o registro MCP aparece nesse padrao.
+    first_tool_decorator: dict[int, tuple[int, dict]] = {}
     for _, caps in run_query(PY_LANGUAGE, query_str, root):
         if node_text(caps["decorator_method"][0], source_bytes) != "tool":
             continue
+        func_key = caps["tool_func_def"][0].start_byte
+        dec_start = caps["decorator"][0].start_byte
+        current = first_tool_decorator.get(func_key)
+        if current is None or dec_start < current[0]:
+            first_tool_decorator[func_key] = (dec_start, caps)
 
+    for _, (_, caps) in sorted(first_tool_decorator.items()):
         func_node = caps["tool_func_def"][0]
         func_name = node_text(caps["tool_func_name"][0], source_bytes)
         body_node = caps["tool_func_body"][0]

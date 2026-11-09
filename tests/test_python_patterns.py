@@ -39,6 +39,24 @@ def get_weather(city: str) -> str:
     assert tool.qualified_name == "get_weather"
 
 
+def test_function_with_two_tool_decorators_yields_single_tool():
+    # Padrao real de Arize-ai/phoenix: o decorator de tracing tambem se chama
+    # `.tool(name=...)`, mas so o primeiro (`@mcp.tool()`) registra a tool MCP.
+    root, source_bytes = parse(
+        '''
+@mcp.tool()
+@tracer.tool(name="MCP.optimize_portfolio")
+def optimize_portfolio(request):
+    """Optimizes a portfolio."""
+    return run(request)
+'''
+    )
+    tools = detect_fastmcp_tools(root, source_bytes, "server.py")
+    assert len(tools) == 1
+    assert tools[0].name == "optimize_portfolio"
+    assert tools[0].description == "Optimizes a portfolio."
+
+
 def test_detects_tool_with_explicit_description_and_name():
     root, source_bytes = parse(
         '''

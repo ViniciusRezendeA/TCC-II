@@ -205,8 +205,10 @@ def layout_row(start_x, gap, widths):
 # 1. Visao geral (metodologia_v7.png)
 # ---------------------------------------------------------------------------
 def gen_metodologia():
-    w = [2.3, 2.7, 3.1, 2.5, 2.3]
-    h = 1.3
+    # Etapas 4 e 5 detalham o que e produzido/aplicado (pedido do orientador:
+    # "Consolidação" e "Análise Comparativa" sozinhos eram genericos demais).
+    w = [2.3, 2.7, 3.1, 3.1, 3.2]
+    h = 1.75
     xs = layout_row(0, GAP, w)
     fig, ax = new_ax()
     y = 0
@@ -214,11 +216,11 @@ def gen_metodologia():
              fill=STEP_COLETA[0], edge=STEP_COLETA[1])
     b2 = box(ax, xs[1], y, w[1], h, "2. Extração das\nFerramentas e Código", fontsize=13,
              fill=STEP_EXTRACAO[0], edge=STEP_EXTRACAO[1])
-    b3 = box(ax, xs[2], y, w[2], h, "3. Classificação\n2 cenários × múltiplos\nmodelos de IA (juízes)", fontsize=11.5,
+    b3 = box(ax, xs[2], y, w[2], h, "3. Classificação\n2 cenários × múltiplos\nmodelos de IA (juízes)", fontsize=12,
              fill=STEP_CLASSIFICACAO[0], edge=STEP_CLASSIFICACAO[1])
-    b4 = box(ax, xs[3], y, w[3], h, "4. Consolidação\ndos Resultados", fontsize=13,
+    b4 = box(ax, xs[3], y, w[3], h, "4. Consolidação\nbase pareada por\ntool × juiz × cenário\n+ amostra de divergência", fontsize=12,
              fill=STEP_CONSOLIDACAO[0], edge=STEP_CONSOLIDACAO[1])
-    b5 = box(ax, xs[4], y, w[4], h, "5. Análise\nComparativa", fontsize=13.5,
+    b5 = box(ax, xs[4], y, w[4], h, "5. Análise Comparativa\nvariação por atributo,\nWilcoxon e quartis,\nanálise qualitativa", fontsize=12,
              fill=STEP_ANALISE[0], edge=STEP_ANALISE[1])
     conn(ax, b1, b2)
     conn(ax, b2, b3)
@@ -485,8 +487,56 @@ def gen_arvore():
     save(fig, "arvoreFinal.png")
 
 
+# ---------------------------------------------------------------------------
+# 6. Analise qualitativa (fluxo_analise_qualitativa_detalhado.png)
+# ---------------------------------------------------------------------------
+def gen_qualitativa():
+    """Uma fileira compacta na cor da Etapa 5 (rose). Os grupos tracejados
+    marcam as duas tecnicas (analise tematica e analise de conteudo
+    dirigida); o rotulo de cada grupo fica em 2 linhas acima dele para o
+    grupo nao precisar ser mais largo que as caixas (a versao anterior
+    deixava muito espaco vazio por causa do rotulo longo em 1 linha).
+    """
+    fill, edge = STEP_ANALISE
+    w = [2.3, 2.4, 2.4, 2.4, 2.2]
+    h = 1.75
+    gap = 0.65
+    xs = layout_row(0, gap, w)
+    fig, ax = new_ax()
+    y = 0
+    fs = 14
+    b1 = box(ax, xs[0], y, w[0], h, "Amostra de\ndivergência\nconfirmada", fontsize=fs, fill=fill, edge=edge)
+    b2 = box(ax, xs[1], y, w[1], h, "Justificativa\npor ferramenta\n(Gemini)", fontsize=fs, fill=fill, edge=edge)
+    b3 = box(ax, xs[2], y, w[2], h, "Indução de\ncategorias\n(DeepSeek)", fontsize=fs, fill=fill, edge=edge)
+    b4 = box(ax, xs[3], y, w[3], h, "Classificação\nmulti-label\npor ferramenta", fontsize=fs, fill=fill, edge=edge)
+    b5 = box(ax, xs[4], y, w[4], h, "Frequência\npor categoria", fontsize=fs, fill=fill, edge=edge)
+    for a, b in ((b1, b2), (b2, b3), (b3, b4), (b4, b5)):
+        conn(ax, a, b)
+
+    pad = 0.22
+    top = y + h / 2 + pad
+    bottom = y - h / 2 - pad
+
+    def group(x_left, x_right, label):
+        patch = FancyBboxPatch(
+            (x_left, bottom), x_right - x_left, top - bottom,
+            boxstyle="round,pad=0,rounding_size=0.08", linewidth=1.6,
+            facecolor="none", edgecolor=GRAY_EDGE, linestyle="--",
+        )
+        ax.add_patch(patch)
+        ax.text((x_left + x_right) / 2, top + 0.12, label, ha="center", va="bottom",
+                fontsize=13, family=FONT, color="#444444", linespacing=1.1)
+
+    group(xs[1] - w[1] / 2 - pad, xs[2] + w[2] / 2 + pad,
+          "Análise temática\n(Braun & Clarke, 2006)")
+    group(xs[3] - w[3] / 2 - pad, xs[3] + w[3] / 2 + pad,
+          "Análise de conteúdo dirigida\n(Hsieh & Shannon, 2005)")
+    save(fig, "fluxo_analise_qualitativa_detalhado.png")
+
+
 if __name__ == "__main__":
     gen_metodologia()
+    gen_qualitativa()
     gen_etapa1()
     gen_etapa2()
     gen_etapa3()

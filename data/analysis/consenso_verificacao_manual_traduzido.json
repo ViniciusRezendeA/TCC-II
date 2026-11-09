@@ -22494,7 +22494,7 @@
     },
     "justicativa": "O código-fonte revela que `list_tool_groups` retorna um dicionário que separa os grupos `visible_by_default` e `available_to_enable`. A análise dessa implementação levou os juízes a conclusões divergentes: o deepseek reduziu as notas de propósito e de parâmetros porque a descrição omite a estrutura exata dos dados retornados, enquanto o google e o ollama elevaram suas notas de propósito, diretrizes, tamanho e completude, considerando a descrição suficientemente clara quanto ao comportamento da ferramenta e ao mecanismo de agrupamento.",
     "categoria": "Estrutura Concreta da Saída",
-    "ViniciusConcorda": "",
+    "ViniciusConcorda": true,
     "PedroConcorda": ""
   },
   {
@@ -23253,7 +23253,7 @@
     },
     "justicativa": "Entre os juízes, a incorporação do código-fonte revelou detalhes concretos de implementação não totalmente capturados na descrição em texto simples, como o nome exato do parâmetro num_step em vez de steps, o suporte a saída ndjson em streaming, sobrescritas por dicionário de pronúncia e parâmetros de divisão do texto (max_chunk_chars, crossfade_ms). Os juízes observaram que, embora a descrição em texto simples destacasse parâmetros operacionais básicos, a análise do código-fonte expôs a falta de critérios de ativação explícitos, de tratamento de erros e de comportamento de timeout, levando a notas ajustadas em limitações e diretrizes. Juízes diferentes enfatizaram aspectos variados dessas revelações, com alguns identificando capacidades ocultas, como o condicionamento por perfil de voz e a lógica de roteamento de memória/motor.",
     "categoria": "Modos de Falha e Erros Não Divulgados",
-    "ViniciusConcorda": "",
+    "ViniciusConcorda": true,
     "PedroConcorda": ""
   },
   {

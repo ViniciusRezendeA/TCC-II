@@ -35,13 +35,20 @@ Femmer, H., M{\'e}ndez~Fern{\'a}ndez, D., Wagner, S., and Eder, S. (2017).
 \newblock {A Measurement Study of Model Context Protocol Ecosystem}.
 \newblock {\em arXiv e-prints}.
 
-\bibitem[Hasan et~al. 2026]{mcpAtFirstGlance}
+\bibitem[Hasan et~al. 2026a]{mcpAtFirstGlance}
 Hasan, M.~M., Li, H., Fallahzadeh, E., Rajbahadur, G.~K., Adams, B., and
-  Hassan, A.~E. (2026).
+  Hassan, A.~E. (2026a).
 \newblock Model context protocol (mcp) at first glance: Studying the security
   and maintainability of mcp servers.
 \newblock {\em ACM Trans. Softw. Eng. Methodol.}
 \newblock Just Accepted.
+
+\bibitem[Hasan et~al. 2026b]{2026arXiv260214878M}
+Hasan, M.~M., Li, H., Rajbahadur, G.~K., Adams, B., and Hassan, A.~E. (2026b).
+\newblock {Model Context Protocol (MCP) Tool Descriptions Are Smelly! Towards
+  Improving AI Agent Efficiency with Augmented MCP Tool Descriptions}.
+\newblock {\em arXiv e-prints}.
+\newblock arXiv:2602.14878v3.
 
 \bibitem[Hsieh and Shannon 2005]{hsiehshannon2005content}
 Hsieh, H.-F. and Shannon, S.~E. (2005).
@@ -88,13 +95,6 @@ LLC, A. (2026).
   {Sahoo}, D., {Savarese}, S., {Xiong}, C., and {Li}, J. (2025).
 \newblock {MCP-Universe: Benchmarking Large Language Models with Real-World
   Model Context Protocol Servers}.
-\newblock {\em arXiv e-prints}.
-
-\bibitem[{Mehedi Hasan} et~al. 2026]{2026arXiv260214878M}
-{Mehedi Hasan}, M., {Li}, H., {Krishnan Rajbahadur}, G., {Adams}, B., and
-  {Hassan}, A.~E. (2026).
-\newblock {Model Context Protocol (MCP) Tool Descriptions Are Smelly! Towards
-  Improving AI Agent Efficiency with Augmented MCP Tool Descriptions}.
 \newblock {\em arXiv e-prints}.
 
 \bibitem[{National Security Agency} 2026]{NSA2026}

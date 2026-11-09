@@ -203,18 +203,20 @@ def dados_de_um_modelo(df, modelo):
 # ---------------------------------------------------------------------------
 def salvar_graficos(nome, desenhar, agg_modelos, agg_media,
                     figsize_painel=(10, 6), sharey=False, ocultar_y_repetido=False,
-                    painel_por_modelo=(4.0, 3.4), desenhar_por_modelo=None):
+                    painel_por_modelo=(4.0, 3.4), desenhar_por_modelo=None,
+                    fonte_por_modelo=FONTE_POR_MODELO):
     """O <nome>_por_modelo.png põe os N painéis lado a lado, cada um com tamanho
     `painel_por_modelo` (pol.): painéis pequenos com fonte maior, para que o texto não
     encolha demais quando a figura é inserida com width=\\linewidth. A legenda dos
     painéis vira uma só, centralizada embaixo, e o rótulo do eixo X só aparece no painel
     do meio. `desenhar_por_modelo` permite uma versão compacta do desenho só para essa
-    figura (por exemplo, rótulos abreviados); se omitido, usa `desenhar`."""
+    figura (por exemplo, rótulos abreviados); se omitido, usa `desenhar`.
+    `fonte_por_modelo` permite subir a fonte só de uma figura que fique pequena no PDF."""
     modelos = list(agg_modelos)
     n = len(modelos)
     desenhar_painel = desenhar_por_modelo or desenhar
 
-    with plt.rc_context({"font.size": FONTE_POR_MODELO}):
+    with plt.rc_context({"font.size": fonte_por_modelo}):
         fig, axes = plt.subplots(
             1, n, figsize=(painel_por_modelo[0] * n, painel_por_modelo[1]),
             sharey=(sharey or ocultar_y_repetido), squeeze=False,
@@ -222,7 +224,7 @@ def salvar_graficos(nome, desenhar, agg_modelos, agg_media,
         axes = axes[0]
         for ax, modelo in zip(axes, modelos):
             desenhar_painel(agg_modelos[modelo], ax)
-            ax.set_title(modelo, fontsize=FONTE_POR_MODELO - 2, fontweight="bold")
+            ax.set_title(modelo, fontsize=fonte_por_modelo - 2, fontweight="bold")
         if ocultar_y_repetido:
             for ax in axes[1:]:
                 ax.tick_params(axis="y", labelleft=False)
@@ -379,12 +381,12 @@ def _desenhar_boxplot_apenas_mudou(agg, ax):
 
 
 ROTULO_CURTO = {
-    "Purpose": "Purp.",
-    "Parameter Explanation": "Param.",
-    "Length & Completeness": "Length",
-    "Guidelines": "Guid.",
-    "Limitations": "Limit.",
-    "Examples": "Exam.",
+    "Purpose": "Pur.",
+    "Parameter Explanation": "Par.",
+    "Length & Completeness": "Len.",
+    "Guidelines": "Gui.",
+    "Limitations": "Lim.",
+    "Examples": "Exa.",
 }
 
 
@@ -398,15 +400,17 @@ def _desenhar_boxplot_apenas_mudou_compacto(agg, ax):
         pct = contagem.split(", ")[1].rstrip(")")
         rotulos.append(f"{ROTULO_CURTO[re.sub(r'\\s+', ' ', nome)]}\n{pct}")
     ax.set_xticks(ax.get_xticks())
-    ax.set_xticklabels(rotulos, fontsize=FONTE_POR_MODELO - 3)
+    ax.set_xticklabels(rotulos, fontsize=plt.rcParams["font.size"] - 4)
+    ax.set_yticks([1, 2, 3, 4, 5])
     ax.set_xlabel("(% = tools que mudaram no atributo)")
 
 
 def grafico_boxplot_apenas_mudou(agg_modelos, agg_media):
     salvar_graficos("boxplot_com_sem_codigo_apenas_mudou", _desenhar_boxplot_apenas_mudou,
                     agg_modelos, agg_media, figsize_painel=FIGSIZE, sharey=True,
-                    ocultar_y_repetido=True, painel_por_modelo=(4.6, 3.8),
-                    desenhar_por_modelo=_desenhar_boxplot_apenas_mudou_compacto)
+                    ocultar_y_repetido=True, painel_por_modelo=(4.3, 4.0),
+                    desenhar_por_modelo=_desenhar_boxplot_apenas_mudou_compacto,
+                    fonte_por_modelo=19)  # Figura 8 do TCC: fonte maior a pedido do orientador
 
 
 # ---------------------------------------------------------------------------
