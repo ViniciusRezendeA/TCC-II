@@ -1,5 +1,12 @@
 \begin{thebibliography}{}
 
+\bibitem[{Anthropic} 2026]{anthropicDefineTools}
+{Anthropic} (2026).
+\newblock {Define tools}.
+\newblock
+  \url{https://platform.claude.com/docs/en/agents-and-tools/tool-use/define-tools}.
+\newblock Acesso em: nov. 2026.
+
 \bibitem[{Avaya} 2026]{Avaya2026}
 {Avaya} (2026).
 \newblock {The Model Context Protocol: A Status Report for Enterprise Customer
@@ -24,6 +31,14 @@ Chaokromthong, K., Sintao, N., et~al. (2021).
   and comparisions}.
 \newblock {\em Apheit international journal of interdisciplinary social
   sciences and technology}, 10(2):76--86.
+
+\bibitem[Faghih et~al. 2025]{faghih2025tool}
+Faghih, K., Wang, W., Cheng, Y., Bharti, S., Sriramanan, G., Balasubramanian,
+  S., Hosseini, P., and Feizi, S. (2025).
+\newblock Tool preferences in agentic {LLMs} are unreliable.
+\newblock In {\em Proceedings of the 2025 Conference on Empirical Methods in
+  Natural Language Processing}, pages 20954--20969, Suzhou, China. Association
+  for Computational Linguistics.
 
 \bibitem[Femmer et~al. 2017]{femmer2017}
 Femmer, H., M{\'e}ndez~Fern{\'a}ndez, D., Wagner, S., and Eder, S. (2017).
@@ -103,6 +118,13 @@ Liu, N.~F., Lin, K., Hewitt, J., Paranjape, A., Bevilacqua, M., Petroni, F.,
   Model Context Protocol Servers}.
 \newblock {\em arXiv preprint arXiv:2508.14704}.
 
+\bibitem[{Model Context Protocol} 2026]{mcpSpecTools}
+{Model Context Protocol} (2026).
+\newblock {Specification 2026-07-28: Tools}.
+\newblock
+  \url{https://modelcontextprotocol.io/specification/2026-07-28/server/tools}.
+\newblock Acesso em: nov. 2026.
+
 \bibitem[{National Security Agency} 2026]{NSA2026}
 {National Security Agency} (2026).
 \newblock {Model Context Protocol (MCP): Security Design Considerations for
@@ -120,12 +142,6 @@ Shi, Y., Zhang, X., Zhang, X., Shen, X., Ouyang, H., Qiu, H., Zhang, M., and
 \newblock {Description-Code Inconsistency in Real-world MCP Servers:
   Measurement, Detection, and Security Implications}.
 \newblock {\em arXiv preprint arXiv:2606.04769}.
-
-\bibitem[Tang et~al. 2026]{tang2026toolflation}
-Tang, Z., Bai, D., Liu, J., Wu, X., Wen, Q., and Cheng, X. (2026).
-\newblock {Toolflation}: Seller agents distort tool markets through spontaneous
-  generative engine optimization.
-\newblock {\em arXiv preprint arXiv:2610.28454}.
 
 \bibitem[Taraghi et~al. 2026]{Taraghi2026}
 Taraghi, M., Morovati, M.~M., and Khomh, F. (2026).
