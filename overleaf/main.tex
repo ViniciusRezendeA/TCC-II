@@ -79,7 +79,7 @@
 }
 \address{Instituto de Ciências Exatas e Informática  -- Pontifícia Universidade Católica de Minas Gerais \\
   Caixa Postal 500 -- 30535-901 -- Belo Horizonte -- MG -- Brazil \\
-    \email{\{vinicius,pedro\}viniciusarantes133@gmail.com, pedrohenriquepr08@gmail.com}}
+    \email{viniciusarantes133@gmail.com, pedrohenriquepr08@gmail.com}}
 
 
 \begin{document} 
@@ -87,7 +87,7 @@
 \maketitle
 
 \begin{resumo}
-O \textit{Model Context Protocol} (MCP) permite que agentes de Inteligência Artificial (IA) interajam com sistemas externos por meio de \textit{tools}, cujas descrições em linguagem natural orientam sua utilização. Descrições de baixa qualidade, caracterizadas pela presença de \textit{smells}, podem comprometer a eficácia desses agentes. Este trabalho investiga se a avaliação da qualidade dessas descrições muda quando o avaliador tem acesso ao código da ferramenta. Para isso, 12.166 \textit{tools} de 206 servidores MCP do GitHub são extraídas, junto com o código alcançado por sua árvore de chamadas, e avaliadas por três LLMs, segundo uma rubrica de seis dimensões, com e sem esse código. As diferenças entre os cenários são estatisticamente significativas nas seis dimensões, mas sua direção depende do avaliador, e, na maioria das ferramentas em que todos os avaliadores mudam a nota, a mudança decorre de informações que o código revela e a descrição omite, como parâmetros não documentados e modos de falha não divulgados.
+O \textit{Model Context Protocol} (MCP) permite que agentes de Inteligência Artificial (IA) interajam com sistemas externos por meio de ferramentas (\textit{tools}), cujas descrições em linguagem natural orientam sua utilização. Descrições de baixa qualidade, caracterizadas pela presença de \textit{smells}, podem comprometer a eficácia desses agentes. Este trabalho investiga se a avaliação da qualidade dessas descrições muda quando o avaliador tem acesso ao código da ferramenta. Para isso, 12.166 ferramentas de 206 servidores MCP do GitHub são extraídas, junto com o código alcançado por sua árvore de chamadas, e avaliadas por três LLMs, segundo uma rubrica de seis dimensões, com e sem esse código. As diferenças entre os cenários são estatisticamente significativas nas seis dimensões, mas sua direção depende do avaliador, e, na maioria das ferramentas em que todos os avaliadores mudam a nota, a mudança decorre de informações que o código revela e a descrição omite, como parâmetros não documentados e modos de falha não divulgados.
 \end{resumo}
 
 \begin{abstract}

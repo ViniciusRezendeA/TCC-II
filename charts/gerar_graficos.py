@@ -65,6 +65,12 @@ FONTE_POR_MODELO = 14
 
 
 NOME_MEDIA = "Média dos modelos"
+# nomes dos juizes como aparecem no texto do TCC (os ids internos ficam so nos dados)
+NOME_JUIZ = {
+    "deepseek-flash": "DeepSeek-V4.1-Flash",
+    "gemini-3.5-flash-lite": "Gemini 3.5 Flash-Lite",
+    "qwen3-14b-ollama": "Qwen3-14B",
+}
 
 ATTRIBUTES = [
     "purpose",
@@ -224,7 +230,7 @@ def salvar_graficos(nome, desenhar, agg_modelos, agg_media,
         axes = axes[0]
         for ax, modelo in zip(axes, modelos):
             desenhar_painel(agg_modelos[modelo], ax)
-            ax.set_title(modelo, fontsize=fonte_por_modelo - 2, fontweight="bold")
+            ax.set_title(NOME_JUIZ.get(modelo, modelo), fontsize=fonte_por_modelo - 2, fontweight="bold")
         if ocultar_y_repetido:
             for ax in axes[1:]:
                 ax.tick_params(axis="y", labelleft=False)
@@ -268,19 +274,19 @@ def _desenhar_diminuiu_empatou_aumentou(agg, ax):
     # ficar de cima pra baixo (Purpose no topo, Examples embaixo)
     ordem = ORDEM_ATRIBUTOS_FIXA[::-1]
 
-    pct = pd.DataFrame(0.0, index=ordem, columns=["Diminuiu", "Empatou", "Aumentou"])
+    pct = pd.DataFrame(0.0, index=ordem, columns=["Diminuiu", "Manteve", "Aumentou"])
     for attr in ordem:
         s = agg.loc[agg["attribute_label"] == attr, "diff"]
         n = len(s)
         if n == 0:
             continue
         pct.loc[attr, "Diminuiu"] = (s < 0).sum() / n * 100
-        pct.loc[attr, "Empatou"] = (s == 0).sum() / n * 100
+        pct.loc[attr, "Manteve"] = (s == 0).sum() / n * 100
         pct.loc[attr, "Aumentou"] = (s > 0).sum() / n * 100
 
     y = np.arange(len(ordem))
     esquerda = np.zeros(len(ordem))
-    for cat, cor in [("Diminuiu", COR_DIMINUIU), ("Aumentou", COR_AUMENTOU), ("Empatou", COR_EMPATOU)]:
+    for cat, cor in [("Diminuiu", COR_DIMINUIU), ("Aumentou", COR_AUMENTOU), ("Manteve", COR_EMPATOU)]:
         valores = pct[cat].values
         barras = ax.barh(y, valores, left=esquerda, color=cor, label=cat)
         for rect, valor in zip(barras, valores):
@@ -289,7 +295,7 @@ def _desenhar_diminuiu_empatou_aumentou(agg, ax):
             ax.text(
                 rect.get_x() + rect.get_width() / 2, rect.get_y() + rect.get_height() / 2,
                 f"{valor:.0f}%", va="center", ha="center", fontsize=10,
-                color="black" if cat == "Empatou" else "white",
+                color="black" if cat == "Manteve" else "white",
             )
         esquerda = esquerda + valores
 
@@ -377,7 +383,7 @@ def _desenhar_boxplot_apenas_mudou(agg, ax):
     longo["attribute_label"] = longo["attribute_label"].map(dict(zip(ordem, ordem_rotulada)))
 
     _plot_boxplot_com_sem(longo, ordem_rotulada, ax)
-    ax.set_xlabel("(n = tools que mudaram naquele atributo, % do total)")
+    ax.set_xlabel("(n = ferramentas que mudaram naquele atributo, % do total)")
 
 
 ROTULO_CURTO = {
@@ -402,7 +408,7 @@ def _desenhar_boxplot_apenas_mudou_compacto(agg, ax):
     ax.set_xticks(ax.get_xticks())
     ax.set_xticklabels(rotulos, fontsize=plt.rcParams["font.size"] - 4)
     ax.set_yticks([1, 2, 3, 4, 5])
-    ax.set_xlabel("(% = tools que mudaram no atributo)")
+    ax.set_xlabel("(% = ferramentas que mudaram no atributo)")
 
 
 def grafico_boxplot_apenas_mudou(agg_modelos, agg_media):

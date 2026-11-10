@@ -1,45 +1,52 @@
 \begin{thebibliography}{}
 
+\bibitem[{Avaya} 2026]{Avaya2026}
+{Avaya} (2026).
+\newblock {The Model Context Protocol: A Status Report for Enterprise Customer
+  Experience Leaders}.
+\newblock White paper, Avaya.
+
 \bibitem[Borges et~al. 2016]{Borges2016}
 Borges, H., Hora, A., and Valente, M.~T. (2016).
-\newblock Predicting the popularity of github repositories.
+\newblock {Predicting the popularity of GitHub repositories}.
 \newblock In {\em Proceedings of the 12th International Conference on
   Predictive Models and Data Analytics in Software Engineering}, pages 1--10.
 
 \bibitem[Braun and Clarke 2006]{braunclarke2006thematic}
 Braun, V. and Clarke, V. (2006).
-\newblock Using thematic analysis in psychology.
+\newblock {Using thematic analysis in psychology}.
 \newblock {\em Qualitative Research in Psychology}, 3(2):77--101.
 
 \bibitem[Chaokromthong et~al. 2021]{chaokromthong2021sample}
 Chaokromthong, K., Sintao, N., et~al. (2021).
-\newblock Sample size estimation using yamane and cochran and krejcie and
-  morgan and green formulas and cohen statistical power analysis by g* power
-  and comparisions.
+\newblock {Sample size estimation using Yamane and Cochran and Krejcie and
+  Morgan and green formulas and Cohen statistical power analysis by G* Power
+  and comparisions}.
 \newblock {\em Apheit international journal of interdisciplinary social
   sciences and technology}, 10(2):76--86.
 
-\bibitem[Dong et~al. 2023]{BashInTheWild}
-Dong, Y., Li, Z., Tian, Y., Sun, C., Godfrey, M.~W., and Nagappan, M. (2023).
-\newblock Bash in the wild: Language usage, code smells, and bugs.
-\newblock {\em ACM Trans. Softw. Eng. Methodol.}, 32(1).
-
 \bibitem[Femmer et~al. 2017]{femmer2017}
 Femmer, H., M{\'e}ndez~Fern{\'a}ndez, D., Wagner, S., and Eder, S. (2017).
-\newblock Rapid quality assurance with requirements smells.
+\newblock {Rapid quality assurance with Requirements Smells}.
 \newblock {\em Journal of Systems and Software}, 123:190--213.
+
+\bibitem[{GitHub} 2026]{githubSearchAPI}
+{GitHub} (2026).
+\newblock {REST API endpoints for search}.
+\newblock \url{https://docs.github.com/en/rest/search/search}.
+\newblock Acesso em: nov. 2026.
 
 \bibitem[{Guo} et~al. 2025]{guo2025measurement}
 {Guo}, H., {Hao}, Y., {Zhang}, Y., {Xu}, M., {Lv}, P., {Chen}, J., and {Cheng},
   X. (2025).
 \newblock {A Measurement Study of Model Context Protocol Ecosystem}.
-\newblock {\em arXiv e-prints}.
+\newblock {\em arXiv preprint arXiv:2509.25292}.
 
 \bibitem[Hasan et~al. 2026a]{mcpAtFirstGlance}
 Hasan, M.~M., Li, H., Fallahzadeh, E., Rajbahadur, G.~K., Adams, B., and
   Hassan, A.~E. (2026a).
-\newblock Model context protocol (mcp) at first glance: Studying the security
-  and maintainability of mcp servers.
+\newblock {Model Context Protocol (MCP) at First Glance: Studying the Security
+  and Maintainability of MCP Servers}.
 \newblock {\em ACM Trans. Softw. Eng. Methodol.}
 \newblock Just Accepted.
 
@@ -47,89 +54,94 @@ Hasan, M.~M., Li, H., Fallahzadeh, E., Rajbahadur, G.~K., Adams, B., and
 Hasan, M.~M., Li, H., Rajbahadur, G.~K., Adams, B., and Hassan, A.~E. (2026b).
 \newblock {Model Context Protocol (MCP) Tool Descriptions Are Smelly! Towards
   Improving AI Agent Efficiency with Augmented MCP Tool Descriptions}.
-\newblock {\em arXiv e-prints}.
-\newblock arXiv:2602.14878v3.
+\newblock {\em arXiv preprint arXiv:2602.14878v3}.
 
 \bibitem[Hsieh and Shannon 2005]{hsiehshannon2005content}
 Hsieh, H.-F. and Shannon, S.~E. (2005).
-\newblock Three approaches to qualitative content analysis.
+\newblock {Three approaches to qualitative content analysis}.
 \newblock {\em Qualitative Health Research}, 15(9):1277--1288.
 
 \bibitem[{ISO/IEC} 2011]{iso25010}
 {ISO/IEC} (2011).
-\newblock Iso/iec 25010:2011 -- systems and software engineering -- systems and
-  software quality requirements and evaluation (square) -- system and software
-  quality models.
+\newblock {ISO/IEC 25010:2011 -- Systems and software engineering -- Systems
+  and software Quality Requirements and Evaluation (SQuaRE) -- System and
+  software quality models}.
 \newblock Technical report, International Organization for Standardization,
   Geneva, Switzerland.
 
 \bibitem[{ISO/IEC/IEEE} 2017]{iso24765}
 {ISO/IEC/IEEE} (2017).
-\newblock Iso/iec/ieee 24765:2017 -- systems and software engineering --
-  vocabulary.
+\newblock {ISO/IEC/IEEE 24765:2017 -- Systems and software engineering --
+  Vocabulary}.
 \newblock Technical report, International Organization for Standardization,
   Geneva, Switzerland.
 
 \bibitem[Khan et~al. 2021]{khan2021}
 Khan, J.~Y., Khondaker, M. T.~I., Uddin, G., and Iqbal, A. (2021).
-\newblock Automatic detection of five api documentation smells: Practitioners'
-  perspectives.
+\newblock {Automatic Detection of Five API Documentation Smells: Practitioners'
+  Perspectives}.
 \newblock In {\em 2021 IEEE International Conference on Software Analysis,
   Evolution and Reengineering (SANER)}, pages 318--329.
+
+\bibitem[Li et~al. 2026]{li2026metadata}
+Li, X., Qiao, F., and Gao, X. (2026).
+\newblock Which metadata matters for {LLM} tool selection in {MCP}? {Evidence}
+  from controlled factor-level interventions.
+\newblock {\em arXiv preprint arXiv:2610.14334}.
 
 \bibitem[Liu et~al. 2024]{liu2024lost}
 Liu, N.~F., Lin, K., Hewitt, J., Paranjape, A., Bevilacqua, M., Petroni, F.,
   and Liang, P. (2024).
-\newblock Lost in the middle: How language models use long contexts.
+\newblock {Lost in the middle: How language models use long contexts}.
 \newblock {\em Transactions of the Association for Computational Linguistics},
   12:157--173.
-
-\bibitem[LLC 2026]{Avaya2026}
-LLC, A. (2026).
-\newblock The model context protocol: A status report for enterprise customer
-  experience leaders.
-\newblock White paper, Avaya.
 
 \bibitem[{Luo} et~al. 2025]{2025arXiv250814704L}
 {Luo}, Z., {Shen}, Z., {Yang}, W., {Zhao}, Z., {Jwalapuram}, P., {Saha}, A.,
   {Sahoo}, D., {Savarese}, S., {Xiong}, C., and {Li}, J. (2025).
 \newblock {MCP-Universe: Benchmarking Large Language Models with Real-World
   Model Context Protocol Servers}.
-\newblock {\em arXiv e-prints}.
+\newblock {\em arXiv preprint arXiv:2508.14704}.
 
 \bibitem[{National Security Agency} 2026]{NSA2026}
 {National Security Agency} (2026).
-\newblock Model context protocol (mcp): Security design considerations for
-  ai-driven automation.
+\newblock {Model Context Protocol (MCP): Security Design Considerations for
+  AI-Driven Automation}.
 \newblock Cybersecurity report, NSA Cybersecurity Information.
 
 \bibitem[Pressman and Maxim 2016]{pressman2016}
 Pressman, R.~S. and Maxim, B.~R. (2016).
-\newblock {\em Engenharia de Software: Uma Abordagem Profissional}.
+\newblock {\em {Engenharia de Software: Uma Abordagem Profissional}}.
 \newblock AMGH, Porto Alegre, 8 edition.
 
 \bibitem[Shi et~al. 2026]{shi2026description}
 Shi, Y., Zhang, X., Zhang, X., Shen, X., Ouyang, H., Qiu, H., Zhang, M., and
   Yang, M. (2026).
-\newblock Description-code inconsistency in real-world mcp servers:
-  Measurement, detection, and security implications.
+\newblock {Description-Code Inconsistency in Real-world MCP Servers:
+  Measurement, Detection, and Security Implications}.
 \newblock {\em arXiv preprint arXiv:2606.04769}.
+
+\bibitem[Tang et~al. 2026]{tang2026toolflation}
+Tang, Z., Bai, D., Liu, J., Wu, X., Wen, Q., and Cheng, X. (2026).
+\newblock {Toolflation}: Seller agents distort tool markets through spontaneous
+  generative engine optimization.
+\newblock {\em arXiv preprint arXiv:2610.28454}.
 
 \bibitem[Taraghi et~al. 2026]{Taraghi2026}
 Taraghi, M., Morovati, M.~M., and Khomh, F. (2026).
-\newblock Real faults in model context protocol (mcp) software: a comprehensive
-  taxonomy.
+\newblock {Real Faults in Model Context Protocol (MCP) Software: a
+  Comprehensive Taxonomy}.
 \newblock {\em arXiv preprint arXiv:2603.05637}.
 
 \bibitem[Wilcoxon 1945]{wilcoxon1945individual}
 Wilcoxon, F. (1945).
-\newblock Individual comparisons by ranking methods.
+\newblock {Individual Comparisons by Ranking Methods}.
 \newblock {\em Biometrics Bulletin}, 1(6):80--83.
 
 \bibitem[Zheng et~al. 2023]{NEURIPS2023_91f18a12}
 Zheng, L., Chiang, W.-L., Sheng, Y., Zhuang, S., Wu, Z., Zhuang, Y., Lin, Z.,
   Li, Z., Li, D., Xing, E., Zhang, H., Gonzalez, J., and Stoica, I. (2023).
-\newblock Judging llm-as-a-judge with mt-bench and chatbot arena.
+\newblock {Judging LLM-as-a-Judge with MT-Bench and Chatbot Arena}.
 \newblock In Oh, A., Naumann, T., Globerson, A., Saenko, K., Hardt, M., and
   Levine, S., editors, {\em Advances in Neural Information Processing Systems},
   volume~36, pages 46595--46623. Curran Associates, Inc.
