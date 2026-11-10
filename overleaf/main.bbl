@@ -57,6 +57,12 @@ Femmer, H., M{\'e}ndez~Fern{\'a}ndez, D., Wagner, S., and Eder, S. (2017).
 \newblock {A Measurement Study of Model Context Protocol Ecosystem}.
 \newblock {\em arXiv preprint arXiv:2509.25292}.
 
+\bibitem[Han et~al. 2019]{han2019popular}
+Han, J., Deng, S., Xia, X., Wang, D., and Yin, J. (2019).
+\newblock Characterization and prediction of popular projects on {GitHub}.
+\newblock In {\em Proceedings of the IEEE 43rd Annual Computer Software and
+  Applications Conference (COMPSAC)}, volume~1, pages 21--26. IEEE.
+
 \bibitem[Hasan et~al. 2026a]{mcpAtFirstGlance}
 Hasan, M.~M., Li, H., Fallahzadeh, E., Rajbahadur, G.~K., Adams, B., and
   Hassan, A.~E. (2026a).
