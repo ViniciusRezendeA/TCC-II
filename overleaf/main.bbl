@@ -131,12 +131,6 @@ Liu, N.~F., Lin, K., Hewitt, J., Paranjape, A., Bevilacqua, M., Petroni, F.,
   \url{https://modelcontextprotocol.io/specification/2026-07-28/server/tools}.
 \newblock Acesso em: nov. 2026.
 
-\bibitem[{National Security Agency} 2026]{NSA2026}
-{National Security Agency} (2026).
-\newblock {Model Context Protocol (MCP): Security Design Considerations for
-  AI-Driven Automation}.
-\newblock Cybersecurity report, NSA Cybersecurity Information.
-
 \bibitem[Pressman and Maxim 2016]{pressman2016}
 Pressman, R.~S. and Maxim, B.~R. (2016).
 \newblock {\em {Engenharia de Software: Uma Abordagem Profissional}}.
@@ -148,12 +142,6 @@ Shi, Y., Zhang, X., Zhang, X., Shen, X., Ouyang, H., Qiu, H., Zhang, M., and
 \newblock {Description-Code Inconsistency in Real-world MCP Servers:
   Measurement, Detection, and Security Implications}.
 \newblock {\em arXiv preprint arXiv:2606.04769}.
-
-\bibitem[Taraghi et~al. 2026]{Taraghi2026}
-Taraghi, M., Morovati, M.~M., and Khomh, F. (2026).
-\newblock {Real Faults in Model Context Protocol (MCP) Software: a
-  Comprehensive Taxonomy}.
-\newblock {\em arXiv preprint arXiv:2603.05637}.
 
 \bibitem[Wilcoxon 1945]{wilcoxon1945individual}
 Wilcoxon, F. (1945).
