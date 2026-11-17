@@ -218,7 +218,7 @@ def gen_metodologia():
              fill=STEP_EXTRACAO[0], edge=STEP_EXTRACAO[1])
     b3 = box(ax, xs[2], y, w[2], h, "3. Classificação\n2 cenários × múltiplos\nmodelos de IA (juízes)", fontsize=12,
              fill=STEP_CLASSIFICACAO[0], edge=STEP_CLASSIFICACAO[1])
-    b4 = box(ax, xs[3], y, w[3], h, "4. Consolidação\nbase pareada por\ntool × juiz × cenário\n+ amostra de divergência", fontsize=12,
+    b4 = box(ax, xs[3], y, w[3], h, "4. Consolidação\npareamento das notas e\ncategorização das\nmudanças de nota", fontsize=12,
              fill=STEP_CONSOLIDACAO[0], edge=STEP_CONSOLIDACAO[1])
     b5 = box(ax, xs[4], y, w[4], h, "5. Análise Comparativa\nvariação por atributo,\nWilcoxon e quartis,\nanálise qualitativa", fontsize=12,
              fill=STEP_ANALISE[0], edge=STEP_ANALISE[1])
@@ -491,46 +491,25 @@ def gen_arvore():
 # 6. Analise qualitativa (fluxo_analise_qualitativa_detalhado.png)
 # ---------------------------------------------------------------------------
 def gen_qualitativa():
-    """Uma fileira compacta na cor da Etapa 5 (rose). Os grupos tracejados
-    marcam as duas tecnicas (analise tematica e analise de conteudo
-    dirigida); o rotulo de cada grupo fica em 2 linhas acima dele para o
-    grupo nao precisar ser mais largo que as caixas (a versao anterior
-    deixava muito espaco vazio por causa do rotulo longo em 1 linha).
+    """Fluxo da analise qualitativa na cor da Etapa 5 (rose), em uma unica
+    fileira. Cada caixa corresponde a uma subsecao da metodologia.
     """
     fill, edge = STEP_ANALISE
-    w = [2.3, 2.4, 2.4, 2.4, 2.2]
+    labels = [
+        "Criação do\ndataset de\nconsenso",
+        "Criação das\njustificativas",
+        "Criação das\ncategorias",
+        "Categorização\ndo dataset",
+        "Validação\nmanual\n(amostra)",
+    ]
+    w = [2.3] * len(labels)
     h = 1.75
-    gap = 0.65
-    xs = layout_row(0, gap, w)
+    xs = layout_row(0, 0.65, w)
     fig, ax = new_ax()
-    y = 0
-    fs = 14
-    b1 = box(ax, xs[0], y, w[0], h, "Amostra de\ndivergência\nconfirmada", fontsize=fs, fill=fill, edge=edge)
-    b2 = box(ax, xs[1], y, w[1], h, "Justificativa\npor ferramenta\n(Gemini)", fontsize=fs, fill=fill, edge=edge)
-    b3 = box(ax, xs[2], y, w[2], h, "Indução de\ncategorias\n(DeepSeek)", fontsize=fs, fill=fill, edge=edge)
-    b4 = box(ax, xs[3], y, w[3], h, "Classificação\nmulti-label\npor ferramenta", fontsize=fs, fill=fill, edge=edge)
-    b5 = box(ax, xs[4], y, w[4], h, "Frequência\npor categoria", fontsize=fs, fill=fill, edge=edge)
-    for a, b in ((b1, b2), (b2, b3), (b3, b4), (b4, b5)):
+    boxes = [box(ax, x, 0, wi, h, t, fontsize=14, fill=fill, edge=edge)
+             for x, wi, t in zip(xs, w, labels)]
+    for a, b in zip(boxes, boxes[1:]):
         conn(ax, a, b)
-
-    pad = 0.22
-    top = y + h / 2 + pad
-    bottom = y - h / 2 - pad
-
-    def group(x_left, x_right, label):
-        patch = FancyBboxPatch(
-            (x_left, bottom), x_right - x_left, top - bottom,
-            boxstyle="round,pad=0,rounding_size=0.08", linewidth=1.6,
-            facecolor="none", edgecolor=GRAY_EDGE, linestyle="--",
-        )
-        ax.add_patch(patch)
-        ax.text((x_left + x_right) / 2, top + 0.12, label, ha="center", va="bottom",
-                fontsize=13, family=FONT, color="#444444", linespacing=1.1)
-
-    group(xs[1] - w[1] / 2 - pad, xs[2] + w[2] / 2 + pad,
-          "Análise temática\n(Braun & Clarke, 2006)")
-    group(xs[3] - w[3] / 2 - pad, xs[3] + w[3] / 2 + pad,
-          "Análise de conteúdo dirigida\n(Hsieh & Shannon, 2005)")
     save(fig, "fluxo_analise_qualitativa_detalhado.png")
 
 

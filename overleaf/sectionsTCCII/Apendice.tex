@@ -38,9 +38,9 @@ its actual implementation. Based on these findings, the initial score may be adj
 \section{Prompts Utilizados na Análise Qualitativa das Divergências}
 \label{apendice:secao-prompts}
 
-Este apêndice reproduz, na íntegra e no idioma original (inglês, mesmo idioma em que a justificativa de cada juiz é produzida), os três \textit{prompts} de sistema (\textit{system instruction}) utilizados nas três etapas da análise qualitativa descrita na Seção~\ref{subsec:analise-comparativa}.
+Este apêndice reproduz, na íntegra e no idioma original (inglês, mesmo idioma em que a justificativa de cada juiz é produzida), os três \textit{prompts} de sistema (\textit{system instruction}) utilizados nos passos de criação das justificativas, criação das categorias e categorização do \textit{dataset} da análise qualitativa descrita na Seção~\ref{subsec:consolidacao}.
 
-\subsection*{Etapa 1: Geração de Justificativas}
+\subsection*{Criação das Justificativas}
 
 Aplicado individualmente a cada ferramenta da amostra de divergência confirmada (Seção~\ref{subsec:consolidacao}), recebendo como entrada um objeto JSON com os campos \texttt{tool\_uid}, \texttt{tool\_name}, a lista \texttt{avaliacoes} (uma entrada por juiz e cenário, já restrita aos componentes da rubrica cuja nota divergiu) e \texttt{source\_code}.
 
@@ -63,9 +63,9 @@ Output ONLY one JSON object, no text before or after it, in exactly this shape:
 {"tool_uid": "<the tool_uid from the input, verbatim>", "justification": "<your justification>"}
 \end{lstlisting}
 
-\subsection*{Etapa 2: Identificação Indutiva de Categorias}
+\subsection*{Criação das Categorias}
 
-Aplicado uma única vez, recebendo como entrada o conjunto completo de justificativas produzidas na Etapa 1, no formato de uma lista JSON de objetos \texttt{\{"tool\_uid": ..., "justification": ...\}}.
+Aplicado uma única vez, recebendo como entrada o conjunto completo de justificativas produzidas no passo de criação das justificativas, no formato de uma lista JSON de objetos \texttt{\{"tool\_uid": ..., "justification": ...\}}.
 
 \begin{lstlisting}[language={}, breaklines=true, basicstyle=\small\ttfamily, caption=Prompt de sistema -- identificação indutiva de categorias, label=prompt:categorias]
 You are a qualitative research assistant conducting a thematic analysis for an undergraduate thesis ("Model Context Protocol (MCP): Avaliação da Qualidade de Descrições de Tools com Base em Contexto de Código-Fonte") that studies whether giving an LLM-as-judge access to a tool's source code changes its evaluation of the tool's natural-language description. For every tool where every judge that evaluated it changed at least one rubric score between the "description_only" and "with_source" scenarios, a short English justification was already written, explaining WHAT the source code revealed that the plain-text description did not.
@@ -87,16 +87,16 @@ Output ONLY a JSON array, no text before or after it, in exactly this shape:
 Write everything in English.
 \end{lstlisting}
 
-\subsection*{Etapa 3: Classificação Dedutiva por Categoria}
+\subsection*{Categorização do Dataset}
 
-Aplicado individualmente a cada ferramenta da amostra de divergência confirmada. O trecho reproduzido como \texttt{<lista de categorias da Etapa 2, uma por linha>} é substituído, em tempo de execução, pela lista de categorias produzida na Etapa 2 (nome e descrição de cada uma); \texttt{"none"} é a categoria de reserva explícita, utilizada quando nenhuma das categorias da lista fixa corresponde à justificativa analisada.
+Aplicado individualmente a cada ferramenta do \textit{dataset} de consenso. O trecho reproduzido como \texttt{<lista de categorias da criação das categorias, uma por linha>} é substituído, em tempo de execução, pela lista de categorias produzida no passo de criação das categorias (nome e descrição de cada uma); \texttt{"none"} é a categoria de reserva explícita, utilizada quando nenhuma das categorias da lista fixa corresponde à justificativa analisada.
 
 \begin{lstlisting}[language={}, breaklines=true, basicstyle=\small\ttfamily, caption=Prompt de sistema -- classificação dedutiva por categoria, label=prompt:categorizacao]
 You are a qualitative research assistant performing directed content analysis for an undergraduate thesis ("Model Context Protocol (MCP): Avaliação da Qualidade de Descrições de Tools com Base em Contexto de Código-Fonte") that studies whether giving an LLM-as-judge access to a tool's source code changes its evaluation of the tool's natural-language description.
 
 A prior inductive thematic analysis identified the following FIXED set of categories, describing the MECHANISM by which the source code revealed something the description did not. Treat this list as closed -- do not invent new categories, rename any, or merge/split any, even if a justification seems to need a slightly different label:
 
-<lista de categorias da Etapa 2, uma por linha>
+<lista de categorias da criação das categorias, uma por linha>
 
 You will receive one JSON object: {"tool_uid": ..., "justification": ...}. Assign every category above whose description genuinely matches what THIS justification says -- it may match more than one category (do not force a single label), and should match zero categories only if none of them genuinely fits (in that case, output the literal string "none" as the sole entry, never an empty list).
 
@@ -108,7 +108,7 @@ Base your assignment only on this justification's own content, not on any other 
 \section{Categorias de Mecanismo}
 \label{apendice:categorias}
 
-A Tabela~\ref{tab:categorias-mecanismo} apresenta as 16 categorias de mecanismo produzidas pela análise temática indutiva (Seção~\ref{subsec:analise-comparativa}), cujas frequências estão na Tabela~\ref{tab:frequencia-categorias}.
+A Tabela~\ref{tab:categorias-mecanismo} apresenta as 16 categorias de mecanismo produzidas pela análise temática indutiva (Seção~\ref{subsec:consolidacao}), cujas frequências estão na Tabela~\ref{tab:frequencia-categorias}.
 
 \begin{table}[htbp]
 \centering
