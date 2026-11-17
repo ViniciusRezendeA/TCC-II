@@ -118,13 +118,6 @@ Liu, N.~F., Lin, K., Hewitt, J., Paranjape, A., Bevilacqua, M., Petroni, F.,
   Model Context Protocol Servers}.
 \newblock {\em arXiv preprint arXiv:2508.14704}.
 
-\bibitem[{Model Context Protocol} 2026]{mcpSpecTools}
-{Model Context Protocol} (2026).
-\newblock {Specification 2026-07-28: Tools}.
-\newblock
-  \url{https://modelcontextprotocol.io/specification/2026-07-28/server/tools}.
-\newblock Acesso em: nov. 2026.
-
 \bibitem[Pressman and Maxim 2016]{pressman2016}
 Pressman, R.~S. and Maxim, B.~R. (2016).
 \newblock {\em {Engenharia de Software: Uma Abordagem Profissional}}.
