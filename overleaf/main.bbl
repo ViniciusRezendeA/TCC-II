@@ -27,13 +27,6 @@ Chaokromthong, K., Sintao, N., et~al. (2021).
 \newblock {\em Apheit international journal of interdisciplinary social
   sciences and technology}, 10(2):76--86.
 
-\bibitem[De~Paoli 2024]{depaoli2024inductive}
-De~Paoli, S. (2024).
-\newblock {Performing an Inductive Thematic Analysis of Semi-Structured
-  Interviews With a Large Language Model: An Exploration and Provocation on the
-  Limits of the Approach}.
-\newblock {\em Social Science Computer Review}, 42(4):997--1019.
-
 \bibitem[Faghih et~al. 2025]{faghih2025tool}
 Faghih, K., Wang, W., Cheng, Y., Bharti, S., Sriramanan, G., Balasubramanian,
   S., Hosseini, P., and Feizi, S. (2025).
@@ -79,11 +72,6 @@ Hasan, M.~M., Li, H., Rajbahadur, G.~K., Adams, B., and Hassan, A.~E. (2026b).
   Improving AI Agent Efficiency with Augmented MCP Tool Descriptions}.
 \newblock {\em arXiv preprint arXiv:2602.14878v3}.
 
-\bibitem[Hsieh and Shannon 2005]{hsiehshannon2005content}
-Hsieh, H.-F. and Shannon, S.~E. (2005).
-\newblock {Three approaches to qualitative content analysis}.
-\newblock {\em Qualitative Health Research}, 15(9):1277--1288.
-
 \bibitem[{ISO/IEC} 2011]{iso25010}
 {ISO/IEC} (2011).
 \newblock {ISO/IEC 25010:2011 -- Systems and software engineering -- Systems
@@ -106,20 +94,6 @@ Khan, J.~Y., Khondaker, M. T.~I., Uddin, G., and Iqbal, A. (2021).
 \newblock In {\em 2021 IEEE International Conference on Software Analysis,
   Evolution and Reengineering (SANER)}, pages 318--329.
 
-\bibitem[Lam et~al. 2024]{lam2024lloom}
-Lam, M.~S., Teoh, J., Landay, J.~A., Heer, J., and Bernstein, M.~S. (2024).
-\newblock {Concept Induction: Analyzing Unstructured Text with High-Level
-  Concepts Using LLooM}.
-\newblock In {\em Proceedings of the 2024 CHI Conference on Human Factors in
-  Computing Systems (CHI '24)}, pages 1--28. ACM.
-
-\bibitem[Liu et~al. 2024]{liu2024lost}
-Liu, N.~F., Lin, K., Hewitt, J., Paranjape, A., Bevilacqua, M., Petroni, F.,
-  and Liang, P. (2024).
-\newblock {Lost in the middle: How language models use long contexts}.
-\newblock {\em Transactions of the Association for Computational Linguistics},
-  12:157--173.
-
 \bibitem[{Luo} et~al. 2025]{2025arXiv250814704L}
 {Luo}, Z., {Shen}, Z., {Yang}, W., {Zhao}, Z., {Jwalapuram}, P., {Saha}, A.,
   {Sahoo}, D., {Savarese}, S., {Xiong}, C., and {Li}, J. (2025).
@@ -139,39 +113,10 @@ Shi, Y., Zhang, X., Zhang, X., Shen, X., Ouyang, H., Qiu, H., Zhang, M., and
   Measurement, Detection, and Security Implications}.
 \newblock {\em arXiv preprint arXiv:2606.04769}.
 
-\bibitem[Tamkin et~al. 2024]{tamkin2024clio}
-Tamkin, A., McCain, M., Handa, K., Durmus, E., Lovitt, L., Rathi, A., Huang,
-  S., Mountfield, A., Hong, J., Ritchie, S., Stern, M., Clarke, B., Goldberg,
-  L., Sumers, T.~R., Mueller, J., McEachen, W., Mitchell, W., Carter, S.,
-  Clark, J., Kaplan, J., and Ganguli, D. (2024).
-\newblock {Clio: Privacy-Preserving Insights into Real-World AI Use}.
-\newblock arXiv:2412.13678.
-
-\bibitem[Wan et~al. 2024]{wan2024tntllm}
-Wan, M., Safavi, T., Jauhar, S.~K., Kim, Y., Counts, S., Neville, J., Suri, S.,
-  Shah, C., White, R.~W., Yang, L., Andersen, R., Buscher, G., Joshi, D., and
-  Rangan, N. (2024).
-\newblock {TnT-LLM: Text Mining at Scale with Large Language Models}.
-\newblock In {\em Proceedings of the 30th ACM SIGKDD Conference on Knowledge
-  Discovery and Data Mining (KDD '24)}, pages 5836--5847. ACM.
-
-\bibitem[Wen et~al. 2025]{wen2025charity}
-Wen, C., Clough, P., Paton, R., and Middleton, R. (2025).
-\newblock {Leveraging large language models for thematic analysis: a case study
-  in the charity sector}.
-\newblock {\em AI \& Society}, 41(1):731--748.
-
 \bibitem[Wilcoxon 1945]{wilcoxon1945individual}
 Wilcoxon, F. (1945).
 \newblock {Individual Comparisons by Ranking Methods}.
 \newblock {\em Biometrics Bulletin}, 1(6):80--83.
-
-\bibitem[Xiao et~al. 2023]{xiao2023codebook}
-Xiao, Z., Yuan, X., Liao, Q.~V., Abdelghani, R., and Oudeyer, P.-Y. (2023).
-\newblock {Supporting Qualitative Analysis with Large Language Models:
-  Combining Codebook with GPT-3 for Deductive Coding}.
-\newblock In {\em Companion Proceedings of the 28th International Conference on
-  Intelligent User Interfaces (IUI '23 Companion)}, pages 75--78. ACM.
 
 \bibitem[Zheng et~al. 2023]{NEURIPS2023_91f18a12}
 Zheng, L., Chiang, W.-L., Sheng, Y., Zhuang, S., Wu, Z., Zhuang, Y., Lin, Z.,
