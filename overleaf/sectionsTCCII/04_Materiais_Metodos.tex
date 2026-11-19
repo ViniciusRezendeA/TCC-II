@@ -39,7 +39,7 @@ Cada ferramenta foi avaliada em dois cenários: (i) sem código, recebendo nome,
 
  \laranja{Em ambos os cenários}, modelos de linguagem atuam como juízes (\textit{LLM-as-a-Judge}) e pontuam, segundo as definições dos seis componentes de Hasan et al. (2026b)\nocite{2026arXiv260214878M} e uma escala Likert única de cinco pontos: \textit{Purpose} (clareza da finalidade da ferramenta), \textit{Guidelines} (orientações sobre quando e como utilizá-la), \textit{Limitations} (restrições, premissas e casos de falha), \textit{Parameter Explanation} (documentação dos parâmetros de entrada), \textit{Length and Completeness} (detalhamento e cobertura) e \textit{Examples} (presença de exemplos de uso).
 
-Foram utilizados três juízes de proveniências e custos distintos: DeepSeek-V4.1-Flash e Gemini 3.5 Flash-Lite, acessados via API, e Qwen3-14B, executado localmente via Ollama. A combinação reduz o risco de que um padrão observado seja específico de um único provedor.
+Foram utilizados três juízes de proveniências e custos distintos: DeepSeek-V4.1-Flash e Gemini 3.5 Flash-Lite, acessados via API, e Qwen3-14B, executado localmente via Ollama. O Qwen3-14B foi configurado com temperatura 0,0, modo de raciocínio (\textit{thinking}) desativado e janela de contexto de 40.960 \textit{tokens}, valor suficiente para comportar o limite de 32.000 caracteres de código por ferramenta sem truncamento pelo servidor. A combinação reduz o risco de que um padrão observado seja específico de um único provedor.
 
 \subsection{Consolidação dos Resultados}
 \label{subsec:consolidacao}
