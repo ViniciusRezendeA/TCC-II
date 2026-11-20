@@ -1,12 +1,5 @@
 \begin{thebibliography}{}
 
-\bibitem[{Anthropic} 2026]{anthropicDefineTools}
-{Anthropic} (2026).
-\newblock {Define tools}.
-\newblock
-  \url{https://platform.claude.com/docs/en/agents-and-tools/tool-use/define-tools}.
-\newblock Acesso em: nov. 2026.
-
 \bibitem[{Avaya} 2026]{Avaya2026}
 {Avaya} (2026).
 \newblock {The Model Context Protocol: A Status Report for Enterprise Customer
@@ -39,12 +32,6 @@ Faghih, K., Wang, W., Cheng, Y., Bharti, S., Sriramanan, G., Balasubramanian,
 Femmer, H., M{\'e}ndez~Fern{\'a}ndez, D., Wagner, S., and Eder, S. (2017).
 \newblock {Rapid quality assurance with Requirements Smells}.
 \newblock {\em Journal of Systems and Software}, 123:190--213.
-
-\bibitem[{GitHub} 2026]{githubSearchAPI}
-{GitHub} (2026).
-\newblock {REST API endpoints for search}.
-\newblock \url{https://docs.github.com/en/rest/search/search}.
-\newblock Acesso em: nov. 2026.
 
 \bibitem[{Guo} et~al. 2025]{guo2025measurement}
 {Guo}, H., {Hao}, Y., {Zhang}, Y., {Xu}, M., {Lv}, P., {Chen}, J., and {Cheng},
