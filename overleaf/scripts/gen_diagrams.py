@@ -216,11 +216,11 @@ def gen_metodologia():
              fill=STEP_COLETA[0], edge=STEP_COLETA[1])
     b2 = box(ax, xs[1], y, w[1], h, "2. Extração das\nFerramentas e Código", fontsize=13,
              fill=STEP_EXTRACAO[0], edge=STEP_EXTRACAO[1])
-    b3 = box(ax, xs[2], y, w[2], h, "3. Classificação\n2 cenários × múltiplos\nmodelos de IA (juízes)", fontsize=12,
+    b3 = box(ax, xs[2], y, w[2], h, "3. Avaliação\n2 cenários × múltiplos\nmodelos de IA (juízes)", fontsize=12,
              fill=STEP_CLASSIFICACAO[0], edge=STEP_CLASSIFICACAO[1])
-    b4 = box(ax, xs[3], y, w[3], h, "4. Consolidação\npareamento das notas e\ncategorização das\nmudanças de nota", fontsize=12,
+    b4 = box(ax, xs[3], y, w[3], h, "4. Consolidação,\npareamento das notas e\ncategorização das\nmudanças de nota", fontsize=12,
              fill=STEP_CONSOLIDACAO[0], edge=STEP_CONSOLIDACAO[1])
-    b5 = box(ax, xs[4], y, w[4], h, "5. Análise Comparativa\nvariação por atributo,\nWilcoxon e quartis,\nanálise qualitativa", fontsize=12,
+    b5 = box(ax, xs[4], y, w[4], h, "5. Análise Comparativa\nda variação por atributo,\nanálise estatística", fontsize=12,
              fill=STEP_ANALISE[0], edge=STEP_ANALISE[1])
     conn(ax, b1, b2)
     conn(ax, b2, b3)
@@ -408,6 +408,30 @@ def gen_etapa3():
     save(fig, "fluxo_etapa3_detalhado.png")
 
 
+def gen_etapa3_alto_nivel():
+    """Versao de alto nivel da Etapa 3: so o fluxo de sucesso, sem detalhar o
+    algoritmo (concorrencia, checkpoint, recusa, erro). A ferramenta se
+    bifurca nos dois cenarios, ambos avaliados pelos mesmos juizes, e o
+    resultado sao as notas por componente.
+    """
+    fill, edge = STEP_CLASSIFICACAO
+    w, h = 2.4, 1.3
+    xs = layout_row(0, 0.9, [w, w, w, w])
+    dy = 1.1
+    fig, ax = new_ax()
+    b1 = box(ax, xs[0], 0, w, h, "Ferramenta\nextraída", fontsize=14, fill=fill, edge=edge)
+    s1 = box(ax, xs[1], dy, w, h, "Cenário 1\nsem código", fontsize=14, fill=fill, edge=edge)
+    s2 = box(ax, xs[1], -dy, w, h, "Cenário 2\ncom código", fontsize=14, fill=fill, edge=edge)
+    j = box(ax, xs[2], 0, w, h, "Avaliação pelos\njuízes (LLM)", fontsize=14, fill=fill, edge=edge)
+    n = box(ax, xs[3], 0, w, h, "Notas por\ncomponente", fontsize=14, fill=fill, edge=edge)
+    conn(ax, b1, s1)
+    conn(ax, b1, s2)
+    conn(ax, s1, j)
+    conn(ax, s2, j)
+    conn(ax, j, n)
+    save(fig, "fluxo_etapa3_alto_nivel.png")
+
+
 # ---------------------------------------------------------------------------
 # 5. Exemplo de arvore de chamadas (arvoreFinal.png) - niveis 1 a 4, mostrando
 # o teto de profundidade de 3 niveis (Secao "Extracao das Ferramentas"): o
@@ -519,5 +543,6 @@ if __name__ == "__main__":
     gen_etapa1()
     gen_etapa2()
     gen_etapa3()
+    gen_etapa3_alto_nivel()
     gen_arvore()
     print("done")
