@@ -6,7 +6,24 @@ A pesquisa caracteriza-se como um estudo empírico, quantitativo e comparativo, 
 
 \begin{figure}[htbp]
     \centering
-    \includegraphics[width=1\linewidth]{./images/metodologia_v7.png}
+    \definecolor{c1f}{RGB}{219,232,251}\definecolor{c1b}{RGB}{46,91,168}
+    \definecolor{c2f}{RGB}{236,223,245}\definecolor{c2b}{RGB}{123,63,160}
+    \definecolor{c3f}{RGB}{215,242,239}\definecolor{c3b}{RGB}{15,122,114}
+    \definecolor{c4f}{RGB}{228,232,240}\definecolor{c4b}{RGB}{74,90,120}
+    \definecolor{c5f}{RGB}{248,221,228}\definecolor{c5b}{RGB}{168,63,90}
+    \hyphenpenalty=10000 \exhyphenpenalty=10000
+    \begin{tikzpicture}[
+        box/.style={rectangle, rounded corners=2pt, draw, line width=0.8pt, minimum width=74pt, minimum height=58pt,
+                    text width=68pt, align=center, font=\sffamily\fontsize{7.7}{9.3}\selectfont, inner sep=2pt},
+        seta/.style={-{Stealth[length=4pt]}, line width=0.9pt, draw=black!80}
+    ]
+        \node[box, fill=c1f, draw=c1b] (a) at (0,0) {1. Coleta dos Repositórios MCP};
+        \node[box, fill=c2f, draw=c2b] (b) at (88pt,0) {2. Extração das Ferramentas e Código};
+        \node[box, fill=c3f, draw=c3b] (c) at (176pt,0) {3. Avaliação\\2 cenários $\times$ múltiplos modelos de IA (juízes)};
+        \node[box, fill=c4f, draw=c4b] (d) at (264pt,0) {4. Consolidação, pareamento das notas e categorização das mudanças de nota};
+        \node[box, fill=c5f, draw=c5b] (e) at (352pt,0) {5. Análise Comparativa da variação por atributo, análise estatística};
+        \draw[seta] (a) -- (b); \draw[seta] (b) -- (c); \draw[seta] (c) -- (d); \draw[seta] (d) -- (e);
+    \end{tikzpicture}
     \caption{Fluxo metodológico adotado na pesquisa}
     \label{fig:metodologia}
 \end{figure}
@@ -30,9 +47,9 @@ Ao todo, essa etapa extraiu 12.166 ferramentas distribuídas nos 206 repositóri
 \subsection{Avaliação das Ferramentas}
 \label{subsec:classificacao}
 
-Cada ferramenta foi avaliada em dois cenários: (i) sem código, recebendo nome, \laranja{repositório} de origem e descrição, os mesmos campos usados no \textit{script} de avaliação de Hasan et al. (2026b)\nocite{2026arXiv260214878M}; e (ii) com código, recebendo adicionalmente \laranja{o código-fonte da ferramenta, isto é, os trechos de código dos métodos que compõem sua árvore de chamadas (Seção~\ref{subsec:extracao})}. A descrição é a mesma nos dois cenários; a única \laranja{diferença entre eles} é a presença do código. \textcolor{red}{O esquema de entrada (\textit{inputSchema}) não é fornecido ao juiz, de modo a isolar o texto da descrição, que é o objeto avaliado. A especificação do MCP trata descrição e esquema como campos distintos da ferramenta, e a documentação da Anthropic aponta a descrição como o fator mais importante para o desempenho no uso de ferramentas, recomendando que ela própria explique o significado de cada parâmetro.\footnote{Documentação oficial da Anthropic (\textit{Define tools}): \url{https://platform.claude.com/docs/en/agents-and-tools/tool-use/define-tools}. Acesso em: nov. 2026.} Faghih et al. (2025)\nocite{faghih2025tool} adotam o mesmo recorte ao alterar apenas a descrição das ferramentas, o que basta para mudar a frequência com que os modelos as escolhem.} 
+Cada ferramenta foi avaliada em dois cenários: (i) sem código, recebendo nome, repositório de origem e descrição, os mesmos campos usados no \textit{script} de avaliação de Hasan et al. (2026b)\nocite{2026arXiv260214878M}; e (ii) com código, recebendo adicionalmente o código-fonte da ferramenta, isto é, os trechos de código dos métodos que compõem sua árvore de chamadas (Seção~\ref{subsec:extracao}). A descrição é a mesma nos dois cenários; a única diferença entre eles é a presença do código. O esquema de entrada (\textit{inputSchema}) não é fornecido ao juiz, de modo a isolar o texto da descrição, que é o objeto avaliado. A especificação do MCP trata descrição e esquema como campos distintos da ferramenta, e a documentação da Anthropic aponta a descrição como o fator mais importante para o desempenho no uso de ferramentas, recomendando que ela própria explique o significado de cada parâmetro.\footnote{Documentação oficial da Anthropic (\textit{Define tools}): \url{https://platform.claude.com/docs/en/agents-and-tools/tool-use/define-tools}. Acesso em: nov. 2026.} Faghih et al. (2025)\nocite{faghih2025tool} adotam o mesmo recorte ao alterar apenas a descrição das ferramentas, o que basta para mudar a frequência com que os modelos as escolhem. 
 
-\laranja{Em ambos os cenários}, modelos de linguagem atuam como juízes (\textit{LLM-as-a-Judge}) e pontuam, segundo as definições dos seis componentes de Hasan et al. (2026b)\nocite{2026arXiv260214878M}: \textit{Purpose} (clareza da finalidade da ferramenta), \textit{Guidelines} (orientações sobre quando e como utilizá-la), \textit{Limitations} (restrições, premissas e casos de falha), \textit{Parameter Explanation} (documentação dos parâmetros de entrada), \textit{Length and Completeness} (detalhamento e cobertura) e \textit{Examples} (presença de exemplos de uso); em uma escala Likert única de cinco pontos. A Figura~\ref{fig:fluxo-etapa3} apresenta o fluxo geral dessa etapa.
+Em ambos os cenários, modelos de linguagem atuam como juízes (\textit{LLM-as-a-Judge}) e pontuam, segundo as definições dos seis componentes de Hasan et al. (2026b)\nocite{2026arXiv260214878M}: \textit{Purpose} (clareza da finalidade da ferramenta), \textit{Guidelines} (orientações sobre quando e como utilizá-la), \textit{Limitations} (restrições, premissas e casos de falha), \textit{Parameter Explanation} (documentação dos parâmetros de entrada), \textit{Length and Completeness} (detalhamento e cobertura) e \textit{Examples} (presença de exemplos de uso); em uma escala Likert única de cinco pontos. A Figura~\ref{fig:fluxo-etapa3} apresenta o fluxo geral dessa etapa.
 
 \begin{figure}[htbp]
     \centering
